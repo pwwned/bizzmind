@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" width="260" height="64">
+<!-- Bizzmind lockup: mark + wordmark (Manrope 800). Convert text to outlines before print use. -->
+<g><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#b5d33d"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#6f8f1f"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#4f6a1b"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#4f6a1b"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#b5d33d"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#7f9c3a"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#141e18"/></g>
+<text x="70" y="44" font-family="Manrope, Inter, system-ui, sans-serif" font-weight="800" font-size="30" letter-spacing="-0.9" fill="#141e18">Bizz<tspan fill="#6f8f1f">mind</tspan></text>
+</svg>

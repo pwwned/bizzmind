@@ -1,0 +1,193 @@
+<title>Bizzmind Logo Concepts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #f4f5f0; --panel: #ffffff; --ink: #141a15; --muted: #66706a; --line: #dde2d8;
+    --navy: #141e18; --navy-mid: #243529; --cyan: #b5d33d; --cyan-deep: #6f8f1f;
+    --dark-panel: #141e18; --dark-ink: #eef2ea; --dark-muted: #9aa69c; --dark-line: rgba(255,255,255,0.1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #152018; --panel: #1e2c23; --ink: #eef2ea; --muted: #9aa69c; --line: rgba(255,255,255,0.1); }
+  }
+  :root[data-theme="dark"] { --bg: #152018; --panel: #1e2c23; --ink: #eef2ea; --muted: #9aa69c; --line: rgba(255,255,255,0.1); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 64px; }
+  h1 { font-family: Manrope, system-ui, sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; text-wrap: balance; }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0 0 32px; }
+  .concept { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; padding: 24px 0 28px; border-top: 1px solid var(--line); }
+  .concept header { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 14px; }
+  .concept header h2 { font-family: Manrope, system-ui, sans-serif; font-weight: 800; font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+  .concept header p { margin: 0; color: var(--muted); }
+  .kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan-deep); }
+  .swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sw { border-radius: 14px; display: flex; align-items: center; justify-content: center; height: 170px; border: 1px solid var(--line); }
+  .sw.dark { background: var(--navy); }
+  .sw.light { background: #ffffff; }
+  .sw svg { width: 96px; height: 96px; }
+  .uses { display: grid; grid-template-rows: auto auto 1fr; gap: 12px; }
+  .lockup { border-radius: 14px; background: var(--navy); border: 1px solid var(--line); padding: 22px 26px; display: flex; align-items: center; gap: 14px; }
+  .lockup svg { width: 40px; height: 40px; }
+  .word { font-family: Manrope, system-ui, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.03em; color: #ffffff; }
+  .word em { font-style: normal; background: linear-gradient(135deg, var(--cyan), var(--cyan-deep)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .header-mock { border-radius: 14px; background: rgba(20,30,24,0.94); border: 1px solid var(--line); padding: 12px 18px; display: flex; align-items: center; gap: 10px; color: #c9d1c6; font-size: 13px; }
+  .header-mock svg { width: 28px; height: 28px; filter: drop-shadow(0 0 10px rgba(181,211,61,0.45)); }
+  .header-mock .hw { font-family: Manrope, system-ui, sans-serif; font-weight: 800; font-size: 16px; color: #fff; letter-spacing: -0.02em; }
+  .header-mock .hw em { font-style: normal; color: var(--cyan); }
+  .header-mock .crumb { color: #9aa69c; margin-left: 6px; }
+  .header-mock .sp { flex: 1; }
+  .header-mock .pill { border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 3px 8px; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+  .favs { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .favs .tab { display: inline-flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px 8px 0 0; padding: 6px 12px; color: var(--ink); }
+  .favs svg.s16 { width: 16px; height: 16px; }
+  .favs svg.s32 { width: 32px; height: 32px; }
+  .note { grid-column: 1 / -1; color: var(--muted); font-size: 13px; max-width: 78ch; }
+  .note b { color: var(--ink); font-weight: 600; }
+  @media (max-width: 760px) { .concept { grid-template-columns: 1fr; } }
+</style>
+
+<div class="wrap">
+  <h1>Bizzmind — маслено зелена палитра и знак</h1>
+  <p class="lede">Финалната форма: барове + пай от три триъгълни дяла с процепи с постоянна ширина, подравнен с баровете — в пет цветови комбинации, показани като самостоятелен знак на тъмно и светло, в lockup с името, в реалния header на приложението и като favicon в 16 и 32 px. Всичко е вектор (SVG). Първо са трите варианта на новата палитра; знаците отдолу са в вариант A.</p>
+
+  <style>
+    .pals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px; }
+    .pal { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+    .pal .mock { padding: 14px; display: grid; gap: 10px; }
+    .pal h3 { font-family: Manrope, system-ui, sans-serif; font-size: 15px; font-weight: 800; margin: 0; }
+    .pal .meta { padding: 12px 14px 14px; color: var(--muted); font-size: 12px; }
+    .pal .chips { display: flex; gap: 6px; margin-top: 8px; }
+    .pal .chip { width: 26px; height: 26px; border-radius: 7px; border: 1px solid rgba(0,0,0,0.08); }
+    .mh { display: flex; align-items: center; gap: 8px; font-family: Manrope, system-ui, sans-serif; font-weight: 800; font-size: 14px; }
+    .mh i { width: 18px; height: 18px; border-radius: 5px; display: inline-block; }
+    .mcard { border-radius: 10px; padding: 10px 12px; font-size: 11px; display: grid; gap: 6px; }
+    .mcard b { font-size: 12px; }
+    .bars { display: flex; gap: 4px; align-items: flex-end; height: 44px; }
+    .bars span { flex: 1; border-radius: 3px 3px 0 0; }
+    .mbtn { border-radius: 8px; padding: 6px 10px; font-size: 11px; font-weight: 700; justify-self: start; }
+    @media (max-width: 760px) { .pals { grid-template-columns: 1fr; } }
+  </style>
+  <section class="pals">
+    <!-- A: near-black green ground, olive-lime gradient -->
+    <div class="pal">
+      <div class="mock" style="background:linear-gradient(180deg,#141e18,#1a271f);color:#eef2ea;">
+        <div class="mh"><i style="background:linear-gradient(135deg,#c9e356,#6f8f1f)"></i>Bizz<span style="background:linear-gradient(135deg,#c9e356,#6f8f1f);-webkit-background-clip:text;background-clip:text;color:transparent">mind</span></div>
+        <div class="mcard" style="background:#203027;border:1px solid rgba(255,255,255,0.08);">
+          <b>Оборот по региони</b><span style="color:#9aa69c">София води с 42% от оборота</span>
+          <div class="bars"><span style="height:100%;background:#b5d33d"></span><span style="height:55%;background:#7f9c3a"></span><span style="height:40%;background:#56703a"></span><span style="height:28%;background:#3d5236"></span></div>
+        </div>
+        <span class="mbtn" style="background:linear-gradient(135deg,#c9e356,#6f8f1f);color:#141e18;">📽 Презентация</span>
+      </div>
+      <div class="meta"><h3>A · Маслина на черно-зелено</h3>Фонът е почти черен със зелен подтон; акцентът е светла маслина → тъмна маслина.
+        <div class="chips"><span class="chip" style="background:#141e18"></span><span class="chip" style="background:#203027"></span><span class="chip" style="background:#6f8f1f"></span><span class="chip" style="background:#b5d33d"></span><span class="chip" style="background:#9aa69c"></span><span class="chip" style="background:#eef2ea"></span></div></div>
+    </div>
+    <!-- B: charcoal ground, deep olive accent -->
+    <div class="pal">
+      <div class="mock" style="background:linear-gradient(180deg,#121312,#1b1d1a);color:#ecece8;">
+        <div class="mh"><i style="background:linear-gradient(135deg,#9db83a,#4f6a1b)"></i>Bizz<span style="background:linear-gradient(135deg,#9db83a,#4f6a1b);-webkit-background-clip:text;background-clip:text;color:transparent">mind</span></div>
+        <div class="mcard" style="background:#232622;border:1px solid rgba(255,255,255,0.08);">
+          <b>Оборот по региони</b><span style="color:#9c9f98">София води с 42% от оборота</span>
+          <div class="bars"><span style="height:100%;background:#9db83a"></span><span style="height:55%;background:#7a8f35"></span><span style="height:40%;background:#58672f"></span><span style="height:28%;background:#3b4428"></span></div>
+        </div>
+        <span class="mbtn" style="background:linear-gradient(135deg,#9db83a,#4f6a1b);color:#111;">📽 Презентация</span>
+      </div>
+      <div class="meta"><h3>B · Маслина на графит</h3>Неутрален антрацит без зелен подтон; зеленото е само в акцентите → по-строго, „бизнес костюм“.
+        <div class="chips"><span class="chip" style="background:#121312"></span><span class="chip" style="background:#232622"></span><span class="chip" style="background:#4f6a1b"></span><span class="chip" style="background:#9db83a"></span><span class="chip" style="background:#9c9f98"></span><span class="chip" style="background:#ecece8"></span></div></div>
+    </div>
+    <!-- C: light ground, deep olive -->
+    <div class="pal">
+      <div class="mock" style="background:linear-gradient(180deg,#f6f7f2,#eceee6);color:#141a15;">
+        <div class="mh"><i style="background:linear-gradient(135deg,#7fa02a,#3f5a14)"></i>Bizz<span style="background:linear-gradient(135deg,#7fa02a,#3f5a14);-webkit-background-clip:text;background-clip:text;color:transparent">mind</span></div>
+        <div class="mcard" style="background:#ffffff;border:1px solid #dde2d8;">
+          <b>Оборот по региони</b><span style="color:#66706a">София води с 42% от оборота</span>
+          <div class="bars"><span style="height:100%;background:#5f7f1c"></span><span style="height:55%;background:#86a23c"></span><span style="height:40%;background:#b3c47a"></span><span style="height:28%;background:#d6dfc0"></span></div>
+        </div>
+        <span class="mbtn" style="background:linear-gradient(135deg,#7fa02a,#3f5a14);color:#fff;">📽 Презентация</span>
+      </div>
+      <div class="meta"><h3>C · Маслина на светло</h3>Бял/сив фон с дълбока маслина — за дневен режим или за клиенти, които не искат тъмен интерфейс. Може да е light-темата към A или B.
+        <div class="chips"><span class="chip" style="background:#f6f7f2"></span><span class="chip" style="background:#ffffff"></span><span class="chip" style="background:#3f5a14"></span><span class="chip" style="background:#7fa02a"></span><span class="chip" style="background:#66706a"></span><span class="chip" style="background:#141a15"></span></div></div>
+    </div>
+  </section>
+
+  <svg width="0" height="0" style="position:absolute"><defs><symbol id="k1" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#dfe86a"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#b5d33d"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#6f8f1f"/></symbol>
+<symbol id="k1l" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#dfe86a"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#b5d33d"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#6f8f1f"/></symbol>
+<symbol id="k2" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#e9f08e"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#b5d33d"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#b5d33d"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#6f8f1f"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#6f8f1f"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#e9f08e"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#43582f"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#2f4026"/></symbol>
+<symbol id="k2l" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#b5d33d"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#6f8f1f"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#4f6a1b"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#4f6a1b"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#b5d33d"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#7f9c3a"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#141e18"/></symbol>
+<symbol id="k3" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#eaf08a"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#dfe86a"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#b5d33d"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#6f8f1f"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#4f6a1b"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#dfe86a"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#93ad35"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#4f6a1b"/></symbol>
+<symbol id="k3l" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#b5d33d"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#93ad35"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#6f8f1f"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#4f6a1b"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#4f6a1b"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#b5d33d"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#6f8f1f"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#4f6a1b"/></symbol>
+<symbol id="k4" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#ffffff"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#b5d33d"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#6f8f1f"/></symbol>
+<symbol id="k4l" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#141e18"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#b5d33d"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#6f8f1f"/></symbol>
+<symbol id="k5" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#ffffff"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#b5d33d"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#b5d33d"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#b5d33d"/></symbol>
+<symbol id="k5l" viewBox="0 0 64 64"><path d="M28.0 8.00 H5.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 16.23 H10.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 24.47 H14.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 32.70 H17.52 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 40.93 H20.22 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M28.0 49.17 H22.42 a3.42 3.42 0 0 0 0 6.83 H28.0 Z" fill="#141e18"/><path d="M29.40 39.02 L29.40 24.47 A14.55 14.55 0 0 1 42.00 31.74 Z" fill="#6f8f1f"/><path d="M30.10 40.23 L42.70 32.96 A14.55 14.55 0 0 1 42.70 47.51 Z" fill="#6f8f1f"/><path d="M29.40 41.45 L42.00 48.72 A14.55 14.55 0 0 1 29.40 56.00 Z" fill="#6f8f1f"/></symbol></defs></svg>
+  <style>.sw svg { width: 128px; height: 128px; } .grid-note { color: var(--muted); font-size: 12.5px; margin: -18px 0 22px; max-width: 78ch; }</style>
+  <p class="grid-note"><b style="color:var(--ink)">Геометрия:</b> 6 бара с еднаква височина (6.83) и еднакви процепи (1.4). Паят е три дяла по 60°; всеки дял е изместен по ъглополовящата си с 1.4, което прави процепите между дяловете <b style="color:var(--ink)">успоредни и с постоянна ширина 1.4</b> — същата като между баровете. Плоската страна на пая стои на 1.4 от оста; паят започва на горния ръб на 3-тия бар и завършва на долния ръб на 6-тия.</p>
+
+  <section class="concept">
+    <header><span class="kicker">01</span><h2>Classic</h2><p>Бели барове; три маслинени дяла (светъл → тъмен) с процепи с постоянна ширина.</p></header>
+    <div class="swatches">
+      <div class="sw dark"><svg><use href="#k1"/></svg></div>
+      <div class="sw light"><svg><use href="#k1l"/></svg></div>
+    </div>
+    <div class="uses">
+      <div class="lockup"><svg><use href="#k1"/></svg><span class="word">Bizz<em>mind</em></span></div>
+      <div class="header-mock"><svg><use href="#k1"/></svg><span class="hw">Bizz<em>mind</em></span><span class="crumb">/ Poli Demo</span><span class="sp"></span><span class="pill">BG</span></div>
+      <div class="favs"><span class="tab"><svg class="s16"><use href="#k1"/></svg> Bizzmind Studio</span><svg class="s32"><use href="#k1"/></svg><span>favicon 16 / 32</span></div>
+    </div>
+    <p class="note">Избраната комбинация. Процепите между дяловете са успоредни и равни на тези между баровете.</p>
+  </section>
+
+  <section class="concept">
+    <header><span class="kicker">02</span><h2>Inverse</h2><p>Маслинени барове (светло → тъмно), тъмен пай с един светъл дял отгоре.</p></header>
+    <div class="swatches">
+      <div class="sw dark"><svg><use href="#k2"/></svg></div>
+      <div class="sw light"><svg><use href="#k2l"/></svg></div>
+    </div>
+    <div class="uses">
+      <div class="lockup"><svg><use href="#k2"/></svg><span class="word">Bizz<em>mind</em></span></div>
+      <div class="header-mock"><svg><use href="#k2"/></svg><span class="hw">Bizz<em>mind</em></span><span class="crumb">/ Poli Demo</span><span class="sp"></span><span class="pill">BG</span></div>
+      <div class="favs"><span class="tab"><svg class="s16"><use href="#k2"/></svg> Bizzmind Studio</span><svg class="s32"><use href="#k2"/></svg><span>favicon 16 / 32</span></div>
+    </div>
+    <p class="note">Цветът е в данните, резултатът е плътен с един акцент — както в картинката ти.</p>
+  </section>
+
+  <section class="concept">
+    <header><span class="kicker">03</span><h2>Mono</h2><p>Целият знак в маслинена скала.</p></header>
+    <div class="swatches">
+      <div class="sw dark"><svg><use href="#k3"/></svg></div>
+      <div class="sw light"><svg><use href="#k3l"/></svg></div>
+    </div>
+    <div class="uses">
+      <div class="lockup"><svg><use href="#k3"/></svg><span class="word">Bizz<em>mind</em></span></div>
+      <div class="header-mock"><svg><use href="#k3"/></svg><span class="hw">Bizz<em>mind</em></span><span class="crumb">/ Poli Demo</span><span class="sp"></span><span class="pill">BG</span></div>
+      <div class="favs"><span class="tab"><svg class="s16"><use href="#k3"/></svg> Bizzmind Studio</span><svg class="s32"><use href="#k3"/></svg><span>favicon 16 / 32</span></div>
+    </div>
+    <p class="note">Един цвят, една логика; най-независим от фона.</p>
+  </section>
+
+  <section class="concept">
+    <header><span class="kicker">04</span><h2>Two-tone</h2><p>Бели барове; горният дял е бял, другите два — маслина.</p></header>
+    <div class="swatches">
+      <div class="sw dark"><svg><use href="#k4"/></svg></div>
+      <div class="sw light"><svg><use href="#k4l"/></svg></div>
+    </div>
+    <div class="uses">
+      <div class="lockup"><svg><use href="#k4"/></svg><span class="word">Bizz<em>mind</em></span></div>
+      <div class="header-mock"><svg><use href="#k4"/></svg><span class="hw">Bizz<em>mind</em></span><span class="crumb">/ Poli Demo</span><span class="sp"></span><span class="pill">BG</span></div>
+      <div class="favs"><span class="tab"><svg class="s16"><use href="#k4"/></svg> Bizzmind Studio</span><svg class="s32"><use href="#k4"/></svg><span>favicon 16 / 32</span></div>
+    </div>
+    <p class="note">Свързва двете половини чрез цвета на данните.</p>
+  </section>
+
+  <section class="concept">
+    <header><span class="kicker">05</span><h2>Solid</h2><p>Бели барове и пай в един цвят (без процепи) — за 16 px и едноцветен печат.</p></header>
+    <div class="swatches">
+      <div class="sw dark"><svg><use href="#k5"/></svg></div>
+      <div class="sw light"><svg><use href="#k5l"/></svg></div>
+    </div>
+    <div class="uses">
+      <div class="lockup"><svg><use href="#k5"/></svg><span class="word">Bizz<em>mind</em></span></div>
+      <div class="header-mock"><svg><use href="#k5"/></svg><span class="hw">Bizz<em>mind</em></span><span class="crumb">/ Poli Demo</span><span class="sp"></span><span class="pill">BG</span></div>
+      <div class="favs"><span class="tab"><svg class="s16"><use href="#k5"/></svg> Bizzmind Studio</span><svg class="s32"><use href="#k5"/></svg><span>favicon 16 / 32</span></div>
+    </div>
+    <p class="note">Резервна версия: дяловете остават като форма, но без процепите, които на 16 px изчезват.</p>
+  </section>
+</div>

@@ -1,10 +1,12 @@
 fastapi
 uvicorn
 anthropic
-duckdb
+duckdb            # legacy: only tools/migrate_duckdb.py reads old project files
 pandas
 openpyxl
 python-multipart
 reportlab
 pypdf
 claude-agent-sdk
+psycopg[binary,pool]
+sqlalchemy

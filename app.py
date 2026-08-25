@@ -1,15 +1,16 @@
 """Inceptiq Analytics — prototype backend.
 
-Multi-project: every project is an isolated environment (own DuckDB database,
+Multi-project: every project is an isolated environment (own PostgreSQL schema,
 chat transcript, knowledge notes, filters, dashboard, uploaded files,
 PROGRESS.md) living under data/projects/<id>/.
 
-Pipeline per project: Excel/CSV upload -> DuckDB -> natural-language chat ->
+Pipeline per project: Excel/CSV upload -> PostgreSQL (Supabase) -> natural-language chat ->
 Claude interviews the user + generates SQL/filters/chart specs via tool use ->
 frontend renders a live, filterable dashboard.
 """
 
 import asyncio
+import decimal
 import hashlib
 import json
 import logging
@@ -23,7 +24,7 @@ import uuid
 from pathlib import Path
 
 import anthropic
-import duckdb
+import db
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -341,7 +342,7 @@ class Project:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.uploads_dir = self.dir / "uploads"
         self.uploads_dir.mkdir(exist_ok=True)
-        self.db_path = self.dir / "project.duckdb"
+        self.db_path = self.dir / "project.duckdb"   # legacy DuckDB file (migration only)
         self._meta_p = self.dir / "meta.json"
         self._chat_p = self.dir / "chat.json"
         self._notes_p = self.dir / "notes.json"
@@ -610,62 +611,119 @@ def load_frames_from_upload(filename: str, payload: bytes) -> dict:
 def describe_schema(proj: Project) -> list:
     """Compact schema summary sent to the model: tables and semantic views,
     with columns and samples. Views carry their stored business description."""
-    if not proj.db_path.exists():
-        return []
-    con = duckdb.connect(str(proj.db_path), read_only=True)
     try:
-        rows = con.execute(
-            "SELECT table_name, table_type FROM information_schema.tables "
-            "WHERE table_schema = 'main' ORDER BY table_type DESC, table_name"
-        ).fetchall()
-        view_meta = proj.meta.get("views", {})
-        summary = []
-        for t, ttype in rows:
-            kind = "view" if "VIEW" in ttype.upper() else "table"
-            try:
-                cols = con.execute(f'DESCRIBE "{t}"').fetchall()
-                n_rows = con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
-                sample = con.execute(f'SELECT * FROM "{t}" LIMIT 2').fetchdf()
-            except Exception as e:
-                summary.append({"table": t, "kind": kind, "rows": 0, "columns": [],
-                                "sample_rows": [], "error": _short(e, 90)})
-                continue
-            entry = {
-                "table": t, "kind": kind,
-                "rows": n_rows,
-                "columns": [{"name": c[0], "type": c[1]} for c in cols],
-                "sample_rows": json.loads(sample.to_json(orient="records", date_format="iso")),
-            }
-            if kind == "view" and t in view_meta:
-                entry["description"] = view_meta[t]
-            summary.append(entry)
-        return summary
-    finally:
-        con.close()
+        tables = db.list_tables(proj.id)
+    except Exception as e:
+        log.info(f"[{proj.id}] schema: {_short(e)}")
+        return []
+    view_meta = proj.meta.get("views", {})
+    summary = []
+    for t, kind in tables:
+        try:
+            cols = db.columns(proj.id, t)
+            n_rows = db.row_count(proj.id, t)
+            sample = db.query_df(proj.id, f'SELECT * FROM "{t}" LIMIT 2')
+        except Exception as e:
+            summary.append({"table": t, "kind": kind, "rows": 0, "columns": [],
+                            "sample_rows": [], "error": _short(e, 90)})
+            continue
+        entry = {
+            "table": t, "kind": kind,
+            "rows": n_rows,
+            "columns": [{"name": c[0], "type": c[1]} for c in cols],
+            "sample_rows": frame_to_records(sample),
+        }
+        if kind == "view" and t in view_meta:
+            entry["description"] = view_meta[t]
+        summary.append(entry)
+    return summary
 
 
 # ------------------------------------------------------------ SQL execution
 
 FORBIDDEN_SQL = re.compile(
     r"\b(insert|update|delete|drop|alter|create|attach|detach|copy|pragma|"
-    r"install|load|export|import|call|set|reset)\b",
+    r"install|load|export|import|call|set|reset|grant|revoke|truncate|vacuum|"
+    r"refresh|comment|security|do)\b",
     re.IGNORECASE,
 )
 
 
+def _strip_literals(sql: str) -> str:
+    return re.sub(r"'(?:[^']|'')*'", "''", sql)
+
+
+def pg_compat(sql: str) -> str:
+    """Mechanical DuckDB -> PostgreSQL rewrites so legacy dashboards keep
+    running: type names, TRY_CAST, integer division helpers."""
+    out, i, parts = sql, 0, []
+    # protect string literals from rewriting
+    for m in re.finditer(r"'(?:[^']|'')*'", sql):
+        parts.append(sql[i:m.start()]); parts.append(None); parts.append(m.group(0)); i = m.end()
+    parts.append(sql[i:])
+    res = []
+    for p in parts:
+        if p is None:
+            continue
+        if p.startswith("'"):
+            res.append(p); continue
+        p = re.sub(r"(\bAS\s+|::\s*)DOUBLE\b(?!\s+PRECISION)", r"\1DOUBLE PRECISION", p, flags=re.I)
+        p = re.sub(r"::\s*DOUBLE PRECISION", "::double precision", p, flags=re.I)
+        p = re.sub(r"\bAS\s+DOUBLE PRECISION", "AS DOUBLE PRECISION", p, flags=re.I)
+        p = re.sub(r"\bAS\s+VARCHAR\b", "AS TEXT", p, flags=re.I)
+        p = re.sub(r"::\s*VARCHAR\b", "::text", p, flags=re.I)
+        p = re.sub(r"\bAS\s+(U?INTEGER|INT|INT64|HUGEINT)\b", "AS BIGINT", p, flags=re.I)
+        p = re.sub(r"\bstrftime\(", "to_char(", p, flags=re.I)
+        p = re.sub(r"\bepoch_ms\(", "epoch_ms_compat(", p, flags=re.I)
+        res.append(p)
+    out = "".join(res)
+    # TRY_CAST(expr AS type) -> CASE WHEN expr::text ~ number THEN expr::type END (numeric types)
+    def try_cast(m):
+        inner = m.group(1)
+        depth, j = 0, 0
+        while j < len(inner):
+            ch = inner[j]
+            if ch == "(": depth += 1
+            elif ch == ")": depth -= 1
+            elif depth == 0 and inner[j:j + 4].upper() == " AS ":
+                expr, typ = inner[:j].strip(), inner[j + 4:].strip()
+                if re.search(r"double|numeric|decimal|int|float|real", typ, re.I):
+                    return (f"(CASE WHEN ({expr})::text ~ '^\\s*-?[0-9]+([.,][0-9]+)?\\s*$' "
+                            f"THEN replace(({expr})::text, ',', '.')::{typ} END)")
+                return f"(CASE WHEN ({expr}) IS NOT NULL THEN ({expr})::{typ} END)"
+            j += 1
+        return m.group(0)
+    prev = None
+    while prev != out:
+        prev = out
+        out = re.sub(r"\bTRY_CAST\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)", try_cast, out, count=1, flags=re.I)
+    # DuckDB mode(x) -> ordered-set form (skip when already WITHIN GROUP)
+    out = re.sub(r"\bmode\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))+)\)(?!\s*WITHIN)",
+                 lambda m: f"mode() WITHIN GROUP (ORDER BY {m.group(1)})", out, flags=re.I)
+    return out
+
+
 def run_readonly_sql(proj: Project, sql: str, limit: int) -> pd.DataFrame:
-    if not proj.db_path.exists():
-        raise ValueError("No data uploaded yet.")
-    if FORBIDDEN_SQL.search(sql):
+    if FORBIDDEN_SQL.search(_strip_literals(sql)):
         raise ValueError("Only read-only SELECT queries are allowed.")
-    con = duckdb.connect(str(proj.db_path), read_only=True)
+    body = sql.strip().rstrip(";")
+    if ";" in _strip_literals(body):
+        raise ValueError("One statement at a time.")
     try:
-        return con.execute(sql).fetchdf().head(limit)
-    finally:
-        con.close()
+        return db.query_df(proj.id, pg_compat(body), limit=limit)
+    except Exception as e:
+        # surface Postgres' message only (no driver noise), first line
+        raise ValueError(str(e).splitlines()[0]) from None
 
 
 def frame_to_records(df: pd.DataFrame) -> list:
+    if df.empty:
+        return []
+    # Decimal/UUID/etc. from Postgres -> JSON-safe
+    df = df.copy()
+    for c in df.columns:
+        if df[c].dtype == object:
+            df[c] = df[c].map(lambda v: float(v) if isinstance(v, decimal.Decimal) else v)
     return json.loads(df.to_json(orient="records", date_format="iso"))
 
 
@@ -791,7 +849,7 @@ TOOLS = [
     {
         "name": "run_sql_query",
         "description": (
-            "Run a read-only DuckDB SQL query against the user's uploaded data to "
+            "Run a read-only PostgreSQL query against the user's uploaded data to "
             "explore it or verify results. Returns up to 50 rows. Use double quotes "
             "around identifiers."
         ),
@@ -1059,15 +1117,12 @@ def _execute_tool_inner(proj: Project, name: str, tool_input: dict) -> tuple:
             vname, body = tool_input["name"], tool_input["sql"].strip().rstrip(";")
             if FORBIDDEN_SQL.search(body):
                 return "Error: the view body must be a plain SELECT.", True
-            if not proj.db_path.exists():
+            if not db.has_data(proj.id):
                 return "Error: the project has no data yet.", True
-            con = duckdb.connect(str(proj.db_path))
             try:
-                con.execute(f'CREATE OR REPLACE VIEW "{vname}" AS {body}')
+                db.create_view(proj.id, vname, pg_compat(body))
             except Exception as e:
-                return f"Error: the view could not be created — {e}", True
-            finally:
-                con.close()
+                return f"Error: the view could not be created — {str(e).splitlines()[0]}", True
             df = run_readonly_sql(proj, f'SELECT * FROM "{vname}" LIMIT 3', 3)
             proj.meta.setdefault("views", {})[vname] = tool_input["description"]
             proj.save_meta()
@@ -1076,12 +1131,10 @@ def _execute_tool_inner(proj: Project, name: str, tool_input: dict) -> tuple:
 
         if name == "drop_view":
             vname = tool_input["name"]
-            if proj.db_path.exists():
-                con = duckdb.connect(str(proj.db_path))
-                try:
-                    con.execute(f'DROP VIEW IF EXISTS "{vname}"')
-                finally:
-                    con.close()
+            try:
+                db.drop_view(proj.id, vname)
+            except Exception as e:
+                return f"Error: {str(e).splitlines()[0]}", True
             proj.meta.get("views", {}).pop(vname, None)
             proj.save_meta()
             return f"View '{vname}' dropped.", False
@@ -1169,8 +1222,8 @@ def _execute_tool_inner(proj: Project, name: str, tool_input: dict) -> tuple:
 # ------------------------------------------------------------- system prompt
 
 PROMPT_INTRO = """You are the analytics copilot inside a dashboard product for non-technical
-sales and business users. The user's uploaded spreadsheets live in a DuckDB
-database. You answer questions and build dashboard charts for them."""
+sales and business users. The user's uploaded spreadsheets live in a PostgreSQL
+database (one schema per project; you only see this project's tables). You answer questions and build dashboard charts for them."""
 
 PROMPT_INTERVIEW = """The interview (how a new dataset becomes a dashboard):
 
@@ -1302,9 +1355,18 @@ Dynamic dashboards (filters):
   delete_chart to remove obsolete ones.
 
 Rules:
-- Write DuckDB SQL. Quote identifiers with double quotes. Aggregate in SQL —
+- Write PostgreSQL SQL. Quote identifiers with double quotes. Aggregate in SQL —
   the chart receives at most {MAX_CHART_ROWS} rows, so group and order the data
   so each x value appears once.
+- PostgreSQL specifics: every non-aggregated SELECT column must appear in GROUP BY
+  (positional "GROUP BY 1, 2" is fine); cast explicitly ("col"::numeric,
+  "col"::text, NULLIF(x, '')::double precision for text numbers); integer / integer
+  truncates — cast to numeric first; ROUND(x::numeric, 1); text concatenation with
+  ||; date_trunc('month', d), EXTRACT(year FROM d), to_char(d, 'YYYY-MM');
+  string_agg(x, ', ' ORDER BY x); percentile_cont(0.5) WITHIN GROUP (ORDER BY x);
+  mode() WITHIN GROUP (ORDER BY x); FILTER (WHERE …) on aggregates; no TRY_CAST
+  (use CASE WHEN x ~ '^-?[0-9.]+$' THEN x::numeric END); no list_/struct functions;
+  LIMIT/OFFSET as usual. One statement per query, SELECT/WITH only.
 - Use run_sql_query first when you are unsure about values or need to explore;
   use create_chart to put results on the dashboard.
 - Pick the chart form by the data's job: change over time -> line or area;
@@ -1660,6 +1722,7 @@ def create_project(req: ProjectCreate, request: Request):
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:40] or f"project-{uuid.uuid4().hex[:6]}"
     pid = slug if not (PROJECTS_DIR / slug).exists() else f"{slug}-{uuid.uuid4().hex[:6]}"
     (PROJECTS_DIR / pid).mkdir(parents=True)
+    db.ensure_project(pid)
     proj = get_project(pid)
     proj.meta["name"] = name
     proj.save_meta()
@@ -1689,6 +1752,10 @@ async def delete_project(pid: str):
             pass
     PROJECTS.pop(pid, None)
     shutil.rmtree(proj.dir, ignore_errors=True)
+    try:
+        db.drop_project(pid)
+    except Exception as e:
+        log.info(f"[{pid}] drop schema failed — {_short(e)}")
     log.info(f"[{pid}] project deleted")
     return {"ok": True}
 
@@ -1958,7 +2025,7 @@ async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)
     proj.lang = req_lang(request)
     log.info(f"[{pid}] upload: {len(files)} file(s) received")
     loaded = []
-    con = duckdb.connect(str(proj.db_path))
+    db.ensure_project(pid)
     try:
         for f in files:
             payload = await f.read()
@@ -1967,9 +2034,7 @@ async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)
             (proj.uploads_dir / fname).write_bytes(payload)
             file_tables = []
             for table, df in load_frames_from_upload(fname, payload).items():
-                con.register("df_tmp", df)
-                con.execute(f'CREATE OR REPLACE TABLE "{table}" AS SELECT * FROM df_tmp')
-                con.unregister("df_tmp")
+                await run_in_threadpool(db.load_frame, pid, table, df)
                 loaded.append({"table": table, "rows": len(df)})
                 file_tables.append(table)
                 log.info(f"[{pid}] upload: table '{table}' loaded — {len(df)} rows, "
@@ -1977,9 +2042,8 @@ async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)
                 proj.log_activity("info", T(proj.lang, "act_table_loaded", table=table,
                                             rows=len(df), cols=len(df.columns)))
             proj.meta["files"][fname] = file_tables
-        proj.save_meta()
     finally:
-        con.close()
+        proj.save_meta()
     log.info(f"[{pid}] upload: done — {len(loaded)} table(s), {sum(l['rows'] for l in loaded)} rows total")
     write_progress(proj)
     return {"loaded": loaded, "tables": describe_schema(proj)}
@@ -1990,13 +2054,11 @@ def delete_file(pid: str, filename: str):
     proj = get_project(pid)
     fname = Path(filename).name
     tables = proj.meta["files"].pop(fname, [])
-    if proj.db_path.exists() and tables:
-        con = duckdb.connect(str(proj.db_path))
+    for t in tables:
         try:
-            for t in tables:
-                con.execute(f'DROP TABLE IF EXISTS "{t}"')
-        finally:
-            con.close()
+            db.drop_table(pid, t)
+        except Exception as e:
+            log.info(f"[{pid}] drop table '{t}' failed — {_short(e)}")
     upload_file = proj.uploads_dir / fname
     if upload_file.exists():
         upload_file.unlink()
@@ -2070,32 +2132,28 @@ def table_rows(pid: str, tname: str, request: Request, offset: int = 0, limit: i
     proj = get_project(pid)
     _validate_table(proj, tname, req_lang(request))
     limit = max(1, min(limit, 200))
-    con = duckdb.connect(str(proj.db_path), read_only=True)
-    try:
-        cols = con.execute(f'DESCRIBE "{tname}"').fetchall()
-        colnames = [c[0] for c in cols]
-        where, params = "", []
-        if q.strip():
-            text_cols = [c[0] for c in cols if "VARCHAR" in c[1].upper()] or colnames
-            where = "WHERE (" + " OR ".join(
-                f'CAST("{c}" AS VARCHAR) ILIKE ?' for c in text_cols) + ")"
-            params = [f"%{q.strip()}%"] * len(text_cols)
-        order = ""
-        if sort in colnames:
-            order = f'ORDER BY "{sort}" {"DESC" if dir == "desc" else "ASC"} NULLS LAST'
-        total = con.execute(f'SELECT count(*) FROM "{tname}" {where}', params).fetchone()[0]
-        df = con.execute(
-            f'SELECT rowid AS __rid, * FROM "{tname}" {where} {order} '
-            f'LIMIT {limit} OFFSET {max(0, offset)}', params).fetchdf()
-        return {"total": total, "offset": offset, "limit": limit,
-                "columns": [{"name": c[0], "type": c[1]} for c in cols],
-                "rows": frame_to_records(df)}
-    finally:
-        con.close()
+    cols = db.columns(pid, tname)
+    colnames = [c[0] for c in cols]
+    qi = lambda name: '"' + name.replace('"', '""') + '"'
+    where, params = "", []
+    if q.strip():
+        text_cols = [c[0] for c in cols if "VARCHAR" in c[1].upper()] or colnames
+        where = "WHERE (" + " OR ".join(f"CAST({qi(c)} AS TEXT) ILIKE %s" for c in text_cols) + ")"
+        params = [f"%{q.strip()}%"] * len(text_cols)
+    order = ""
+    if sort in colnames:
+        order = f'ORDER BY {qi(sort)} {"DESC" if dir == "desc" else "ASC"} NULLS LAST'
+    total = int(db.query_df(pid, f"SELECT count(*) FROM {qi(tname)} {where}", params or None).iloc[0, 0])
+    # ctid is the physical row address — stable enough for an inline edit right after listing
+    df = db.query_df(pid, f"SELECT ctid::text AS __rid, * FROM {qi(tname)} {where} {order} "
+                          f"LIMIT {limit} OFFSET {max(0, offset)}", params or None)
+    return {"total": total, "offset": offset, "limit": limit,
+            "columns": [{"name": c[0], "type": c[1]} for c in cols],
+            "rows": frame_to_records(df)}
 
 
 class CellEdit(BaseModel):
-    rowid: int
+    rowid: str
     column: str
     value: str | None
 
@@ -2106,9 +2164,8 @@ def edit_cell(pid: str, tname: str, req: CellEdit, request: Request):
     lang = req_lang(request)
     proj.lang = lang
     _validate_table(proj, tname, lang)
-    con = duckdb.connect(str(proj.db_path))
-    try:
-        cols = {c[0]: c[1] for c in con.execute(f'DESCRIBE "{tname}"').fetchall()}
+    cols = dict(db.columns(pid, tname))
+    if True:
         if req.column not in cols:
             raise HTTPException(400, T(lang, "err_no_column", column=req.column))
         value = req.value
@@ -2122,10 +2179,11 @@ def edit_cell(pid: str, tname: str, req: CellEdit, request: Request):
                     value = int(value)
             except ValueError:
                 raise HTTPException(400, T(lang, "err_not_number", value=req.value))
-        con.execute(f'UPDATE "{tname}" SET "{req.column}" = ? WHERE rowid = ?',
-                    [value, req.rowid])
-    finally:
-        con.close()
+        if not re.fullmatch(r"\(\d+,\d+\)", req.rowid or ""):
+            raise HTTPException(400, "bad row id")
+        qi = lambda name: '"' + name.replace('"', '""') + '"'
+        db.execute(pid, f"UPDATE {qi(tname)} SET {qi(req.column)} = %s WHERE ctid = %s::tid",
+                   [value, req.rowid])
     log.info(f"[{pid}] edit: {tname}.{req.column} rowid={req.rowid} -> {_short(req.value, 60)}")
     proj.log_activity("info", T(lang, "act_edit", table=tname, column=req.column,
                                 value=_short(req.value or '∅', 40)))
@@ -2218,8 +2276,13 @@ async def reset(pid: str):
     proj.save_dash(); proj.save_notes(); proj.save_filters(); proj.save_chat(); proj.save_meta()
     if proj.progress_p.exists():
         proj.progress_p.unlink()
-    if proj.db_path.exists():
-        proj.db_path.unlink()
+    proj.meta["views"] = {}
+    proj.save_meta()
+    try:
+        db.drop_project(pid)
+        db.ensure_project(pid)
+    except Exception as e:
+        log.info(f"[{pid}] reset: schema drop failed — {_short(e)}")
     shutil.rmtree(proj.uploads_dir, ignore_errors=True)
     proj.uploads_dir.mkdir(exist_ok=True)
     log.info(f"[{pid}] reset: all project state cleared")

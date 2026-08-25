@@ -1343,9 +1343,9 @@ async function loadDbPage() {
   const s = dbState;
   if (!s.table) return;
   const params = `offset=${s.offset}&limit=${s.limit}&q=${encodeURIComponent(s.q)}&sort=${encodeURIComponent(s.sort)}&dir=${s.dir}`;
-  const pid = PID, table = s.table;
+  const pid = PID, tname = s.table;
   const d = await fetchJSON(api(`/table/${encodeURIComponent(s.table)}/rows?${params}`));
-  if (pid !== PID || table !== dbState.table) return;   // project/table changed while loading — stale answer
+  if (pid !== PID || tname !== dbState.table) return;   // project/table changed while loading — stale answer
   $('#db-title').textContent = s.table;
   $('#db-meta').textContent = t('rows_cols', { rows: d.total.toLocaleString(LOCALE), cols: d.columns.length }) + (s.q ? t('filtered_by', { q: s.q }) : '');
   $('#db-range').textContent = d.total ? t('range_of', { from: s.offset + 1, to: Math.min(s.offset + s.limit, d.total), total: d.total.toLocaleString(LOCALE) }) : '0';

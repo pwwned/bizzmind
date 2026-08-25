@@ -2154,8 +2154,15 @@ $('#g-go').addEventListener('click', async () => {
 $('#pdfbtn').addEventListener('click', gmOpen);
 
 $('#resetbtn').addEventListener('click', async () => {
+  // destructive: two-step confirmation — the user must type the project name
+  const name = ($('#crumb').textContent.replace('/', '').trim() || PID);
+  const typed = prompt(t('confirm_reset_type', { name }), '');
+  if (typed === null) return;
+  if (typed.trim().toLowerCase() !== name.toLowerCase()) { alert(t('confirm_reset_mismatch')); return; }
   if (!confirm(t('confirm_reset'))) return;
   await fetchJSON(api('/reset'), { method: 'POST' });
+  location.reload();
+});
   location.reload();
 });
 

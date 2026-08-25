@@ -19,7 +19,7 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from bizzmind.config import INLINE_JOBS, MAX_CHART_ROWS, PROJECTS_DIR, _short, log
-from bizzmind.i18n import T, req_lang
+from bizzmind.i18n import MSG, T, req_lang
 from bizzmind.project import PROJECTS, Project, get_project, require_project_access, write_progress
 from bizzmind.data import (invalidate, apply_filters_to_sql, describe_schema, filters_with_options,
                            frame_to_records, load_frames_from_upload, run_readonly_sql,
@@ -264,8 +264,28 @@ def activity(pid: str, since: int = 0):
     return {"events": [e for e in proj.activity if e["seq"] > since], "seq": proj.act_seq}
 
 
+async def _ingest(proj, fname: str, payload: bytes, loaded: list) -> None:
+    """Parse one spreadsheet into the project's tables (shared by both upload paths)."""
+    pid = proj.id
+    log.info(f"[{pid}] upload: parsing '{fname}' ({len(payload) // 1024} KB)")
+    (proj.uploads_dir / fname).write_bytes(payload)
+    file_tables = []
+    for table, df in load_frames_from_upload(fname, payload).items():
+        await run_in_threadpool(db.load_frame, pid, table, df)
+        invalidate(pid)
+        loaded.append({"table": table, "rows": len(df)})
+        file_tables.append(table)
+        log.info(f"[{pid}] upload: table '{table}' loaded — {len(df)} rows, "
+                 f"{len(df.columns)} cols: {_short(', '.join(map(str, df.columns)), 110)}")
+        proj.log_activity("info", T(proj.lang, "act_table_loaded", table=table,
+                                    rows=len(df), cols=len(df.columns)))
+    proj.meta["files"][fname] = file_tables
+
+
 @router.post("/api/p/{pid}/upload")
 async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)):
+    """Direct multipart upload (small files / local dev). Hosted API bodies are
+    capped (~4.5 MB on Vercel) — the web app uses /upload/sign + /upload/ingest."""
     proj = get_project(pid)
     proj.lang = req_lang(request)
     log.info(f"[{pid}] upload: {len(files)} file(s) received")
@@ -273,25 +293,49 @@ async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)
     db.ensure_project(pid)
     try:
         for f in files:
-            payload = await f.read()
-            fname = Path(f.filename).name
-            log.info(f"[{pid}] upload: parsing '{fname}' ({len(payload) // 1024} KB)")
-            (proj.uploads_dir / fname).write_bytes(payload)
-            file_tables = []
-            for table, df in load_frames_from_upload(fname, payload).items():
-                await run_in_threadpool(db.load_frame, pid, table, df)
-                invalidate(pid)
-                loaded.append({"table": table, "rows": len(df)})
-                file_tables.append(table)
-                log.info(f"[{pid}] upload: table '{table}' loaded — {len(df)} rows, "
-                         f"{len(df.columns)} cols: {_short(', '.join(map(str, df.columns)), 110)}")
-                proj.log_activity("info", T(proj.lang, "act_table_loaded", table=table,
-                                            rows=len(df), cols=len(df.columns)))
-            proj.meta["files"][fname] = file_tables
+            await _ingest(proj, Path(f.filename).name, await f.read(), loaded)
     finally:
         proj.save_meta()
         await run_in_threadpool(storage.sync_up, pid, "uploads", proj.uploads_dir)
     log.info(f"[{pid}] upload: done — {len(loaded)} table(s), {sum(l['rows'] for l in loaded)} rows total")
+    write_progress(proj)
+    return {"loaded": loaded, "tables": describe_schema(proj)}
+
+
+class SignRequest(BaseModel):
+    filenames: list[str]
+
+
+@router.post("/api/p/{pid}/upload/sign")
+def upload_sign(pid: str, req: SignRequest, request: Request):
+    """Signed Storage URLs: the browser PUTs the files straight to Supabase."""
+    proj = get_project(pid)
+    if not storage.enabled():
+        raise HTTPException(503, "storage not configured")
+    out = []
+    for name in req.filenames[:20]:
+        fname = Path(name).name
+        if Path(fname).suffix.lower() not in (".xlsx", ".xls", ".csv"):
+            raise HTTPException(400, T(req_lang(request), "err_upload_type", name=fname) if "err_upload_type" in MSG["bg"] else f"Unsupported file type: {fname}")
+        out.append({"filename": fname, "url": storage.signed_upload_url(f"{proj.id}/uploads/{fname}")})
+    return {"files": out}
+
+
+@router.post("/api/p/{pid}/upload/ingest")
+async def upload_ingest(pid: str, req: SignRequest, request: Request):
+    """After the browser uploaded to Storage: pull the files and load them."""
+    proj = get_project(pid)
+    proj.lang = req_lang(request)
+    loaded = []
+    db.ensure_project(pid)
+    try:
+        for name in req.filenames[:20]:
+            fname = Path(name).name
+            payload = await run_in_threadpool(storage.get, f"{pid}/uploads/{fname}")
+            await _ingest(proj, fname, payload, loaded)
+    finally:
+        proj.save_meta()
+    log.info(f"[{pid}] upload(storage): done — {len(loaded)} table(s), {sum(l['rows'] for l in loaded)} rows total")
     write_progress(proj)
     return {"loaded": loaded, "tables": describe_schema(proj)}
 

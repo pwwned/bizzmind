@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api, endpoints, p, type ProjectState } from "@/lib/api";
+import { api, ApiError, endpoints, p, type ProjectState } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,9 +45,24 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
     if (!files?.length) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      for (const f of Array.from(files)) fd.append("files", f);
-      const r = await api<{ loaded: { table: string; rows: number }[] }>(p(pid, "/upload"), { method: "POST", body: fd });
+      const list = Array.from(files);
+      let r: { loaded: { table: string; rows: number }[] };
+      try {
+        // 1) signed URLs → 2) browser PUTs straight to Supabase Storage (no API body limit) → 3) API ingests
+        const sign = await api<{ files: { filename: string; url: string }[] }>(p(pid, "/upload/sign"),
+          { method: "POST", body: JSON.stringify({ filenames: list.map((f) => f.name) }) });
+        await Promise.all(sign.files.map(async (s) => {
+          const f = list.find((x) => x.name === s.filename)!;
+          const res = await fetch(s.url, { method: "PUT", body: f, headers: { "x-upsert": "true", "Content-Type": f.type || "application/octet-stream" } });
+          if (!res.ok) throw new Error(`upload ${s.filename}: HTTP ${res.status}`);
+        }));
+        r = await api(p(pid, "/upload/ingest"), { method: "POST", body: JSON.stringify({ filenames: sign.files.map((s) => s.filename) }) });
+      } catch (e) {
+        if (e instanceof ApiError && e.status !== 503) throw e;
+        const fd = new FormData();                 // storage not configured → direct upload
+        for (const f of list) fd.append("files", f);
+        r = await api(p(pid, "/upload"), { method: "POST", body: fd });
+      }
       await qc.invalidateQueries({ queryKey: ["state", pid] });
       onUploaded(r.loaded.map((l) => l.table));
     } catch (e) { toast.error((e as Error).message); }

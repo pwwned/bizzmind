@@ -123,6 +123,15 @@ def signed_url(path: str, expires_s: int = 7 * 24 * 3600) -> str:
     return _base() + (rel if rel.startswith("/") else "/" + rel)
 
 
+def signed_upload_url(path: str, upsert: bool = True) -> str:
+    """URL the browser can PUT a file to (bypasses API body-size limits)."""
+    _, raw = _req("POST", f"/object/upload/sign/{BUCKET}/{_q(path)}", b"{}",
+                  {"Content-Type": "application/json", **({"x-upsert": "true"} if upsert else {})})
+    d = json.loads(raw)
+    tok = d.get("token")
+    return f"{_base()}/object/upload/sign/{BUCKET}/{_q(path)}?token={urllib.parse.quote(tok, safe='')}"
+
+
 # --------------------------------------------------------------- cache sync
 
 def sync_down(pid: str, sub: str, local: Path) -> int:

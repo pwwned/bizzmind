@@ -47,7 +47,7 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
       <Button
         variant="ghost"
         size="sm"
-        onClick={async () => { await endpoints.logout(); router.push("/login?force=1"); router.refresh(); }}
+        onClick={async () => { await endpoints.logout(); router.push("/"); router.refresh(); }}
       >
         <LogOut className="size-4" />{t("sign_out")}
       </Button>

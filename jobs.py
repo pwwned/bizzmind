@@ -95,6 +95,20 @@ def claim() -> dict | None:
             "lang": r[4], "created_by": r[5]}
 
 
+def claim_by_id(job_id: str) -> dict | None:
+    """Claim one specific queued job (serverless trigger right after enqueue)."""
+    with db.pool().connection() as con:
+        r = con.execute(
+            "UPDATE public.jobs SET status = 'running', started_at = now() "
+            "WHERE id = %s AND status = 'queued' "
+            "RETURNING id, project_id, kind, payload, lang, created_by", (job_id,)).fetchone()
+        con.commit()
+    if not r:
+        return None
+    return {"id": str(r[0]), "project_id": r[1], "kind": r[2], "payload": r[3] or {},
+            "lang": r[4], "created_by": r[5]}
+
+
 def finish(job_id: str, result: dict | None) -> None:
     with db.pool().connection() as con:
         con.execute("UPDATE public.jobs SET status = 'done', result = %s, finished_at = now() WHERE id = %s",

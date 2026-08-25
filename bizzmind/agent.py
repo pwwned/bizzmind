@@ -22,20 +22,44 @@ from bizzmind.data import (invalidate, FORBIDDEN_SQL, apply_filters_to_sql, desc
 from bizzmind.brand import brand_excerpt, brand_files
 from bizzmind.localization import _h, _load_i18n, _save_i18n, content_lang, translatable_items
 
-client = anthropic.Anthropic()
+# The Claude Agent SDK (local subscription mode) is optional: production runs on
+# the Anthropic API and the SDK — which bundles the Claude Code CLI — is not
+# installed there (see requirements-dev.txt).
+try:
+    from claude_agent_sdk import (  # noqa: E402
+        AssistantMessage,
+        ClaudeAgentOptions,
+        ClaudeSDKClient,
+        ResultMessage,
+        TextBlock,
+        create_sdk_mcp_server,
+        tool,
+    )
+    SDK_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    SDK_AVAILABLE = False
+    AssistantMessage = ClaudeAgentOptions = ClaudeSDKClient = ResultMessage = TextBlock = None  # type: ignore
 
-from claude_agent_sdk import (  # noqa: E402
-    AssistantMessage,
-    ClaudeAgentOptions,
-    ClaudeSDKClient,
-    ResultMessage,
-    TextBlock,
-    create_sdk_mcp_server,
-    tool,
-)
+    def tool(*_a, **_k):  # type: ignore
+        return lambda f: f
+
+    def create_sdk_mcp_server(*_a, **_k):  # type: ignore
+        return None
 
 
-client = anthropic.Anthropic()
+_client: anthropic.Anthropic | None = None
+
+
+class _LazyClient:
+    """anthropic.Anthropic() needs ANTHROPIC_API_KEY at construction — create it on first use."""
+    def __getattr__(self, name):
+        global _client
+        if _client is None:
+            _client = anthropic.Anthropic()
+        return getattr(_client, name)
+
+
+client = _LazyClient()
 
 
 def conversation_recap(proj: Project, limit: int = 14) -> str:
@@ -741,6 +765,8 @@ pass unused fields as '' / []. present_questions takes
 
 
 async def run_agent_subscription(proj: Project, user_content: str):
+    if not SDK_AVAILABLE:
+        raise RuntimeError("Claude Agent SDK is not installed — set AI_BACKEND=api with ANTHROPIC_API_KEY")
     global CURRENT_PROJECT, AGENT_LOCK
     if AGENT_LOCK is None:
         AGENT_LOCK = asyncio.Lock()

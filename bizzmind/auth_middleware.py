@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from bizzmind.i18n import T, req_lang
 
 
-PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout", "/api/auth/register")
+PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout", "/api/auth/register", "/api/jobs/cron")
 PUBLIC_PREFIXES = ("/static/", "/pub/")
 
 

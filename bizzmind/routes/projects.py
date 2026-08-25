@@ -3,6 +3,7 @@ data editor, dashboard refresh, translate, chat, review, deck, reset."""
 
 import asyncio
 import json
+import os
 import re
 import shutil
 import time
@@ -40,6 +41,72 @@ def job_status(job_id: str, since: int = 0):
     return {"id": j["id"], "kind": j["kind"], "status": j["status"], "error": j["error"],
             "result": j["result"] if j["status"] == "done" else None,
             "events": jobs.events(job_id, since)}
+
+
+async def _execute_claimed(job: dict) -> dict:
+    """Run a claimed job in-process (same code path as worker.py)."""
+    import time as _time
+    from bizzmind.agent import dispatch_agent, run_review, run_deck, run_translate
+    from bizzmind.project import PROJECTS
+    t0 = _time.monotonic()
+    proj = get_project(job["project_id"])
+    proj.lang = job.get("lang") or "bg"
+    proj.job_id = job["id"]
+    kind, pl = job["kind"], job["payload"] or {}
+    try:
+        if kind == "chat":
+            proj.add_chat("user", pl["message"])
+            result = await dispatch_agent(proj, pl["message"])
+        elif kind == "review":
+            result = await run_review(proj, pl.get("tables") or [], pl.get("context", ""), pl.get("goal", ""))
+        elif kind == "deck":
+            result = await run_deck(proj)
+        elif kind == "translate":
+            result = await run_translate(proj)
+        else:
+            raise ValueError(f"unknown job kind '{kind}'")
+        jobs.finish(job["id"], result)
+        log.info(f"[{proj.id}] job {job['id']} done inline in {_time.monotonic() - t0:.1f}s")
+        return {"status": "done"}
+    except Exception as e:
+        jobs.fail(job["id"], str(e))
+        log.info(f"[{proj.id}] job {job['id']} FAILED inline — {_short(e, 200)}")
+        return {"status": "failed", "error": str(e)}
+    finally:
+        proj.job_id = None
+        PROJECTS.pop(proj.id, None)
+
+
+@router.post("/api/jobs/{job_id}/run")
+async def run_job_now(job_id: str):
+    """Serverless worker: the client calls this right after enqueue; the request
+    stays open while the job runs (Vercel maxDuration). A separate worker
+    process, if any, may already have claimed it — then this is a no-op."""
+    j = jobs.get(job_id)
+    if not j:
+        raise HTTPException(404, "unknown job")
+    get_project(j["project_id"])            # tenancy check
+    job = jobs.claim_by_id(job_id)
+    if not job:
+        return {"status": j["status"], "claimed": False}
+    return await _execute_claimed(job)
+
+
+@router.api_route("/api/jobs/cron", methods=["GET", "POST"])
+async def jobs_cron(request: Request):
+    """Vercel Cron fallback: re-queue stale jobs and run up to 3 queued ones."""
+    secret = os.environ.get("CRON_SECRET")
+    if secret and request.headers.get("authorization") != f"Bearer {secret}":
+        raise HTTPException(401, "unauthorized")
+    requeued = jobs.requeue_stale()
+    done = 0
+    for _ in range(3):
+        job = jobs.claim()
+        if not job:
+            break
+        await _execute_claimed(job)
+        done += 1
+    return {"requeued": requeued, "ran": done}
 
 
 @router.get("/api/p/{pid}/jobs/active")

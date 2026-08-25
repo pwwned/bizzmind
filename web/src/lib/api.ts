@@ -151,6 +151,9 @@ export async function runJob<T>(
   const first = await start;
   if (!first || typeof first !== "object" || !("job_id" in first)) return first as T;
   const id = (first as { job_id: string }).job_id;
+  // serverless worker: this request runs the job and stays open until it ends;
+  // a dedicated worker (local dev) may claim it first — then it's a no-op
+  fetch(`/api/jobs/${id}/run`, { method: "POST", credentials: "same-origin", keepalive: true }).catch(() => {});
   let since = 0;
   for (;;) {
     await new Promise((r) => setTimeout(r, 1200));

@@ -34,8 +34,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s STEP | %(message)s",
                     datefmt="%H:%M:%S")
 log = logging.getLogger("studio")
 
-DATA_DIR = ROOT / "data"
-DATA_DIR.mkdir(exist_ok=True)
+# On Vercel the deployment is read-only; /tmp is the only writable place. Local
+# dirs are only a cache of Supabase Storage + Postgres, so losing them is fine.
+DATA_DIR = Path(os.environ.get("DATA_DIR") or ("/tmp/bizzmind" if os.environ.get("VERCEL") else str(ROOT / "data")))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 PROJECTS_DIR = DATA_DIR / "projects"
 PROJECTS_DIR.mkdir(exist_ok=True)
 

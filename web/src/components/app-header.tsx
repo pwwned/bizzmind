@@ -16,7 +16,7 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
 
   return (
     <header className="sticky top-0 z-40 flex items-center gap-4 border-b border-border bg-background/70 px-6 py-3 backdrop-blur-md">
-      <Link href="/" className="shrink-0"><Logo size={28} /></Link>
+      <Link href="/app" className="shrink-0"><Logo size={28} /></Link>
       {crumb && (
         <span className="truncate text-sm text-muted-foreground">
           / <b className="font-semibold text-foreground">{crumb}</b>
@@ -24,7 +24,7 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
       )}
       <span className="flex-1" />
       {back && (
-        <Button variant="outline" size="sm" render={<Link href="/" />}>
+        <Button variant="outline" size="sm" render={<Link href="/app" />}>
           <ArrowLeft className="size-4" />{t("all_projects")}
         </Button>
       )}

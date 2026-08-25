@@ -5,7 +5,8 @@ import { NextResponse, type NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has("sb_access") || request.cookies.has("sb_refresh");
-  if (!hasSession && pathname !== "/login") {
+  const isPublic = pathname === "/" || pathname === "/login";
+  if (!hasSession && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
@@ -13,7 +14,7 @@ export function proxy(request: NextRequest) {
   }
   if (hasSession && pathname === "/login" && !request.nextUrl.searchParams.has("force")) {
     const url = request.nextUrl.clone();
-    url.pathname = url.searchParams.get("next") ?? "/";
+    url.pathname = url.searchParams.get("next") ?? "/app";
     url.search = "";
     return NextResponse.redirect(url);
   }
@@ -21,5 +22,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|pub|_next|icon.svg|favicon.ico|brand).*)"],
+  matcher: ["/((?!api|pub|_next|icon.svg|favicon.ico|brand|shots).*)"],
 };

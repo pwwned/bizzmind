@@ -32,7 +32,7 @@ function LoginForm() {
       } else {
         await endpoints.login(email, password);
       }
-      router.push(params.get("next") ?? "/");
+      router.push(params.get("next") ?? "/app");
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiError || err instanceof Error ? err.message : t("login_failed"));

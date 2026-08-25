@@ -24,7 +24,7 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
       )}
       <span className="flex-1" />
       {back && (
-        <Button variant="outline" size="sm" render={<Link href="/app" />}>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/app" />}>
           <ArrowLeft className="size-4" />{t("all_projects")}
         </Button>
       )}

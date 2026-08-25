@@ -70,8 +70,8 @@ export default function Landing() {
               <button key={l} type="button" onClick={() => setLang(l)} className={`px-2.5 py-1.5 ${lang === l ? "grad-olive text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{l.toUpperCase()}</button>
             ))}
           </div>
-          <Button variant="outline" size="sm" render={<Link href="/login" />}>{c.sign_in}</Button>
-          <Button size="sm" className="grad-olive font-bold text-primary-foreground" render={<Link href="/app" />}>{c.open_app}</Button>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/login" />}>{c.sign_in}</Button>
+          <Button size="sm" className="grad-olive font-bold text-primary-foreground" nativeButton={false} render={<Link href="/app" />}>{c.open_app}</Button>
         </div>
       </header>
 
@@ -87,8 +87,8 @@ export default function Landing() {
             </h1>
             <p className="mt-6 max-w-xl text-[15.5px] leading-relaxed text-muted-foreground">{c.sub}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="grad-olive font-bold text-primary-foreground hover:opacity-90" render={<Link href="/app" />}>{c.cta}<ArrowRight className="size-4" /></Button>
-              <Button size="lg" variant="outline" render={<a href="#how" />}>{c.how}</Button>
+              <Button size="lg" className="grad-olive font-bold text-primary-foreground hover:opacity-90" nativeButton={false} render={<Link href="/app" />}>{c.cta}<ArrowRight className="size-4" /></Button>
+              <Button size="lg" variant="outline" nativeButton={false} render={<a href="#how" />}>{c.how}</Button>
             </div>
             <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><Lock className="size-3.5" />{c.note}</div>
           </div>
@@ -157,7 +157,7 @@ export default function Landing() {
         <div className="grad-olive rounded-3xl p-10 text-center text-primary-foreground">
           <h2 className="text-3xl font-extrabold">{c.cta_h}</h2>
           <p className="mt-2 opacity-80">{c.cta_p}</p>
-          <Button size="lg" variant="secondary" className="mt-6 font-bold" render={<Link href="/app" />}>{c.cta_btn}<ArrowRight className="size-4" /></Button>
+          <Button size="lg" variant="secondary" className="mt-6 font-bold" nativeButton={false} render={<Link href="/app" />}>{c.cta_btn}<ArrowRight className="size-4" /></Button>
         </div>
       </section>
 

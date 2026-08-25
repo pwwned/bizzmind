@@ -803,6 +803,7 @@ function resetStudioState() {
   const dbg = document.getElementById('db-grid'); if (dbg) dbg.innerHTML = '<div id="db-empty">' + t('db_empty') + '</div>';
   for (const id of ['db-meta', 'db-range', 'filecount', 'brandcount', 'notecount']) { const e = document.getElementById(id); if (e) e.textContent = id.endsWith('count') ? '0' : ''; }
   const q = document.getElementById('db-search'); if (q) q.value = '';
+  const ttl = document.getElementById('db-title'); if (ttl) ttl.textContent = '';
   const badge = document.getElementById('dashbadge'); if (badge) badge.style.display = 'none';
   document.getElementById('dashboard-empty').style.display = '';
 }
@@ -1342,7 +1343,9 @@ async function loadDbPage() {
   const s = dbState;
   if (!s.table) return;
   const params = `offset=${s.offset}&limit=${s.limit}&q=${encodeURIComponent(s.q)}&sort=${encodeURIComponent(s.sort)}&dir=${s.dir}`;
+  const pid = PID, table = s.table;
   const d = await fetchJSON(api(`/table/${encodeURIComponent(s.table)}/rows?${params}`));
+  if (pid !== PID || table !== dbState.table) return;   // project/table changed while loading — stale answer
   $('#db-title').textContent = s.table;
   $('#db-meta').textContent = t('rows_cols', { rows: d.total.toLocaleString(LOCALE), cols: d.columns.length }) + (s.q ? t('filtered_by', { q: s.q }) : '');
   $('#db-range').textContent = d.total ? t('range_of', { from: s.offset + 1, to: Math.min(s.offset + s.limit, d.total), total: d.total.toLocaleString(LOCALE) }) : '0';
@@ -2396,7 +2399,9 @@ $('#suggestions').addEventListener('click', (e) => {
 async function loadState() {
   if (!PID) return;
   try {
+    const pid = PID;
     const data = await fetchJSON(api('/state'));
+    if (pid !== PID) return null;                         // user already switched project
     applyI18nInfo(data.i18n, true);
     $('#crumb').innerHTML = '/ <b></b>';
     $('#crumb').querySelector('b').textContent = data.name;

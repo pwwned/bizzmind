@@ -11,3 +11,9 @@ data/*
 !data/.gitkeep
 worker.log
 web-dev.log
+
+# клиентски/работни файлове в корена
+/*.xlsx
+/*.xls
+/*.csv
+web/shot.tmp.mjs

@@ -42,10 +42,11 @@ from bizzmind.auth_middleware import auth_middleware
 from bizzmind.routes import auth_routes, brand_routes, export_routes, pages, projects
 
 app = FastAPI(title="Bizzmind")
-from bizzmind.path_restore import PathRestoreMiddleware  # noqa: E402
-app.add_middleware(PathRestoreMiddleware)
 
 app.middleware("http")(auth_middleware)
+# outermost: restore the real path behind the Vercel rewrite BEFORE auth looks at it
+from bizzmind.path_restore import PathRestoreMiddleware  # noqa: E402
+app.add_middleware(PathRestoreMiddleware)
 
 app.include_router(auth_routes.router)
 app.include_router(pages.router)

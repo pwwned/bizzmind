@@ -553,6 +553,14 @@
   #studio-view.loading #tabs-content, #studio-view.loading #grid, #studio-view.loading #tab-data { opacity: .45; transition: opacity .15s; }
   #studio-view.loading::after { content: ""; position: fixed; top: 0; left: 0; height: 2px; width: 40%; background: var(--grad-cyan); animation: barslide 1s ease-in-out infinite alternate; z-index: 999; }
   @keyframes barslide { from { transform: translateX(0); } to { transform: translateX(150%); } }
+  #dashboard-empty .steps { list-style: none; padding: 0; margin: 18px auto 20px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  #dashboard-empty .steps li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+  #dashboard-empty .steps li b { width: 24px; height: 24px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid var(--border); }
+  #dashboard-empty .steps li.cur { color: var(--text-primary); }
+  #dashboard-empty .steps li.cur b { background: var(--grad-cyan); color: var(--navy-deep); border-color: transparent; }
+  #startbtn { font-family: inherit; font-size: 13.5px; font-weight: 700; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; background: var(--grad-cyan); color: var(--navy-deep); box-shadow: 0 4px 18px rgba(10,221,245,0.25); }
+  #startbtn:hover { transform: translateY(-1px); }
+  #dropzone.pulse { box-shadow: 0 0 0 4px rgba(10,221,245,0.35); border-color: var(--cyan); }
 </style>
 </head>
 <body>
@@ -581,9 +589,9 @@
 <main id="studio-view">
   <div id="workarea">
     <nav id="tabbar">
+      <button class="tab" data-tab="dash"><span data-i18n="tab_dash">📊 Дашборд</span><span id="dashbadge"></span></button>
       <button class="tab on" data-tab="data" data-i18n="tab_data">📁 Файлове и знание</button>
       <button class="tab" data-tab="db" data-i18n="tab_db">🗄 Данни</button>
-      <button class="tab" data-tab="dash"><span data-i18n="tab_dash">📊 Дашборд</span><span id="dashbadge"></span></button>
     </nav>
 
     <section id="tab-data">
@@ -656,6 +664,12 @@
         <img src="/static/icon.svg" alt="">
         <h2 data-i18n="dash_empty_title">Дашбордът започва тук</h2>
         <p data-i18n-html="dash_empty_html">Качи файлове в таб „Данни и знание“ — AI-ят ще ги проучи, ще ти зададе въпроси<br>и ще построи живо табло с филтри по твоите отговори.</p>
+        <ol class="steps">
+          <li class="cur"><b>1</b><span data-i18n="step_upload">Качи екселите</span></li>
+          <li><b>2</b><span data-i18n="step_interview">Отговори на въпросите на AI</span></li>
+          <li><b>3</b><span data-i18n="step_dashboard">Получи жив дашборд</span></li>
+        </ol>
+        <button id="startbtn" class="primary" data-i18n="start_upload">⬆ Качи първите файлове</button>
       </div>
       <div id="grid"></div>
     </section>
@@ -785,13 +799,14 @@ async function route() {
     let saved = null, chatOpen = '1';
     try { saved = localStorage.getItem('tab:' + PID); chatOpen = localStorage.getItem('chatOpen') ?? '1'; } catch {}
     const known = (window._projectCards || {})[PID];
-    switchTab(saved || (known && known.charts > 0 ? 'dash' : 'data'));
+    // a built dashboard always opens on the dashboard; new projects open there too (guided empty state)
+    switchTab(known && known.charts > 0 ? 'dash' : (saved || 'dash'));
     setChatVisible(chatOpen !== '0');
     $('#studio-view').style.display = 'flex';
     $('#studio-view').classList.add('loading');
     const data = await loadState();
     $('#studio-view').classList.remove('loading');
-    if (!saved && data && !known) switchTab(data.charts && data.charts.length ? 'dash' : 'data');
+    if (data && !known && data.charts && data.charts.length) switchTab('dash');
   } else {
     PID = null;
     $('#projects-view').style.display = 'block';
@@ -1455,6 +1470,12 @@ $('#noteform').addEventListener('submit', async (e) => {
 
 const dropzone = $('#dropzone'), fileinput = $('#fileinput');
 dropzone.addEventListener('click', () => fileinput.click());
+$('#startbtn').addEventListener('click', () => {
+  switchTab('data');
+  dropzone.classList.add('pulse');
+  dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => { fileinput.click(); dropzone.classList.remove('pulse'); }, 350);
+});
 dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
 dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
 dropzone.addEventListener('drop', (e) => {

@@ -56,7 +56,8 @@ atexit.register(close)
 def pool() -> ConnectionPool:
     global _pool
     if _pool is None:
-        _pool = ConnectionPool(db_url(), min_size=1, max_size=int(os.environ.get("DB_POOL_MAX", "8")),
+        _pool = ConnectionPool(db_url(), min_size=int(os.environ.get("DB_POOL_MIN", "2")),
+                               max_size=int(os.environ.get("DB_POOL_MAX", "8")),
                                kwargs={"autocommit": False, "prepare_threshold": None}, open=True)
         log.info(f"db: pool opened -> {re.sub(r':[^:@/]+@', ':***@', db_url())}")
     return _pool
@@ -81,25 +82,28 @@ def _ident(name: str) -> sql.Identifier:
 @contextmanager
 def connect(pid: str, readonly: bool = False):
     """Connection scoped to the project's schema. readonly=True also drops
-    privileges to the project's read-only role and enforces the timeout."""
+    privileges to the project's read-only role and enforces the timeout.
+    The session SETs go out in a single network round trip (pipeline mode) —
+    with a remote pooler every round trip costs ~100+ ms."""
     schema = schema_for(pid)
     with pool().connection() as con:
-        with con.cursor() as cur:
-            if readonly:
-                cur.execute("SET TRANSACTION READ ONLY")
-                cur.execute(sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(QUERY_TIMEOUT_MS)))
-                cur.execute(sql.SQL("SET LOCAL search_path = {}, pg_catalog").format(_ident(schema)))
-                try:
-                    cur.execute(sql.SQL("SET LOCAL ROLE {}").format(_ident(role_for(pid))))
-                except psycopg.Error:
-                    # role missing (project created before roles existed) — schema
-                    # isolation still holds through search_path; ensure_project() repairs it
-                    con.rollback()
-                    cur.execute("SET TRANSACTION READ ONLY")
-                    cur.execute(sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(QUERY_TIMEOUT_MS)))
-                    cur.execute(sql.SQL("SET LOCAL search_path = {}, pg_catalog").format(_ident(schema)))
-            else:
-                cur.execute(sql.SQL("SET LOCAL search_path = {}, public").format(_ident(schema)))
+        if readonly:
+            stmts = ["SET TRANSACTION READ ONLY",
+                     sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(QUERY_TIMEOUT_MS)),
+                     sql.SQL("SET LOCAL search_path = {}, pg_catalog").format(_ident(schema)),
+                     sql.SQL("SET LOCAL ROLE {}").format(_ident(role_for(pid)))]
+        else:
+            stmts = [sql.SQL("SET LOCAL search_path = {}, public").format(_ident(schema))]
+        try:
+            with con.pipeline():
+                for st in stmts:
+                    con.execute(st)
+        except psycopg.Error:
+            # role missing (project created before roles existed) — keep schema isolation
+            con.rollback()
+            with con.pipeline():
+                for st in stmts[:-1] if readonly else stmts:
+                    con.execute(st)
         try:
             yield con
             con.commit()
@@ -157,6 +161,15 @@ _TYPE_NAMES = {
 }
 
 
+def table_counts() -> dict[str, int]:
+    """{project id: number of tables+views} for every project schema in one query."""
+    with pool().connection() as con:
+        rows = con.execute(
+            "SELECT table_schema, count(*) FROM information_schema.tables "
+            "WHERE table_schema LIKE 'p\\_%' GROUP BY 1").fetchall()
+    return {r[0][2:].replace("_", "-"): r[1] for r in rows}
+
+
 def has_data(pid: str) -> bool:
     return bool(list_tables(pid))
 
@@ -180,6 +193,39 @@ def columns(pid: str, table: str) -> list[tuple[str, str]]:
     return [(r[0], _TYPE_NAMES.get(r[1], r[1].upper())) for r in rows]
 
 
+def schema_summary(pid: str) -> list[dict]:
+    """[{table, kind, rows, columns:[{name,type}], sample_rows:[...]}] for the
+    whole project in three statements (instead of 3 per table)."""
+    schema = schema_for(pid)
+    tables = list_tables(pid)
+    if not tables:
+        return []
+    with pool().connection() as con:
+        cols = con.execute(
+            "SELECT table_name, column_name, data_type FROM information_schema.columns "
+            "WHERE table_schema = %s ORDER BY table_name, ordinal_position", (schema,)).fetchall()
+    by_table: dict[str, list] = {}
+    for t, c, dt in cols:
+        by_table.setdefault(t, []).append({"name": c, "type": _TYPE_NAMES.get(dt, dt.upper())})
+    # counts + 2 sample rows per table, one statement each (UNION ALL)
+    parts = [sql.SQL("SELECT {lit} AS t, (SELECT count(*) FROM {tbl}) AS n, "
+                     "(SELECT json_agg(s) FROM (SELECT * FROM {tbl} LIMIT 2) s) AS sample")
+             .format(lit=sql.Literal(t), tbl=_ident(t)) for t, _ in tables]
+    stats: dict[str, tuple] = {}
+    try:
+        with connect(pid, readonly=True) as con:
+            for t, n, sample in con.execute(sql.SQL(" UNION ALL ").join(parts)).fetchall():
+                stats[t] = (n, sample or [])
+    except Exception as e:
+        log.info(f"[{pid}] schema stats failed — {e}")
+    out = []
+    for t, kind in tables:
+        n, sample = stats.get(t, (0, []))
+        out.append({"table": t, "kind": kind, "rows": n, "columns": by_table.get(t, []),
+                    "sample_rows": sample if isinstance(sample, list) else []})
+    return out
+
+
 def row_count(pid: str, table: str) -> int:
     with connect(pid, readonly=True) as con:
         return con.execute(sql.SQL("SELECT count(*) FROM {}").format(_ident(table))).fetchone()[0]
@@ -200,14 +246,39 @@ def _clean(v):
     return v
 
 
+def _session_stmts(pid: str, readonly: bool, with_role: bool = True) -> list:
+    schema = schema_for(pid)
+    if not readonly:
+        return [sql.SQL("SET LOCAL search_path = {}, public").format(_ident(schema))]
+    stmts = ["SET TRANSACTION READ ONLY",
+             sql.SQL("SET LOCAL statement_timeout = {}").format(sql.Literal(QUERY_TIMEOUT_MS)),
+             sql.SQL("SET LOCAL search_path = {}, pg_catalog").format(_ident(schema))]
+    if with_role:
+        stmts.append(sql.SQL("SET LOCAL ROLE {}").format(_ident(role_for(pid))))
+    return stmts
+
+
 def query_df(pid: str, query: str, params=None, limit: int | None = None,
              readonly: bool = True) -> pd.DataFrame:
-    with connect(pid, readonly=readonly) as con:
-        cur = con.execute(query, params)
-        cols = [d.name for d in cur.description] if cur.description else []
+    """Session SETs + the query + COMMIT travel in a single pipeline round trip."""
+    with pool().connection() as con:
+        for with_role in (True, False):
+            try:
+                with con.pipeline():
+                    for st in _session_stmts(pid, readonly, with_role):
+                        con.execute(st)
+                    cur = con.execute(query, params)
+                    con.execute("COMMIT")
+                break
+            except psycopg.Error as e:
+                con.rollback()
+                # missing per-project role -> retry without SET ROLE (schema isolation still holds)
+                if with_role and "role" in str(e).lower() and "does not exist" in str(e).lower():
+                    continue
+                raise
+        cols = [c.name for c in cur.description] if cur.description else []
         rows = cur.fetchmany(limit) if limit else cur.fetchall()
-    df = pd.DataFrame(rows, columns=cols)
-    return df
+    return pd.DataFrame(rows, columns=cols)
 
 
 def execute(pid: str, query, params=None) -> None:

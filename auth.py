@@ -177,6 +177,7 @@ def org_members(db, org_id: str) -> list[dict]:
 
 
 def add_member(db, org_id: str, user_id: str, role: str = "member") -> None:
+    invalidate_memberships(user_id)
     with db.pool().connection() as con:
         con.execute("INSERT INTO public.memberships (org_id, user_id, role) VALUES (%s, %s, %s) "
                     "ON CONFLICT (org_id, user_id) DO UPDATE SET role = EXCLUDED.role", (org_id, user_id, role))
@@ -184,13 +185,35 @@ def add_member(db, org_id: str, user_id: str, role: str = "member") -> None:
 
 
 def remove_member(db, org_id: str, user_id: str) -> None:
+    invalidate_memberships(user_id)
     with db.pool().connection() as con:
         con.execute("DELETE FROM public.memberships WHERE org_id = %s AND user_id = %s", (org_id, user_id))
         con.commit()
 
 
+_member_cache: dict[str, tuple[float, "User"]] = {}
+MEMBER_TTL = 60.0
+
+
+def invalidate_memberships(user_id: str | None = None) -> None:
+    if user_id:
+        _member_cache.pop(user_id, None)
+    else:
+        _member_cache.clear()
+
+
 def load_memberships(db, user_id: str, email: str) -> User:
-    """User + org memberships; first login creates a personal organisation."""
+    """User + org memberships (cached 60 s per process); first login creates a
+    personal organisation or adopts the orphan one holding pre-Auth projects."""
+    hit = _member_cache.get(user_id)
+    if hit and hit[0] > time.time():
+        return hit[1]
+    u = _load_memberships(db, user_id, email)
+    _member_cache[user_id] = (time.time() + MEMBER_TTL, u)
+    return u
+
+
+def _load_memberships(db, user_id: str, email: str) -> User:
     with db.pool().connection() as con:
         rows = con.execute("SELECT org_id, role FROM public.memberships WHERE user_id = %s", (user_id,)).fetchall()
         if not rows:

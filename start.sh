@@ -1,8 +1,8 @@
 #!/bin/zsh
-# Стартира Bizzmind + публичен тунел (за Gamma да тегли графики/лого).
+# Стартира Bizzmind: API + worker (+ публичен тунел като резерва за Gamma; Storage го замества).
 # Употреба: ./start.sh        (Ctrl+C спира и двете)
 cd "$(dirname "$0")"
-pkill -f "uvicorn app:app" 2>/dev/null; pkill -f "cloudflared tunnel" 2>/dev/null; sleep 1
+pkill -f "uvicorn app:app" 2>/dev/null; pkill -f "cloudflared tunnel" 2>/dev/null; pkill -f "python worker.py" 2>/dev/null; sleep 1
 cloudflared tunnel --url http://127.0.0.1:8000 > data/tunnel.log 2>&1 &
 TUN=$!
 for i in {1..30}; do
@@ -16,6 +16,9 @@ if [ -n "$URL" ]; then
 else
   echo "Тунелът не тръгна — Gamma ще работи без картинки."
 fi
-trap "kill $TUN 2>/dev/null" EXIT
+.venv/bin/python worker.py > data/worker.log 2>&1 &
+WRK=$!
+trap "kill $TUN $WRK 2>/dev/null" EXIT
+echo "Worker: PID $WRK (data/worker.log)"
 echo "Приложение: http://127.0.0.1:8000"
 exec .venv/bin/uvicorn app:app --port 8000

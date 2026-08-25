@@ -1,0 +1,89 @@
+"""Bizzmind — background worker: runs queued AI jobs.
+
+    .venv/bin/python worker.py            # loop forever
+    .venv/bin/python worker.py --once     # run at most one job and exit
+
+Runs alongside the API (locally two processes; in production a separate
+service — Railway/Fly — because serverless functions cannot host it). Several
+workers may run in parallel; Postgres row locks hand each job to exactly one.
+Within one worker the Claude Agent SDK session per project is reused, so a
+project's turns stay sequential (AGENT_LOCK in app.py).
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+import signal
+import sys
+import time
+import traceback
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import app as core   # noqa: E402  (FastAPI module: agent, prompts, project logic)
+import jobs          # noqa: E402
+
+log = logging.getLogger("studio")
+_stop = False
+
+
+def _sig(*_):
+    global _stop
+    _stop = True
+    log.info("worker: stopping after current job…")
+
+
+async def run_job(job: dict) -> dict:
+    proj = core.get_project(job["project_id"])
+    proj.lang = job.get("lang") or "bg"
+    proj.job_id = job["id"]
+    kind, p = job["kind"], job["payload"] or {}
+    try:
+        if kind == "chat":
+            proj.add_chat("user", p["message"])
+            return await core.dispatch_agent(proj, p["message"])
+        if kind == "review":
+            return await core.run_review(proj, p.get("tables") or [], p.get("context", ""), p.get("goal", ""))
+        if kind == "deck":
+            return await core.run_deck(proj)
+        if kind == "translate":
+            return await core.run_translate(proj)
+        raise ValueError(f"unknown job kind '{kind}'")
+    finally:
+        proj.job_id = None
+        core.PROJECTS.pop(proj.id, None)   # API processes reload from DB; don't keep stale copies here either
+
+
+async def main(once: bool = False):
+    signal.signal(signal.SIGTERM, _sig)
+    signal.signal(signal.SIGINT, _sig)
+    n = jobs.requeue_stale()
+    if n:
+        log.info(f"worker: re-queued {n} stale job(s)")
+    log.info(f"worker: online (backend={core.AI_BACKEND})")
+    idle = 0.0
+    while not _stop:
+        job = jobs.claim()
+        if not job:
+            if once:
+                return
+            await asyncio.sleep(min(2.0, 0.5 + idle))
+            idle = min(idle + 0.25, 1.5)
+            continue
+        idle = 0.0
+        t0 = time.monotonic()
+        log.info(f"[{job['project_id']}] job {job['id']} start: {job['kind']}")
+        try:
+            result = await run_job(job)
+            jobs.finish(job["id"], result)
+            log.info(f"[{job['project_id']}] job {job['id']} done in {time.monotonic() - t0:.1f}s")
+        except Exception as e:
+            log.info(f"[{job['project_id']}] job {job['id']} FAILED — {core._short(e, 200)}\n{traceback.format_exc()[-800:]}")
+            jobs.fail(job["id"], str(e))
+        if once:
+            return
+
+
+if __name__ == "__main__":
+    asyncio.run(main(once="--once" in sys.argv))

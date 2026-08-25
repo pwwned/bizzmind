@@ -9,3 +9,4 @@ server.log
 # client data: projects, uploads, sessions, users — never in git
 data/*
 !data/.gitkeep
+worker.log

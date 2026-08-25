@@ -1688,26 +1688,20 @@ async function requestDeckSpec() {
   elp.innerHTML = '<div class="phead"></div><ul></ul>';
   elp.querySelector('.phead').textContent = t('writing_deck');
   chatlog.appendChild(elp); chatlog.scrollTop = chatlog.scrollHeight;
-  let since = 1000000000, timer = null;
+  let timer = null;
   const t0 = Date.now();
   try {
-    try { since = (await fetchJSON(api('/activity?since=1000000000'))).seq; } catch {}
-    timer = setInterval(async () => {
-      try {
-        const d = await fetchJSON(api('/activity?since=' + since));
-        since = d.seq;
-        const ul = elp.querySelector('ul');
-        for (const ev of d.events) {
-          const li = document.createElement('li');
-          li.className = ev.kind; li.textContent = ev.text;
-          ul.appendChild(li);
-        }
-        while (ul.children.length > 7) ul.removeChild(ul.firstChild);
-        elp.querySelector('.phead').textContent = `${t('writing_deck')} · ${Math.round((Date.now() - t0) / 1000)}s`;
-        chatlog.scrollTop = chatlog.scrollHeight;
-      } catch { }
-    }, 1200);
-    const data = await fetchJSON(api('/deck'), { method: 'POST' });
+    timer = setInterval(() => {
+      elp.querySelector('.phead').textContent = `${t('writing_deck')} · ${Math.round((Date.now() - t0) / 1000)}s`;
+    }, 1000);
+    const data = await runJob(api('/deck'), undefined, (ev) => {
+      const ul = elp.querySelector('ul');
+      const li = document.createElement('li');
+      li.className = ev.kind; li.textContent = ev.text;
+      ul.appendChild(li);
+      while (ul.children.length > 7) ul.removeChild(ul.firstChild);
+      chatlog.scrollTop = chatlog.scrollHeight;
+    });
     return data.spec;
   } finally {
     if (timer) clearInterval(timer);
@@ -2213,6 +2207,24 @@ function addQuestionForm(questions, interactive) {
   return form;
 }
 
+/* Background jobs: the API answers {job_id}; we poll /api/jobs/{id} for live
+   events and the final result. (Legacy inline responses still work.) */
+async function runJob(url, body, onEvent, opts = {}) {
+  const start = await fetchJSON(url, {
+    method: opts.method || 'POST', headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!start || !start.job_id) return start;           // inline result
+  let since = 0;
+  for (;;) {
+    await new Promise(r => setTimeout(r, 1200));
+    const j = await fetchJSON(`/api/jobs/${start.job_id}?since=${since}`);
+    for (const ev of j.events || []) { since = ev.seq; if (onEvent) onEvent(ev); }
+    if (j.status === 'done') return j.result || {};
+    if (j.status === 'failed') throw new Error(j.error || t('err_request_failed'));
+  }
+}
+
 async function runAgentRequest(url, body, label) {
   setChatVisible(true);   // the user must see the AI working
   sendbtn.disabled = true; chatinput.disabled = true;
@@ -2221,33 +2233,22 @@ async function runAgentRequest(url, body, label) {
   el.innerHTML = '<div class="phead"></div><ul></ul>';
   el.querySelector('.phead').textContent = label;
   chatlog.appendChild(el); chatlog.scrollTop = chatlog.scrollHeight;
-  let since = 1000000000, timer = null;
+  let timer = null;
   const t0 = Date.now();
   try {
-    try { since = (await fetchJSON(api('/activity?since=1000000000'))).seq; } catch {}
-    timer = setInterval(async () => {
-      try {
-        const d = await fetchJSON(api('/activity?since=' + since));
-        since = d.seq;
-        const ul = el.querySelector('ul');
-        for (const ev of d.events) {
-          const li = document.createElement('li');
-          li.className = ev.kind;
-          li.textContent = ev.text;
-          li.title = ev.text;
-          ul.appendChild(li);
-        }
-        while (ul.children.length > 7) ul.removeChild(ul.firstChild);
-        el.querySelector('.phead').textContent = `${label} · ${Math.round((Date.now() - t0) / 1000)}s`;
-        chatlog.scrollTop = chatlog.scrollHeight;
-      } catch { /* transient */ }
-    }, 1200);
-    const data = await fetchJSON(url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    timer = setInterval(() => {
+      el.querySelector('.phead').textContent = `${label} · ${Math.round((Date.now() - t0) / 1000)}s`;
+    }, 1000);
+    const data = await runJob(url, body, (ev) => {
+      const ul = el.querySelector('ul');
+      const li = document.createElement('li');
+      li.className = ev.kind; li.textContent = ev.text; li.title = ev.text;
+      ul.appendChild(li);
+      while (ul.children.length > 7) ul.removeChild(ul.firstChild);
+      chatlog.scrollTop = chatlog.scrollHeight;
     });
     el.remove();
-    addMsg('ai', data.reply || t('done'));
+    if (data.reply !== null) addMsg('ai', data.reply || t('done'));
     if (data.questions && data.questions.length) addQuestionForm(data.questions, true);
     loadState();
   } catch (err) {

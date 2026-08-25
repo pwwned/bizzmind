@@ -25,6 +25,7 @@ from pathlib import Path
 
 import anthropic
 import db
+import jobs
 import storage
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
@@ -268,6 +269,29 @@ def login_page(request: Request):
     return FileResponse(ROOT / "static" / "login.html", headers=NO_CACHE)
 
 
+# ------------------------------------------------------------------ jobs API
+# INLINE_JOBS=1 runs AI tasks inside the request (tests, single-process dev).
+INLINE_JOBS = os.environ.get("INLINE_JOBS", "0") == "1"
+
+
+@app.get("/api/jobs/{job_id}")
+def job_status(job_id: str, since: int = 0):
+    j = jobs.get(job_id)
+    if not j:
+        raise HTTPException(404, "unknown job")
+    get_project(j["project_id"])            # tenancy check
+    return {"id": j["id"], "kind": j["kind"], "status": j["status"], "error": j["error"],
+            "result": j["result"] if j["status"] == "done" else None,
+            "events": jobs.events(job_id, since)}
+
+
+@app.get("/api/p/{pid}/jobs/active")
+def active_job(pid: str):
+    get_project(pid)
+    j = jobs.latest_for_project(pid)
+    return {"job": {"id": j["id"], "kind": j["kind"], "status": j["status"]} if j else None}
+
+
 # ---------------------------------------------------------------- i18n
 # The UI language travels in the `lang` cookie (set by static/i18n/core.js).
 # Server-side texts (errors, activity feed, PDF labels) go through T();
@@ -490,6 +514,7 @@ class Project:
         self.activity: list = []
         self.act_seq = 0
         self.lang = "bg"                  # UI language of the request driving this turn
+        self.job_id: str | None = None    # set by the worker while a job runs
         self.sub_lang: str | None = None  # language the SDK session's prompt was built for
 
     # ---- persistence (public.projects)
@@ -537,6 +562,22 @@ class Project:
         self.activity.append({"seq": self.act_seq, "kind": kind, "text": text,
                               "ts": time.strftime("%H:%M:%S")})
         del self.activity[:-200]
+        if self.job_id:
+            jobs.log_event(self.job_id, kind, text)
+
+    def reload(self):
+        """Refresh structured state from public.projects (another process — the
+        worker — may have changed it)."""
+        row = db.project_load(self.id)
+        if not row:
+            return
+        self.meta = row.get("meta") or self.meta
+        self.chat = row.get("chat") or []
+        self.notes = row.get("notes") or []
+        self.filters = row.get("filters") or []
+        self.dashboard = row.get("dashboard") or []
+        self.i18n = row.get("i18n") or {}
+        self.chart_seq = max((c["id"] for c in self.dashboard), default=0)
 
 
 PROJECTS: dict = {}
@@ -573,6 +614,8 @@ def get_project(pid: str) -> Project:
             extract_brand_assets(PROJECTS[pid])   # backfill for older uploads
         except Exception as e:
             log.info(f"[{pid}] brand backfill failed — {_short(e)}")
+    else:
+        PROJECTS[pid].reload()
     require_project_access(PROJECTS[pid])
     return PROJECTS[pid]
 
@@ -2105,7 +2148,19 @@ Input:
 async def translate_content(pid: str, request: Request):
     proj = get_project(pid)
     lang = req_lang(request)
-    proj.lang = lang
+    if INLINE_JOBS:
+        proj.lang = lang
+        return await run_translate(proj)
+    src = content_lang(proj)
+    if lang == src or not [k for k in translatable_items(proj, lang) if k not in _load_i18n(proj, lang)]:
+        return {"translated": 0, "content_lang": src, "reply": None}
+    u = sb_auth.current_user()
+    return {"job_id": jobs.enqueue(pid, "translate", {}, lang, u.id if u else None)}
+
+
+async def run_translate(proj: Project):
+    lang = proj.lang
+    pid = proj.id
     src = content_lang(proj)
     if lang == src:
         return {"translated": 0, "content_lang": src}
@@ -2386,24 +2441,37 @@ def refresh_dashboard(pid: str, req: RefreshRequest, request: Request):
 @app.post("/api/p/{pid}/chat")
 async def chat(pid: str, req: ChatRequest, request: Request):
     proj = get_project(pid)
-    proj.lang = req_lang(request)
-    proj.add_chat("user", req.message)
-    return await dispatch_agent(proj, req.message)
+    lang = req_lang(request)
+    if INLINE_JOBS:
+        proj.lang = lang
+        proj.add_chat("user", req.message)
+        return await dispatch_agent(proj, req.message)
+    u = sb_auth.current_user()
+    return {"job_id": jobs.enqueue(pid, "chat", {"message": req.message}, lang, u.id if u else None)}
 
 
 @app.post("/api/p/{pid}/review")
 async def review(pid: str, req: ReviewRequest, request: Request):
     proj = get_project(pid)
     lang = req_lang(request)
-    proj.lang = lang
-    proj.add_chat("event", T(lang, "chat_files_loaded", tables=', '.join(req.tables)))
+    if INLINE_JOBS:
+        proj.lang = lang
+        return await run_review(proj, req.tables, req.context, req.goal)
+    u = sb_auth.current_user()
+    return {"job_id": jobs.enqueue(pid, "review", {"tables": req.tables, "context": req.context,
+                                                    "goal": req.goal}, lang, u.id if u else None)}
+
+
+async def run_review(proj: Project, tables: list, context: str = "", goal: str = ""):
+    lang = proj.lang
+    proj.add_chat("event", T(lang, "chat_files_loaded", tables=', '.join(tables)))
     upfront = ""
-    if req.context.strip() or req.goal.strip():
+    if context.strip() or goal.strip():
         parts = []
-        if req.context.strip():
-            parts.append(T(lang, "chat_context", text=req.context.strip()))
-        if req.goal.strip():
-            parts.append(T(lang, "chat_goal", text=req.goal.strip()))
+        if context.strip():
+            parts.append(T(lang, "chat_context", text=context.strip()))
+        if goal.strip():
+            parts.append(T(lang, "chat_goal", text=goal.strip()))
         user_text = "\n".join(parts)
         proj.add_chat("user", user_text)
         upfront = (f"\nThe user provided this upfront — treat it as answered "
@@ -2412,7 +2480,7 @@ async def review(pid: str, req: ReviewRequest, request: Request):
                    f"{user_text}\n")
     return await dispatch_agent(
         proj,
-        f"[The user just uploaded file(s) loaded as: {', '.join(req.tables)}.{upfront}"
+        f"[The user just uploaded file(s) loaded as: {', '.join(tables)}.{upfront}"
         "Follow your interview-mode instructions: investigate the new data, "
         "say briefly what you understood, and ask only the clarifying "
         "questions you really need (skip anything already answered above). "
@@ -2760,9 +2828,18 @@ __CHARTS__]"""
 async def make_deck(pid: str, request: Request):
     proj = get_project(pid)
     lang = req_lang(request)
-    proj.lang = lang
     if not proj.dashboard:
         raise HTTPException(400, T(lang, "err_deck_no_charts"))
+    if INLINE_JOBS:
+        proj.lang = lang
+        return await run_deck(proj)
+    u = sb_auth.current_user()
+    return {"job_id": jobs.enqueue(pid, "deck", {}, lang, u.id if u else None)}
+
+
+async def run_deck(proj: Project):
+    lang = proj.lang
+    pid = proj.id
     charts_brief = [{"id": c["id"], "title": c["title"], "type": c["chart_type"],
                      "insight": c["insight"], "sample_rows": c["rows"][:3]}
                     for c in proj.dashboard]
@@ -2780,11 +2857,11 @@ async def make_deck(pid: str, request: Request):
     raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
     m = re.search(r"\{.*\}", raw, re.DOTALL)
     if not m:
-        raise HTTPException(502, T(lang, "err_deck_invalid"))
+        raise RuntimeError(T(lang, "err_deck_invalid"))
     try:
         spec = json.loads(m.group(0))
     except Exception:
-        raise HTTPException(502, T(lang, "err_deck_json"))
+        raise RuntimeError(T(lang, "err_deck_json"))
     log.info(f"[{pid}] deck: done in {time.monotonic() - t0:.1f}s — "
              f"{sum(len(s.get('slides', [])) for s in spec.get('sections', []))} слайда, "
              f"{len(spec.get('sections', []))} секции")

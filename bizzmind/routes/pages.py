@@ -35,3 +35,11 @@ def app_page():
 def pub_file(token: str, name: str):
     """Unauthenticated assets for Gamma's fetchers (unguessable token path)."""
     return gamma.pub_file(token, name)
+
+
+@router.get("/api/_debug/request")
+def debug_request(request: Request):
+    """What the ASGI app actually receives behind the hosting rewrite (no secrets)."""
+    hdr = {k: v for k, v in request.headers.items() if k.startswith("x-vercel") or k in ("host", "x-forwarded-host")}
+    return {"path": request.url.path, "raw_path": request.scope.get("raw_path", b"").decode(errors="replace"),
+            "root_path": request.scope.get("root_path"), "headers": hdr}

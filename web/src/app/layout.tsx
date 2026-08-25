@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
+import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
 
 const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin", "cyrillic"], weight: ["500", "700", "800"] });
@@ -12,9 +13,12 @@ export const metadata: Metadata = {
   icons: { icon: "/icon.svg" },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const jar = await cookies();
+  const dark = (jar.get("theme")?.value ?? "dark") === "dark";
+  const lang = jar.get("lang")?.value === "en" ? "en" : "bg";
   return (
-    <html lang="bg" className={`${manrope.variable} ${plex.variable} dark h-full antialiased`} suppressHydrationWarning>
+    <html lang={lang} className={`${manrope.variable} ${plex.variable} ${dark ? "dark" : ""} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>

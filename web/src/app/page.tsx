@@ -4,6 +4,7 @@ import { useLang } from "@/lib/i18n";
 import { Logo, Mark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChart3, Brain, Eye, SlidersHorizontal, FileSpreadsheet, Lock } from "lucide-react";
+import { ThemeToggle } from "@/lib/theme";
 
 const copy = {
   bg: {
@@ -70,6 +71,7 @@ export default function Landing() {
               <button key={l} type="button" onClick={() => setLang(l)} className={`px-2.5 py-1.5 ${lang === l ? "grad-olive text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{l.toUpperCase()}</button>
             ))}
           </div>
+          <ThemeToggle />
           <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/login" />}>{c.sign_in}</Button>
           <Button size="sm" className="grad-olive font-bold text-primary-foreground" nativeButton={false} render={<Link href="/app" />}>{c.open_app}</Button>
         </div>

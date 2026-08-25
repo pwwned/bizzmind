@@ -7,6 +7,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/lib/theme";
 
 function LoginForm() {
   const t = useT();
@@ -44,6 +45,7 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <form onSubmit={submit} className="relative w-full max-w-sm rounded-2xl border border-border bg-card/80 p-8 shadow-2xl backdrop-blur">
+        <div className="absolute left-4 top-4"><ThemeToggle /></div>
         <div className="absolute right-4 top-4 inline-flex overflow-hidden rounded-lg border border-border text-[11px] font-extrabold">
           {(["bg", "en"] as const).map((l) => (
             <button key={l} type="button" onClick={() => setLang(l)}

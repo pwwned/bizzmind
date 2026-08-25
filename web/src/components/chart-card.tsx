@@ -4,11 +4,15 @@ import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import type { Chart, I18nInfo } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 import { Card } from "@/components/ui/card";
 
 /* Chart palette from the design tokens (palette A). */
-const SERIES = ["#b5d33d", "#7f9c3a", "#c9e356", "#56703a", "#9aa69c", "#e9f08e", "#3d5236", "#dfe86a"];
-const INK = "#eef2ea", MUTED = "#9aa69c", GRID = "rgba(255,255,255,0.08)";
+const PALETTES = {
+  dark: { SERIES: ["#b5d33d", "#7f9c3a", "#c9e356", "#56703a", "#9aa69c", "#e9f08e", "#3d5236", "#dfe86a"], INK: "#eef2ea", MUTED: "#9aa69c", GRID: "rgba(255,255,255,0.08)", CARD: "#203027", TIP: "#1a271f" },
+  light: { SERIES: ["#6f8f1f", "#b5d33d", "#56703a", "#93ad35", "#9aa69c", "#3d5236", "#c9e356", "#7f9c3a"], INK: "#141e18", MUTED: "#66706a", GRID: "rgba(0,0,0,0.07)", CARD: "#ffffff", TIP: "#ffffff" },
+};
+type Palette = typeof PALETTES.dark;
 
 const fmtNum = (v: unknown) => {
   const n = Number(v);
@@ -38,20 +42,21 @@ function isHorizontal(chart: Chart) {
   return chart.chart_type === "bar" && (cats.length > 8 || cats.some((c) => c.length > 14));
 }
 
-export function buildOption(chart: Chart, L: (s: string) => string, LV: (v: unknown) => unknown): EChartsOption {
+export function buildOption(chart: Chart, L: (s: string) => string, LV: (v: unknown) => unknown, P: Palette = PALETTES.dark): EChartsOption {
+  const { SERIES, INK, MUTED, GRID, CARD, TIP } = P;
   const rows = chart.rows ?? [], x = chart.x_field, ys = chart.y_fields ?? [];
   const base = { color: SERIES, textStyle: { fontFamily: "var(--font-plex), system-ui" } } as EChartsOption;
   const legend = ys.length > 1 ? { top: 0, textStyle: { color: MUTED, fontSize: 11 }, icon: "circle", itemWidth: 8, itemHeight: 8 } : undefined;
   const axisText = { color: MUTED, fontSize: 11 };
   const cats = rows.map((r) => String(LV(r[x]) ?? ""));
-  const tooltip = { backgroundColor: "#1a271f", borderColor: "rgba(255,255,255,0.12)", textStyle: { color: INK, fontSize: 12 } };
+  const tooltip = { backgroundColor: TIP, borderColor: GRID, textStyle: { color: INK, fontSize: 12 } };
 
   if (chart.chart_type === "pie") {
     return {
       ...base, tooltip: { ...tooltip, trigger: "item", valueFormatter: fmtNum }, legend: { ...legend, top: 0, textStyle: { color: MUTED, fontSize: 11 } },
       series: [{
         type: "pie", radius: ["42%", "70%"], center: ["50%", "56%"], minShowLabelAngle: 5,
-        itemStyle: { borderColor: "#203027", borderWidth: 2 },
+        itemStyle: { borderColor: CARD, borderWidth: 2 },
         label: { color: INK, fontSize: 11, formatter: (p: { name: string; percent?: number }) => `${p.name.length > 20 ? p.name.slice(0, 19) + "…" : p.name}\n${p.percent}%` },
         data: rows.map((r) => ({ name: String(LV(r[x]) ?? ""), value: Number(r[ys[0]]) })),
       }],
@@ -96,8 +101,9 @@ export function ChartCard({ chart, i18n, onPick, wide }: {
   chart: Chart; i18n?: I18nInfo; onPick?: (chart: Chart, label: string) => void; wide?: boolean;
 }) {
   const t = useT();
+  const { theme } = useTheme();
   const { L, LV } = useLabelMaps(i18n);
-  const option = useMemo(() => (chart.chart_type === "table" ? null : buildOption(chart, L, LV)), [chart, L, LV]);
+  const option = useMemo(() => (chart.chart_type === "table" ? null : buildOption(chart, L, LV, PALETTES[theme])), [chart, L, LV, theme]);
   const tall = isHorizontal(chart) ? Math.min(560, Math.max(280, chart.rows.length * 30 + 80)) : 300;
 
   return (

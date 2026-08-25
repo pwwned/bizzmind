@@ -7,6 +7,7 @@ import { useLang, useT } from "@/lib/i18n";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut } from "lucide-react";
+import { ThemeToggle } from "@/lib/theme";
 
 export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
   const t = useT();
@@ -41,6 +42,7 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
           </button>
         ))}
       </div>
+      <ThemeToggle />
       {me.data && <span className="hidden text-xs text-muted-foreground sm:inline">{me.data.email}</span>}
       <Button
         variant="ghost"

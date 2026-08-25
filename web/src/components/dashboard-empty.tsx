@@ -31,7 +31,7 @@ export function DashboardLoading() {
   const t = useT();
   return (
     <div className="flex min-h-[55vh] flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
-      <span className="size-9 animate-spin rounded-full border-[3px] border-white/10 border-t-olive" />
+      <span className="size-9 animate-spin rounded-full border-[3px] border-border border-t-olive" />
       {t("loading_project")}
     </div>
   );

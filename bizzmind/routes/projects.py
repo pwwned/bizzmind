@@ -92,7 +92,7 @@ async def run_job_now(job_id: str):
     return await _execute_claimed(job)
 
 
-@router.api_route("/api/jobs/cron", methods=["GET", "POST"])
+@router.api_route("/api/cron/jobs", methods=["GET", "POST"])
 async def jobs_cron(request: Request):
     """Vercel Cron fallback: re-queue stale jobs and run up to 3 queued ones."""
     secret = os.environ.get("CRON_SECRET")

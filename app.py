@@ -25,6 +25,7 @@ from pathlib import Path
 
 import anthropic
 import db
+import storage
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -478,6 +479,9 @@ class Project:
         self.dashboard = row.get("dashboard") or []
         self.i18n = row.get("i18n") or {}
         self.chart_seq = max((c["id"] for c in self.dashboard), default=0)
+        # local dirs are a cache of Supabase Storage — fill them on a cold start
+        storage.sync_down(pid, "uploads", self.uploads_dir)
+        storage.sync_down(pid, "brand", self.dir / "brand")
 
         self.messages: list = []          # API-backend conversation (in-memory)
         self.sub_client = None            # Agent SDK session
@@ -1908,6 +1912,10 @@ async def delete_project(pid: str):
     PROJECTS.pop(pid, None)
     shutil.rmtree(proj.dir, ignore_errors=True)
     try:
+        storage.delete_prefix(pid)
+    except Exception as e:
+        log.info(f"[{pid}] storage cleanup failed — {_short(e)}")
+    try:
         db.project_delete(pid)
         db.drop_project(pid)
     except Exception as e:
@@ -2197,6 +2205,7 @@ async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)
             proj.meta["files"][fname] = file_tables
     finally:
         proj.save_meta()
+        await run_in_threadpool(storage.sync_up, pid, "uploads", proj.uploads_dir)
     log.info(f"[{pid}] upload: done — {len(loaded)} table(s), {sum(l['rows'] for l in loaded)} rows total")
     write_progress(proj)
     return {"loaded": loaded, "tables": describe_schema(proj)}
@@ -2215,6 +2224,7 @@ def delete_file(pid: str, filename: str):
     upload_file = proj.uploads_dir / fname
     if upload_file.exists():
         upload_file.unlink()
+    storage.sync_up(pid, "uploads", proj.uploads_dir)
     proj.save_meta()
     write_progress(proj)
     log.info(f"[{pid}] file deleted: '{fname}' (+{len(tables)} table(s))")
@@ -2441,6 +2451,7 @@ async def reset(pid: str):
         log.info(f"[{pid}] reset: schema drop failed — {_short(e)}")
     shutil.rmtree(proj.uploads_dir, ignore_errors=True)
     proj.uploads_dir.mkdir(exist_ok=True)
+    storage.sync_up(pid, "uploads", proj.uploads_dir)
     log.info(f"[{pid}] reset: all project state cleared")
     return {"ok": True}
 
@@ -2660,6 +2671,7 @@ async def brand_upload(pid: str, request: Request, files: list[UploadFile] = Fil
                 if stale_txt.exists():
                     stale_txt.unlink()
     extract_brand_assets(proj)
+    await run_in_threadpool(storage.sync_up, pid, "brand", brand_dir(proj))
     return {"brand": brand_files(proj), "saved": saved}
 
 
@@ -2680,6 +2692,7 @@ def brand_delete(pid: str, filename: str):
     for p in [d / fname, d / (Path(fname).stem + ".txt")]:
         if p.exists():
             p.unlink()
+    storage.sync_up(pid, "brand", d)
     log.info(f"[{pid}] brand: deleted '{fname}'")
     return {"brand": brand_files(proj)}
 
@@ -3056,7 +3069,7 @@ def gamma_options(request: Request):
         _gamma_theme_cache.update(at=time.time(), data=themes)
     return {
         "enabled": True,
-        "public_images": bool(PUBLIC_BASE_URL),
+        "public_images": bool(PUBLIC_BASE_URL) or storage.enabled(),
         "themes": _gamma_theme_cache["data"],
         "text_modes": [
             {"id": "preserve", "label": T(L, "g_preserve"), "hint": T(L, "g_preserve_hint")},
@@ -3125,6 +3138,12 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
 
     def publish(name: str, data: bytes) -> str | None:
         (out_dir / name).write_bytes(data)
+        if storage.enabled():
+            try:
+                storage.put(f"{pid}/pub/{token}/{name}", data)
+                return storage.signed_url(f"{pid}/pub/{token}/{name}", 7 * 24 * 3600)
+            except storage.StorageError as e:
+                log.info(f"[{pid}] gamma: storage publish failed — {_short(e)}")
         return f"{PUBLIC_BASE_URL}/pub/{token}/{name}" if PUBLIC_BASE_URL else None
 
     # logo

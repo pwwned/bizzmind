@@ -1183,6 +1183,9 @@ function renderChartCard(chart) {
 
 function crossFilter(chart, value) {
   if (!value || value === 'undefined') return;
+  // the chart shows translated labels; the filter needs the stored (original) value
+  const orig = Object.keys(VALUE_LABELS).find(k => VALUE_LABELS[k] === value);
+  if (orig !== undefined) value = orig;
   // match the clicked dimension to a global filter: by column name, else by options
   let f = allFilters.find(f => f.type === 'multi' && f.column === chart.x_field);
   if (!f) f = allFilters.find(f => f.type === 'multi' && (f.resolved_options || []).includes(value));

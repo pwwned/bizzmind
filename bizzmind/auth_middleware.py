@@ -25,6 +25,11 @@ def _set_auth_cookies(resp, tokens: dict):
 
 async def auth_middleware(request: Request, call_next):
     p = request.url.path
+    if request.headers.get("x-debug-request") == "1":   # hosting diagnostics: what does the app see?
+        return JSONResponse({"path": p, "root_path": request.scope.get("root_path"),
+                             "raw_path": request.scope.get("raw_path", b"").decode(errors="replace"),
+                             "headers": {k: v for k, v in request.headers.items()
+                                         if k.startswith("x-") or k in ("host",)}})
     if p in PUBLIC_PATHS or p.startswith(PUBLIC_PREFIXES):
         return await call_next(request)
     access = request.cookies.get(sb_auth.ACCESS_COOKIE)

@@ -1,6 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": { "api/index.py": { "runtime": "@vercel/python@4", "maxDuration": 800, "memory": 1024 } },
-  "rewrites": [ { "source": "/(.*)", "destination": "/api/index.py" } ],
-  "crons": [ { "path": "/api/cron/jobs", "schedule": "* * * * *" } ]
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 300,
+      "memory": 1024
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.py"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/jobs",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }

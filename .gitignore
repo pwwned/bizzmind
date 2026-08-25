@@ -17,3 +17,4 @@ web-dev.log
 /*.xls
 /*.csv
 web/shot.tmp.mjs
+.vercel

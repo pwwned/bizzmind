@@ -933,9 +933,6 @@ async def run_translate(proj: Project):
                 tr[k] = v.strip()
                 done += 1
         _save_i18n(proj, lang, tr)
-    pend = getattr(proj, "i18n_pending", {}).get(lang)
-    if pend:
-        pend.difference_update({v for v in pend if _h(v) in tr})
     # drop entries whose source text no longer exists (keeps the file small)
     tr = {k: v for k, v in tr.items() if k in items}
     _save_i18n(proj, lang, tr)

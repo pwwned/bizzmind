@@ -395,9 +395,7 @@ async def refresh_dashboard(pid: str, req: RefreshRequest, request: Request):
     filters = filters_with_options(proj)
     if lang != content_lang(proj):
         tr = _load_i18n(proj, lang)
-        charts, i18n["field_labels"], i18n["value_labels"], pending = localize_charts(proj, lang, tr, charts)
-        i18n["needs_translation"] = bool(pending)
-        i18n["missing"] = len(pending)
+        charts, i18n["field_labels"], i18n["value_labels"], _ = localize_charts(proj, lang, tr, charts)
         for f in filters:
             if _has_letters(f.get("label")):
                 f["label"] = tr.get(_h(f["label"]), f["label"])

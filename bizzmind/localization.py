@@ -84,8 +84,6 @@ def translatable_items(proj: Project, lang: str | None = None) -> dict:
         if isinstance(v, dict):
             add(v.get("description", ""))
     # textual values first seen in filtered re-runs (see localize_charts)
-    for v in list(getattr(proj, "i18n_pending", {}).get(lang, set()) if lang else []):
-        add(v)
     return items
 
 
@@ -94,9 +92,6 @@ def localize_charts(proj: Project, lang: str, tr: dict, charts: list):
     the cached map. Values without a translation are queued so the next
     /translate run picks them up (filters reveal values the stored sample
     did not contain). Returns (charts, field_labels, value_labels, pending)."""
-    if not hasattr(proj, "i18n_pending"):
-        proj.i18n_pending = {}
-    pending = proj.i18n_pending.setdefault(lang, set())
     fields, values = {}, {}
     out = []
     for c in charts:
@@ -113,10 +108,9 @@ def localize_charts(proj: Project, lang: str, tr: dict, charts: list):
                     t = tr.get(_h(v))
                     if t is not None:
                         values[v] = t
-                    elif len(pending) < 600 and v not in pending and len(v) <= 1200:
-                        pending.add(v)
         out.append(cc)
-    return out, fields, values, pending
+    # values revealed only by filters are data — they are shown as stored, never translated
+    return out, fields, values, set()
 
 
 def localized_content(proj: Project, lang: str):

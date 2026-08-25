@@ -1631,8 +1631,10 @@ function applyI18nInfo(info, replace) {
   if (!info) return;
   if (replace) { FIELD_LABELS = info.field_labels || {}; VALUE_LABELS = info.value_labels || {}; }
   else { Object.assign(FIELD_LABELS, info.field_labels || {}); Object.assign(VALUE_LABELS, info.value_labels || {}); }
-  const key = `${PID}:${I18N.lang}:${info.missing || 0}`;
-  if (info.needs_translation && translateTried !== key && !translateBusy) {
+  // translation is a one-time step when the UI language differs from the content
+  // language — triggered from /state only, never from filtering
+  const key = `${PID}:${I18N.lang}`;
+  if (replace && info.needs_translation && translateTried !== key && !translateBusy) {
     translateTried = key;
     translateSilently();
   }

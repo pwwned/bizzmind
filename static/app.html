@@ -2163,8 +2163,6 @@ $('#resetbtn').addEventListener('click', async () => {
   await fetchJSON(api('/reset'), { method: 'POST' });
   location.reload();
 });
-  location.reload();
-});
 
 /* ======================= chat + live process feed ======================= */
 const chatlog = $('#chatlog'), chatinput = $('#chatinput'), sendbtn = $('#sendbtn');

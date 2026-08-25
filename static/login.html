@@ -62,6 +62,8 @@
   .back:hover { color: var(--cyan); }
   .card .langswitch { position: absolute; top: 14px; right: 14px; }
   .card { position: relative; }
+  .link { background: none; border: none; color: var(--cyan, #0ADDF5); font: inherit; font-size: 12.5px; cursor: pointer; margin-top: 10px; text-decoration: underline; }
+  #ok { font-size: 12.5px; color: #8fd18f; margin: 8px 0; }
 </style>
 </head>
 <body>
@@ -74,29 +76,50 @@
       <label for="email" data-i18n="login_email"></label>
       <input id="email" type="email" autocomplete="username" required>
     </div>
+    <div class="field" id="namefield" style="display:none;">
+      <label for="name" data-i18n="login_name"></label>
+      <input id="name" type="text" autocomplete="name">
+    </div>
     <div class="field">
       <label for="password" data-i18n="login_password"></label>
-      <input id="password" type="password" autocomplete="current-password" required>
+      <input id="password" type="password" autocomplete="current-password" required minlength="8">
     </div>
     <div id="err"></div>
+    <div id="ok" style="display:none;"></div>
     <button id="btn" type="submit" data-i18n="login_btn"></button>
+    <button id="toggle" type="button" class="link" data-i18n="login_to_register"></button>
     <a class="back" href="/" data-i18n="login_back"></a>
   </form>
 <script>
-document.getElementById('f').addEventListener('submit', async (e) => {
+let mode = 'login';
+const $ = (id) => document.getElementById(id);
+function render() {
+  const reg = mode === 'register';
+  $('namefield').style.display = reg ? '' : 'none';
+  $('btn').textContent = t(reg ? 'register_btn' : 'login_btn');
+  $('toggle').textContent = t(reg ? 'login_to_login' : 'login_to_register');
+  document.querySelector('.sub').textContent = t(reg ? 'register_sub' : 'login_sub');
+  $('password').autocomplete = reg ? 'new-password' : 'current-password';
+  $('err').textContent = ''; $('ok').style.display = 'none';
+}
+$('toggle').addEventListener('click', () => { mode = mode === 'login' ? 'register' : 'login'; render(); });
+document.addEventListener('DOMContentLoaded', render);
+$('f').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const btn = document.getElementById('btn'), err = document.getElementById('err');
-  btn.disabled = true; err.textContent = '';
+  const btn = $('btn'), err = $('err'), ok = $('ok');
+  btn.disabled = true; err.textContent = ''; ok.style.display = 'none';
   try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
-      }),
+    const body = { email: $('email').value, password: $('password').value };
+    if (mode === 'register') body.name = $('name').value;
+    const res = await fetch(mode === 'register' ? '/api/auth/register' : '/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || t('login_failed'));
+    if (mode === 'register' && !data.confirmed) {
+      ok.textContent = data.message; ok.style.display = ''; mode = 'login'; render(); ok.style.display = '';
+      btn.disabled = false; return;
+    }
     location.href = '/app';
   } catch (ex) {
     err.textContent = ex.message;

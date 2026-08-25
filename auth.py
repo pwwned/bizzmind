@@ -109,6 +109,22 @@ def sign_in(email: str, password: str) -> dict:
                  {"email": email.strip().lower(), "password": password})
 
 
+def sign_up(email: str, password: str, name: str = "") -> dict:
+    """Self-service registration. With email confirmation enabled in Supabase the
+    response has no session (user must confirm first)."""
+    body = {"email": email.strip().lower(), "password": password}
+    if name:
+        body["data"] = {"full_name": name}
+    return _call("POST", "/auth/v1/signup", body)
+
+
+def admin_invite(email: str, redirect_to: str | None = None) -> dict:
+    """Send a Supabase invite email (user sets the password from the link)."""
+    body = {"email": email.strip().lower()}
+    path = "/auth/v1/invite" + (f"?redirect_to={redirect_to}" if redirect_to else "")
+    return _call("POST", path, body, service=True)
+
+
 def refresh(refresh_token: str) -> dict:
     return _call("POST", "/auth/v1/token?grant_type=refresh_token", {"refresh_token": refresh_token})
 
@@ -151,6 +167,27 @@ def admin_list_users() -> list[dict]:
 
 
 # --------------------------------------------------------------- membership (Postgres)
+
+def org_members(db, org_id: str) -> list[dict]:
+    with db.pool().connection() as con:
+        rows = con.execute(
+            "SELECT m.user_id, m.role, m.created_at, u.email FROM public.memberships m "
+            "JOIN auth.users u ON u.id = m.user_id WHERE m.org_id = %s ORDER BY m.created_at", (org_id,)).fetchall()
+    return [{"user_id": str(r[0]), "role": r[1], "since": r[2].strftime("%Y-%m-%d"), "email": r[3]} for r in rows]
+
+
+def add_member(db, org_id: str, user_id: str, role: str = "member") -> None:
+    with db.pool().connection() as con:
+        con.execute("INSERT INTO public.memberships (org_id, user_id, role) VALUES (%s, %s, %s) "
+                    "ON CONFLICT (org_id, user_id) DO UPDATE SET role = EXCLUDED.role", (org_id, user_id, role))
+        con.commit()
+
+
+def remove_member(db, org_id: str, user_id: str) -> None:
+    with db.pool().connection() as con:
+        con.execute("DELETE FROM public.memberships WHERE org_id = %s AND user_id = %s", (org_id, user_id))
+        con.commit()
+
 
 def load_memberships(db, user_id: str, email: str) -> User:
     """User + org memberships; first login creates a personal organisation."""

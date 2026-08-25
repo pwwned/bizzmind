@@ -85,6 +85,11 @@ I18N.add('bg', {
   login_btn: 'Вход',
   login_back: '← Обратно към сайта',
   login_failed: 'Входът неуспешен',
+  login_name: 'Име (по желание)',
+  register_btn: 'Създай акаунт',
+  register_sub: 'Създай акаунт — първият вход прави твоята организация',
+  login_to_register: 'Нямаш акаунт? Регистрирай се',
+  login_to_login: 'Имаш акаунт? Влез',
 });
 
 I18N.add('en', {
@@ -172,4 +177,9 @@ I18N.add('en', {
   login_btn: 'Sign in',
   login_back: '← Back to the site',
   login_failed: 'Sign-in failed',
+  login_name: 'Name (optional)',
+  register_btn: 'Create account',
+  register_sub: 'Create an account — your first sign-in creates your organisation',
+  login_to_register: 'No account? Register',
+  login_to_login: 'Have an account? Sign in',
 });

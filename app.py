@@ -79,7 +79,7 @@ client = anthropic.Anthropic()
 # tokens, verified per request (stateless — no sessions on disk/in memory).
 import auth as sb_auth
 
-PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout")
+PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout", "/api/auth/register")
 PUBLIC_PREFIXES = ("/static/", "/pub/")
 
 
@@ -144,6 +144,88 @@ def auth_login(req: LoginRequest, request: Request):
     return resp
 
 
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str = ""
+
+
+@app.post("/api/auth/register")
+def auth_register(req: RegisterRequest, request: Request):
+    lang = req_lang(request)
+    if len(req.password) < 8:
+        return JSONResponse({"detail": T(lang, "password_short")}, status_code=400)
+    try:
+        res = sb_auth.sign_up(req.email, req.password, req.name)
+    except sb_auth.AuthError as e:
+        log.info(f"auth: register failed for '{req.email}' ({e.status}: {e.detail})")
+        if e.status == 422 or "already" in e.detail.lower():
+            return JSONResponse({"detail": T(lang, "email_taken")}, status_code=409)
+        return JSONResponse({"detail": e.detail}, status_code=400 if e.status < 500 else 503)
+    log.info(f"auth: registered '{req.email}'")
+    if res.get("access_token"):
+        # confirmation disabled in Supabase -> signed in straight away
+        resp = JSONResponse({"ok": True, "email": req.email.strip().lower(), "confirmed": True})
+        _set_auth_cookies(resp, res)
+        return resp
+    return {"ok": True, "email": req.email.strip().lower(), "confirmed": False,
+            "message": T(lang, "confirm_email")}
+
+
+class InviteRequest(BaseModel):
+    email: str
+    role: str = "member"
+
+
+@app.get("/api/org/members")
+def org_members():
+    u = sb_auth.current_user()
+    org = u.orgs[0] if u and u.orgs else None
+    if not org:
+        raise HTTPException(404, "no organisation")
+    return {"org_id": org, "members": sb_auth.org_members(db, org), "me": u.id}
+
+
+@app.post("/api/org/invite")
+def org_invite(req: InviteRequest, request: Request):
+    """Admins invite colleagues: Supabase sends the invite email; on first login
+    the invitee is attached to this organisation (pending_invites)."""
+    u = sb_auth.current_user()
+    org = u.orgs[0] if u and u.orgs else None
+    lang = req_lang(request)
+    if not org or not u.can_admin(org):
+        raise HTTPException(403, T(lang, "forbidden"))
+    if req.role not in ("admin", "member"):
+        raise HTTPException(400, "bad role")
+    email = req.email.strip().lower()
+    try:
+        invited = sb_auth.admin_invite(email, redirect_to=str(request.base_url).rstrip("/") + "/login")
+    except sb_auth.AuthError as e:
+        if e.status == 422 or "already" in e.detail.lower():
+            # existing account -> attach directly
+            match = [x for x in sb_auth.admin_list_users() if x.get("email") == email]
+            if not match:
+                raise HTTPException(400, e.detail)
+            sb_auth.add_member(db, org, match[0]["id"], req.role)
+            return {"ok": True, "attached": True}
+        raise HTTPException(400 if e.status < 500 else 503, e.detail)
+    sb_auth.add_member(db, org, invited["id"], req.role)
+    log.info(f"auth: {u.email} invited {email} as {req.role}")
+    return {"ok": True, "invited": True}
+
+
+@app.delete("/api/org/members/{user_id}")
+def org_remove(user_id: str, request: Request):
+    u = sb_auth.current_user()
+    org = u.orgs[0] if u and u.orgs else None
+    if not org or not u.can_admin(org):
+        raise HTTPException(403, T(req_lang(request), "forbidden"))
+    if user_id == u.id:
+        raise HTTPException(400, "cannot remove yourself")
+    sb_auth.remove_member(db, org, user_id)
+    return {"ok": True}
+
+
 @app.post("/api/auth/logout")
 def auth_logout(request: Request):
     access = request.cookies.get(sb_auth.ACCESS_COOKIE)
@@ -193,6 +275,9 @@ LANGS = ("bg", "en")
 LANG_NAMES = {"bg": "Bulgarian", "en": "English"}
 MSG: dict = {
     "bg": {
+        "password_short": "Паролата трябва да е поне 8 символа.",
+        "email_taken": "Вече има акаунт с този имейл.",
+        "confirm_email": "Изпратихме линк за потвърждение на имейла ти. Потвърди го и влез.",
         "forbidden": "Нямаш достъп до този проект.",
         "act_translating": "🌐 Превеждам съдържанието на дашборда ({n} текста)…",
         "act_translated": "🌐 Преведох {n} текста",
@@ -264,6 +349,9 @@ MSG: dict = {
         "lang_bg": "Български", "lang_en": "English",
     },
     "en": {
+        "password_short": "The password must be at least 8 characters.",
+        "email_taken": "An account with this email already exists.",
+        "confirm_email": "We sent a confirmation link to your email. Confirm it, then sign in.",
         "forbidden": "You do not have access to this project.",
         "act_translating": "🌐 Translating the dashboard content ({n} texts)…",
         "act_translated": "🌐 Translated {n} texts",

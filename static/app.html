@@ -568,6 +568,11 @@
   #startbtn { font-family: inherit; font-size: 13.5px; font-weight: 700; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; background: var(--grad-cyan); color: var(--navy-deep); box-shadow: 0 4px 18px rgba(10,221,245,0.25); }
   #startbtn:hover { transform: translateY(-1px); }
   #dropzone.pulse { box-shadow: 0 0 0 4px rgba(10,221,245,0.35); border-color: var(--cyan); }
+  #dashboard-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 50vh; color: var(--text-muted); font-size: 13.5px; }
+  #dashboard-loading .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.12); border-top-color: var(--cyan); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #studio-view.loading #dashboard-empty, #studio-view.loading #grid { display: none !important; }
+  #studio-view.loading #dashboard-loading { display: flex !important; }
 </style>
 </head>
 <body>
@@ -667,6 +672,10 @@
         <div id="filterbar"></div>
         <span class="spacer"></span>
         <button id="pdfbtn" data-i18n-title="pdf_btn_title" data-i18n="presentation" title="AI написва презентация от дашборда и я сваля като брандиран PDF">📽 Презентация</button>
+      </div>
+      <div id="dashboard-loading" style="display:none;">
+        <div class="spin"></div>
+        <div data-i18n="loading_project">Зареждам проекта…</div>
       </div>
       <div id="dashboard-empty">
         <img src="/static/icon.svg" alt="">
@@ -805,7 +814,7 @@ function resetStudioState() {
   const q = document.getElementById('db-search'); if (q) q.value = '';
   const ttl = document.getElementById('db-title'); if (ttl) ttl.textContent = '';
   const badge = document.getElementById('dashbadge'); if (badge) badge.style.display = 'none';
-  document.getElementById('dashboard-empty').style.display = '';
+  document.getElementById('dashboard-empty').style.display = 'none';
 }
 
 async function route() {
@@ -829,10 +838,12 @@ async function route() {
     // a built dashboard always opens on the dashboard; new projects open there too (guided empty state)
     switchTab(known && known.charts > 0 ? 'dash' : (saved || 'dash'));
     setChatVisible(chatOpen !== '0');
-    $('#studio-view').style.display = 'flex';
+    $('#dashboard-empty').style.display = 'none';
     $('#studio-view').classList.add('loading');
+    $('#studio-view').style.display = 'flex';
     const data = await loadState();
     $('#studio-view').classList.remove('loading');
+    if (data && !(data.charts && data.charts.length)) $('#dashboard-empty').style.display = '';
     if (data && !known && data.charts && data.charts.length) switchTab('dash');
   } else {
     PID = null;

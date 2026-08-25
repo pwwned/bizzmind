@@ -10,3 +10,4 @@ server.log
 data/*
 !data/.gitkeep
 worker.log
+web-dev.log

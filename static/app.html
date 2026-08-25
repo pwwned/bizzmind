@@ -791,6 +791,22 @@ fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
 function goHome() { location.hash = ''; }
 function openProject(pid) { location.hash = 'p=' + pid; }
 
+function resetStudioState() {
+  try { chartInstances.forEach(rec => { try { (rec.inst || rec).dispose(); } catch {} }); chartInstances.clear(); } catch {}
+  if (typeof allCharts !== 'undefined') allCharts = [];
+  if (typeof allFilters !== 'undefined') allFilters = [];
+  if (typeof dbState !== 'undefined') { dbState.tables = []; dbState.table = null; dbState.q = ''; dbState.offset = 0; dbState.sort = ''; dbState.dir = 'asc'; }
+  FIELD_LABELS = {}; VALUE_LABELS = {}; translateTried = null;
+  for (const id of ['grid', 'filterbar', 'files', 'brandfiles', 'brandkit', 'notes', 'db-tablelist', 'db-grid']) {
+    const e = document.getElementById(id); if (e) e.innerHTML = '';
+  }
+  const dbg = document.getElementById('db-grid'); if (dbg) dbg.innerHTML = '<div id="db-empty">' + t('db_empty') + '</div>';
+  for (const id of ['db-meta', 'db-range', 'filecount', 'brandcount', 'notecount']) { const e = document.getElementById(id); if (e) e.textContent = id.endsWith('count') ? '0' : ''; }
+  const q = document.getElementById('db-search'); if (q) q.value = '';
+  const badge = document.getElementById('dashbadge'); if (badge) badge.style.display = 'none';
+  document.getElementById('dashboard-empty').style.display = '';
+}
+
 async function route() {
   const m = location.hash.match(/p=([a-z0-9-]+)/);
   if (m) {
@@ -798,6 +814,8 @@ async function route() {
     chatRestored = false;
     chartsKnown = -1;
     Object.keys(selections).forEach(k => delete selections[k]);
+    // nothing from the previous project may linger on screen
+    resetStudioState();
     $('#projects-view').style.display = 'none';
     $('#backbtn').style.display = 'inline-block';
     $('#chatlog').innerHTML = '';

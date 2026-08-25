@@ -75,36 +75,52 @@ app = FastAPI(title="Bizzmind")
 client = anthropic.Anthropic()
 
 # ------------------------------------------------------------------- auth
+# Supabase Auth via auth.py: httpOnly cookies with the Supabase access/refresh
+# tokens, verified per request (stateless — no sessions on disk/in memory).
+import auth as sb_auth
 
-USERS_PATH = DATA_DIR / "users.json"
-SESSIONS_PATH = DATA_DIR / "sessions.json"
-USERS: dict = json.loads(USERS_PATH.read_text()) if USERS_PATH.exists() else {}
-SESSIONS: dict = json.loads(SESSIONS_PATH.read_text()) if SESSIONS_PATH.exists() else {}
-
-
-def hash_password(password: str, salt: str | None = None) -> tuple:
-    salt = salt or secrets.token_hex(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode(),
-                                 bytes.fromhex(salt), 200_000).hex()
-    return salt, digest
+PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout")
+PUBLIC_PREFIXES = ("/static/", "/pub/")
 
 
-def verify_password(password: str, salt: str, digest: str) -> bool:
-    return secrets.compare_digest(hash_password(password, salt)[1], digest)
+def _set_auth_cookies(resp, tokens: dict):
+    resp.set_cookie(sb_auth.ACCESS_COOKIE, tokens["access_token"], httponly=True, samesite="lax",
+                    secure=os.environ.get("COOKIE_SECURE", "0") == "1", max_age=60 * 60 * 24 * 30)
+    resp.set_cookie(sb_auth.REFRESH_COOKIE, tokens["refresh_token"], httponly=True, samesite="lax",
+                    secure=os.environ.get("COOKIE_SECURE", "0") == "1", max_age=60 * 60 * 24 * 30)
 
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     p = request.url.path
-    if (p in ("/", "/login") or p.startswith("/static/") or p.startswith("/pub/")
-            or p.startswith("/api/auth/")):
+    if p in PUBLIC_PATHS or p.startswith(PUBLIC_PREFIXES):
         return await call_next(request)
-    token = request.cookies.get("session")
-    if token and token in SESSIONS:
-        return await call_next(request)
-    if p.startswith("/api/"):
-        return JSONResponse({"detail": T(req_lang(request), "not_logged_in")}, status_code=401)
-    return RedirectResponse("/login")
+    access = request.cookies.get(sb_auth.ACCESS_COOKIE)
+    refresh_tok = request.cookies.get(sb_auth.REFRESH_COOKIE)
+    user_json, new_tokens = None, None
+    try:
+        if access:
+            user_json = await run_in_threadpool(sb_auth.get_user, access)
+        if user_json is None and refresh_tok:
+            new_tokens = await run_in_threadpool(sb_auth.refresh, refresh_tok)
+            user_json = new_tokens.get("user") or await run_in_threadpool(sb_auth.get_user, new_tokens["access_token"])
+    except sb_auth.AuthError as e:
+        if e.status >= 500:
+            return JSONResponse({"detail": e.detail}, status_code=503)
+        user_json = None
+    if not user_json:
+        if p.startswith("/api/"):
+            return JSONResponse({"detail": T(req_lang(request), "not_logged_in")}, status_code=401)
+        return RedirectResponse("/login")
+    user = await run_in_threadpool(sb_auth.load_memberships, db, user_json["id"], user_json.get("email", ""))
+    token = sb_auth.set_current_user(user)
+    try:
+        resp = await call_next(request)
+    finally:
+        sb_auth._current.reset(token)
+    if new_tokens:
+        _set_auth_cookies(resp, new_tokens)
+    return resp
 
 
 class LoginRequest(BaseModel):
@@ -114,47 +130,58 @@ class LoginRequest(BaseModel):
 
 @app.post("/api/auth/login")
 def auth_login(req: LoginRequest, request: Request):
-    user = USERS.get(req.email.strip().lower())
-    if not user or not verify_password(req.password, user["salt"], user["hash"]):
-        log.info(f"auth: failed login for '{req.email}'")
+    try:
+        tokens = sb_auth.sign_in(req.email, req.password)
+    except sb_auth.AuthError as e:
+        log.info(f"auth: failed login for '{req.email}' ({e.status})")
+        if e.status >= 500:
+            return JSONResponse({"detail": e.detail}, status_code=503)
         return JSONResponse({"detail": T(req_lang(request), "bad_credentials")}, status_code=401)
-    token = secrets.token_hex(32)
-    SESSIONS[token] = {"email": req.email.strip().lower(),
-                       "created": time.strftime("%Y-%m-%d %H:%M")}
-    SESSIONS_PATH.write_text(json.dumps(SESSIONS))
-    log.info(f"auth: '{req.email}' logged in")
-    resp = JSONResponse({"ok": True, "email": req.email.strip().lower()})
-    resp.set_cookie("session", token, httponly=True, samesite="lax",
-                    max_age=60 * 60 * 24 * 30)
+    email = (tokens.get("user") or {}).get("email", req.email.strip().lower())
+    log.info(f"auth: '{email}' logged in")
+    resp = JSONResponse({"ok": True, "email": email})
+    _set_auth_cookies(resp, tokens)
     return resp
 
 
 @app.post("/api/auth/logout")
 def auth_logout(request: Request):
-    token = request.cookies.get("session")
-    if token:
-        SESSIONS.pop(token, None)
-        SESSIONS_PATH.write_text(json.dumps(SESSIONS))
+    access = request.cookies.get(sb_auth.ACCESS_COOKIE)
+    if access:
+        sb_auth.sign_out(access)
     resp = JSONResponse({"ok": True})
-    resp.delete_cookie("session")
+    resp.delete_cookie(sb_auth.ACCESS_COOKIE)
+    resp.delete_cookie(sb_auth.REFRESH_COOKIE)
     log.info("auth: logged out")
     return resp
 
 
 @app.get("/api/auth/me")
 def auth_me(request: Request):
-    token = request.cookies.get("session")
-    sess = SESSIONS.get(token) if token else None
-    if not sess:
+    u = sb_auth.current_user()
+    if not u:
         return JSONResponse({"detail": "not logged in"}, status_code=401)
-    return {"email": sess["email"]}
+    return {"email": u.email, "id": u.id, "orgs": u.orgs, "roles": u.roles}
+
+
+def require_project_access(proj, admin: bool = False):
+    """Tenancy check: the current user must belong to the project's organisation."""
+    u = sb_auth.current_user()
+    if u is None:
+        return  # background/tool contexts (worker, tests) run trusted
+    ok = u.can_admin(proj.org_id) if admin else u.can_read(proj.org_id)
+    if not ok:
+        raise HTTPException(403, T(getattr(proj, "lang", "bg"), "forbidden"))
 
 
 @app.get("/login")
 def login_page(request: Request):
-    token = request.cookies.get("session")
-    if token and token in SESSIONS:
-        return RedirectResponse("/app")
+    access = request.cookies.get(sb_auth.ACCESS_COOKIE)
+    try:
+        if access and sb_auth.get_user(access):
+            return RedirectResponse("/app")
+    except sb_auth.AuthError:
+        pass
     return FileResponse(ROOT / "static" / "login.html", headers=NO_CACHE)
 
 
@@ -166,6 +193,7 @@ LANGS = ("bg", "en")
 LANG_NAMES = {"bg": "Bulgarian", "en": "English"}
 MSG: dict = {
     "bg": {
+        "forbidden": "Нямаш достъп до този проект.",
         "act_translating": "🌐 Превеждам съдържанието на дашборда ({n} текста)…",
         "act_translated": "🌐 Преведох {n} текста",
         # auth / projects
@@ -236,6 +264,7 @@ MSG: dict = {
         "lang_bg": "Български", "lang_en": "English",
     },
     "en": {
+        "forbidden": "You do not have access to this project.",
         "act_translating": "🌐 Translating the dashboard content ({n} texts)…",
         "act_translated": "🌐 Translated {n} texts",
         # auth / projects
@@ -452,6 +481,7 @@ def get_project(pid: str) -> Project:
             extract_brand_assets(PROJECTS[pid])   # backfill for older uploads
         except Exception as e:
             log.info(f"[{pid}] brand backfill failed — {_short(e)}")
+    require_project_access(PROJECTS[pid])
     return PROJECTS[pid]
 
 
@@ -1729,7 +1759,10 @@ def list_projects():
             except Exception as e:
                 log.info(f"[{pdir.name}] legacy import failed — {_short(e)}")
     out = []
+    u = sb_auth.current_user()
     for row in db.project_list():
+        if u is not None and not u.can_read(row.get("org_id")):
+            continue
         try:
             proj = get_project(row["id"])
             out.append({
@@ -1754,7 +1787,9 @@ def create_project(req: ProjectCreate, request: Request):
     pid = slug if not (db.project_exists(slug) or (PROJECTS_DIR / slug).exists()) else f"{slug}-{uuid.uuid4().hex[:6]}"
     (PROJECTS_DIR / pid).mkdir(parents=True, exist_ok=True)
     db.ensure_project(pid)
-    db.project_create(pid, name, org_id=db.default_org(),
+    u = sb_auth.current_user()
+    org = (u.orgs[0] if u and u.orgs else db.default_org())
+    db.project_create(pid, name, org_id=org,
                       meta={"name": name, "created": time.strftime("%Y-%m-%d"), "files": {}})
     proj = get_project(pid)
     write_progress(proj)
@@ -1776,6 +1811,7 @@ def rename_project(pid: str, req: ProjectCreate):
 @app.delete("/api/projects/{pid}")
 async def delete_project(pid: str):
     proj = get_project(pid)
+    require_project_access(proj, admin=True)
     if proj.sub_client is not None:
         try:
             await proj.sub_client.disconnect()

@@ -358,12 +358,12 @@ def project_delete(pid: str) -> None:
 
 
 def project_list(org_id=None) -> list[dict]:
-    q = ("SELECT id, name, created_at, jsonb_array_length(dashboard), jsonb_array_length(notes) "
+    q = ("SELECT id, name, created_at, jsonb_array_length(dashboard), jsonb_array_length(notes), org_id "
          "FROM public.projects" + (" WHERE org_id = %s" if org_id else "") + " ORDER BY created_at")
     with pool().connection() as con:
         rows = con.execute(q, (org_id,) if org_id else None).fetchall()
     return [{"id": r[0], "name": r[1], "created": r[2].strftime("%Y-%m-%d") if r[2] else "",
-             "charts": r[3], "notes": r[4]} for r in rows]
+             "charts": r[3], "notes": r[4], "org_id": str(r[5]) if r[5] else None} for r in rows]
 
 
 def default_org() -> str:

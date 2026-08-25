@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="landing_title">Inceptiq Analytics</title>
+<meta name="description" content="" data-i18n-content="landing_meta_desc">
+<script src="/static/i18n/core.js"></script>
+<script src="/static/i18n/site.js"></script>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --navy-deep: #04142c; --navy: #082042; --navy-mid: #0e2d5c;
+    --cyan: #0ADDF5; --cyan-mid: #08c4da;
+    --grad-cyan: linear-gradient(135deg, #08c4da, #0ADDF5);
+    --surface-1: rgba(255,255,255,0.045);
+    --text-primary: #f2f7fc; --text-secondary: #b6c8dc; --text-muted: #7d92ab;
+    --border: rgba(255,255,255,0.08); --border-glow: rgba(10,221,245,0.35);
+    --glow: 0 0 40px rgba(10,221,245,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1100px 600px at 80% -10%, rgba(10,221,245,0.12), transparent 60%),
+      radial-gradient(800px 600px at -10% 40%, rgba(8,196,218,0.07), transparent 60%),
+      linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  header { padding: 18px 0; }
+  header .wrap { display: flex; align-items: center; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand img { height: 32px; filter: drop-shadow(0 0 12px rgba(10,221,245,0.45)); }
+  .brand .word { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+  .brand .word em { font-style: normal; background: var(--grad-cyan); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header .spacer { flex: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none;
+    padding: 12px 26px; border-radius: 12px; font-weight: 700; font-size: 15px;
+    background: var(--grad-cyan); color: var(--navy-deep); border: none;
+    box-shadow: 0 4px 24px rgba(10,221,245,0.3);
+    transition: transform .15s, box-shadow .2s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 36px rgba(10,221,245,0.45); }
+  .btn.small { padding: 9px 18px; font-size: 13.5px; }
+  .btn.outline { background: none; color: var(--cyan); border: 1px solid var(--border-glow); box-shadow: none; }
+  .btn.outline:hover { background: rgba(10,221,245,0.07); }
+
+  .hero { padding: 84px 0 60px; text-align: center; }
+  .hero .tag {
+    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--cyan); border: 1px solid var(--border-glow); border-radius: 99px;
+    padding: 5px 14px; background: rgba(10,221,245,0.07); margin-bottom: 22px;
+  }
+  .hero h1 { font-size: clamp(2.1rem, 5.4vw, 3.6rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.12; }
+  .hero h1 em { font-style: normal; background: var(--grad-cyan); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p.sub { max-width: 620px; margin: 22px auto 34px; color: var(--text-secondary); font-size: 17px; }
+  .hero .ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .hero .note { margin-top: 14px; font-size: 12.5px; color: var(--text-muted); }
+
+  /* product screenshots */
+  .frame {
+    display: block; width: 100%; border-radius: 16px;
+    border: 1px solid var(--border-glow);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5), var(--glow);
+  }
+  .heroshot { max-width: 1080px; margin: 64px auto 0; }
+  /* ---- step vignettes: hand-crafted mini mocks, no screenshots ---- */
+  .vign {
+    height: 150px; border-radius: 12px; margin-bottom: 20px; padding: 16px;
+    background: linear-gradient(160deg, rgba(10,221,245,0.05), rgba(255,255,255,0.02));
+    border: 1px solid var(--border); overflow: hidden;
+    display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  }
+  .fpill {
+    display: inline-flex; align-items: center; gap: 7px; width: fit-content;
+    font-size: 12px; color: var(--text-secondary); padding: 6px 12px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 9px;
+  }
+  .fpill b { color: var(--cyan); font-weight: 600; }
+  .varrow { font-size: 11.5px; color: var(--cyan); font-weight: 600; margin-top: 2px; }
+  .vq { font-size: 12.5px; font-weight: 650; color: var(--text-primary); }
+  .vopts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .vopt {
+    font-size: 11.5px; padding: 5px 11px; border-radius: 99px;
+    border: 1px solid var(--border); color: var(--text-secondary); background: var(--surface-1);
+  }
+  .vopt.sel { background: var(--grad-cyan); color: var(--navy-deep); font-weight: 700; border-color: transparent; }
+  .vsend { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .vpills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .vpills span {
+    font-size: 11px; padding: 4px 10px; border-radius: 8px;
+    border: 1px solid var(--border); color: var(--text-muted); background: var(--surface-1);
+  }
+  .vpills span.on { background: var(--grad-cyan); color: var(--navy-deep); font-weight: 700; border-color: transparent; }
+  .vchart { width: 100%; height: 74px; margin-top: 4px; }
+
+  /* ---- bento grid features ---- */
+  .bento { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .bcard {
+    position: relative; overflow: hidden; border-radius: 18px; padding: 26px;
+    background: var(--surface-1); border: 1px solid var(--border);
+    transition: border-color .25s, transform .25s, box-shadow .25s;
+  }
+  .bcard:hover { border-color: var(--border-glow); transform: translateY(-3px); box-shadow: var(--glow); }
+  .bcard.big { grid-column: span 2; }
+  .bcard::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(420px 200px at 90% -20%, rgba(10,221,245,0.08), transparent 70%);
+  }
+  .bic {
+    width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center;
+    justify-content: center; font-size: 19px; margin-bottom: 16px;
+    background: rgba(10,221,245,0.1); border: 1px solid rgba(10,221,245,0.25);
+  }
+  .bcard h3 { font-size: 16px; font-weight: 750; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .bcard p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.65; }
+  .bdeco { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .brow {
+    display: grid; grid-template-columns: 90px 70px 1fr; gap: 10px; align-items: center;
+    font-size: 11px; color: var(--text-muted);
+    padding: 7px 10px; border: 1px solid var(--gridline); border-radius: 8px; background: rgba(255,255,255,0.02);
+  }
+  .brow b { color: var(--cyan); font-weight: 650; font-size: 11px; }
+  .brow i { font-style: normal; color: var(--text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .btags { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .btags span {
+    font-size: 11px; padding: 5px 10px; border-radius: 99px;
+    border: 1px solid var(--border); color: var(--text-secondary); background: rgba(255,255,255,0.02);
+  }
+  .btags span::before { content: "◆ "; color: var(--cyan); font-size: 8px; }
+  .bfeed { margin-top: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: var(--text-secondary); }
+  .bfeed div::before { content: ""; }
+  @media (max-width: 900px) { .bento { grid-template-columns: 1fr; } .bcard.big { grid-column: span 1; } }
+
+  section.block { padding: 72px 0; }
+  .kicker { text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); margin-bottom: 12px; }
+  h2.title { text-align: center; font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 46px; }
+
+  .steps3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .step {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; padding: 26px;
+    transition: border-color .25s, transform .25s, box-shadow .25s;
+  }
+  .step:hover { border-color: var(--border-glow); transform: translateY(-3px); box-shadow: var(--glow); }
+  .step .num {
+    width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: rgba(10,221,245,0.1); color: var(--cyan); font-weight: 800; margin-bottom: 16px; font-size: 15px;
+  }
+  .step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .step p { font-size: 13.5px; color: var(--text-secondary); }
+
+  .feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .feat { background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+  .feat:hover { border-color: var(--border-glow); }
+  .feat .ico { font-size: 22px; margin-bottom: 12px; }
+  .feat h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .feat p { font-size: 13px; color: var(--text-secondary); }
+
+  .cta-final { text-align: center; padding: 84px 0 100px; }
+  .cta-final h2 { font-size: clamp(1.6rem, 3.4vw, 2.3rem); font-weight: 850; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .cta-final p { color: var(--text-secondary); margin-bottom: 30px; }
+
+  footer { border-top: 1px solid var(--border); padding: 26px 0; }
+  footer .wrap { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); }
+  footer img { height: 20px; opacity: .8; }
+  footer .spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <img src="/static/icon.svg" alt="Inceptiq">
+      <span class="word">Inceptiq <em>Analytics</em></span>
+    </div>
+    <span class="spacer"></span>
+    <span class="langswitch"></span>
+    <a class="btn small" href="/app" data-i18n="nav_open_app"></a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="tag" data-i18n="hero_tag"></div>
+    <h1 data-i18n-html="hero_h1"></h1>
+    <p class="sub" data-i18n="hero_sub"></p>
+    <div class="ctas">
+      <a class="btn" href="/app" data-i18n="hero_cta_primary"></a>
+      <a class="btn outline" href="#how" data-i18n="hero_cta_how"></a>
+    </div>
+    <div class="note" data-i18n="hero_note"></div>
+
+    <div class="heroshot">
+      <img class="frame" src="/static/shots/dashboard_zoom.png"
+           alt="" data-i18n-alt="hero_shot_alt">
+    </div>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="wrap">
+    <div class="kicker" data-i18n="how_kicker"></div>
+    <h2 class="title" data-i18n="how_title"></h2>
+    <div class="steps3">
+      <div class="step">
+        <div class="num">1</div>
+        <div class="vign">
+          <span class="fpill" data-i18n-html="step1_pill1"></span>
+          <span class="fpill" data-i18n-html="step1_pill2"></span>
+          <span class="fpill" data-i18n-html="step1_pill3"></span>
+          <div class="varrow" data-i18n="step1_arrow"></div>
+        </div>
+        <h3 data-i18n="step1_h3"></h3>
+        <p data-i18n="step1_p"></p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="vign">
+          <div class="vq" data-i18n="step2_q1"></div>
+          <div class="vopts">
+            <span class="vopt sel" data-i18n="step2_opt_eur"></span>
+            <span class="vopt" data-i18n="step2_opt_bgn"></span>
+            <span class="vopt" data-i18n="step2_opt_other"></span>
+          </div>
+          <div class="vq" style="margin-top:6px;" data-i18n="step2_q2"></div>
+          <div class="vopts">
+            <span class="vopt" data-i18n="step2_opt_revenue"></span>
+            <span class="vopt sel" data-i18n="step2_opt_target"></span>
+          </div>
+        </div>
+        <h3 data-i18n="step2_h3"></h3>
+        <p data-i18n="step2_p"></p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="vign">
+          <div class="vpills"><span data-i18n="step3_pill_month"></span><span data-i18n="step3_pill_rep"></span><span data-i18n="step3_pill_product"></span><span class="on">€</span><span data-i18n="step3_pill_units"></span></div>
+          <svg class="vchart" viewBox="0 0 260 74" preserveAspectRatio="none" aria-hidden="true">
+            <g fill="#069bb0">
+              <rect x="6"   y="34" width="16" height="36" rx="3"/>
+              <rect x="32"  y="24" width="16" height="46" rx="3"/>
+              <rect x="58"  y="40" width="16" height="30" rx="3"/>
+              <rect x="84"  y="16" width="16" height="54" rx="3"/>
+              <rect x="110" y="28" width="16" height="42" rx="3"/>
+              <rect x="136" y="10" width="16" height="60" rx="3"/>
+            </g>
+            <polyline points="170,52 192,38 214,44 236,20 254,26" fill="none"
+                      stroke="#d95926" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <g fill="#d95926">
+              <circle cx="170" cy="52" r="3.4"/><circle cx="192" cy="38" r="3.4"/>
+              <circle cx="214" cy="44" r="3.4"/><circle cx="236" cy="20" r="3.4"/><circle cx="254" cy="26" r="3.4"/>
+            </g>
+          </svg>
+        </div>
+        <h3 data-i18n="step3_h3"></h3>
+        <p data-i18n="step3_p"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <div class="kicker" data-i18n="why_kicker"></div>
+    <h2 class="title" data-i18n="why_title"></h2>
+    <div class="bento">
+      <div class="bcard big">
+        <div class="bic">📊</div>
+        <h3 data-i18n="b1_h3"></h3>
+        <p data-i18n="b1_p"></p>
+        <div class="bdeco">
+          <div class="brow"><span data-i18n="b1_row1_label"></span><b>+6.8%</b><i data-i18n="b1_row1_text"></i></div>
+          <div class="brow"><span data-i18n="b1_row2_label"></span><b>−3.7%</b><i data-i18n="b1_row2_text"></i></div>
+          <div class="brow"><span data-i18n="b1_row3_label"></span><b data-i18n="b1_row3_val"></b><i data-i18n="b1_row3_text"></i></div>
+        </div>
+      </div>
+      <div class="bcard">
+        <div class="bic">🧠</div>
+        <h3 data-i18n="b2_h3"></h3>
+        <p data-i18n="b2_p"></p>
+        <div class="btags">
+          <span data-i18n="b2_tag1"></span>
+          <span data-i18n="b2_tag2"></span>
+          <span data-i18n="b2_tag3"></span>
+        </div>
+      </div>
+      <div class="bcard">
+        <div class="bic">👁</div>
+        <h3 data-i18n="b3_h3"></h3>
+        <p data-i18n="b3_p"></p>
+        <div class="bfeed">
+          <div data-i18n="b3_feed1"></div>
+          <div data-i18n="b3_feed2"></div>
+          <div data-i18n="b3_feed3"></div>
+          <div data-i18n="b3_feed4"></div>
+        </div>
+      </div>
+      <div class="bcard">
+        <div class="bic">🎛</div>
+        <h3 data-i18n="b4_h3"></h3>
+        <p data-i18n="b4_p"></p>
+        <div class="btags">
+          <span data-i18n="b4_tag1"></span><span data-i18n="b4_tag2"></span><span data-i18n="b4_tag3"></span><span data-i18n="b4_tag4"></span><span data-i18n="b4_tag5"></span>
+        </div>
+      </div>
+      <div class="bcard">
+        <div class="bic">📄</div>
+        <h3 data-i18n="b5_h3"></h3>
+        <p data-i18n="b5_p"></p>
+      </div>
+      <div class="bcard">
+        <div class="bic">🗂</div>
+        <h3 data-i18n="b6_h3"></h3>
+        <p data-i18n="b6_p"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-final">
+  <div class="wrap">
+    <h2 data-i18n="cta_h2"></h2>
+    <p data-i18n="cta_p"></p>
+    <a class="btn" href="/app" data-i18n="cta_btn"></a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="/static/icon.svg" alt="">
+    <span data-i18n="footer_proto"></span>
+    <span class="spacer"></span>
+    <a href="/app" style="color: var(--text-muted);" data-i18n="footer_app"></a>
+  </div>
+</footer>
+
+<script>
+/* core.js has no data-i18n-alt; translate image alt texts here */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-i18n-alt]').forEach(e => { e.alt = t(e.dataset.i18nAlt); });
+});
+</script>
+</body>
+</html>

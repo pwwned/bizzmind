@@ -1,0 +1,11 @@
+# virtualenv, caches
+.venv/
+__pycache__/
+*.pyc
+# secrets & runtime
+.env
+server.log
+.DS_Store
+# client data: projects, uploads, sessions, users — never in git
+data/*
+!data/.gitkeep

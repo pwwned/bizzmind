@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+anthropic
+duckdb
+pandas
+openpyxl
+python-multipart
+reportlab
+pypdf
+claude-agent-sdk

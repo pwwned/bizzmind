@@ -42,6 +42,8 @@ from bizzmind.auth_middleware import auth_middleware
 from bizzmind.routes import auth_routes, brand_routes, export_routes, pages, projects
 
 app = FastAPI(title="Bizzmind")
+from bizzmind.path_restore import PathRestoreMiddleware  # noqa: E402
+app.add_middleware(PathRestoreMiddleware)
 
 app.middleware("http")(auth_middleware)
 

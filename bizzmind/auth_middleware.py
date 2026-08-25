@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from bizzmind.i18n import T, req_lang
 
 
-PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout", "/api/auth/register", "/api/cron/jobs", "/api/_debug/request")
+PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout", "/api/auth/register", "/api/cron/jobs")
 PUBLIC_PREFIXES = ("/static/", "/pub/")
 
 
@@ -25,11 +25,6 @@ def _set_auth_cookies(resp, tokens: dict):
 
 async def auth_middleware(request: Request, call_next):
     p = request.url.path
-    if request.headers.get("x-debug-request") == "1":   # hosting diagnostics: what does the app see?
-        return JSONResponse({"path": p, "root_path": request.scope.get("root_path"), "query": request.scope.get("query_string", b"").decode(errors="replace"),
-                             "raw_path": request.scope.get("raw_path", b"").decode(errors="replace"),
-                             "headers": {k: v for k, v in request.headers.items()
-                                         if k.startswith("x-") or k in ("host",)}})
     if p in PUBLIC_PATHS or p.startswith(PUBLIC_PREFIXES):
         return await call_next(request)
     access = request.cookies.get(sb_auth.ACCESS_COOKIE)

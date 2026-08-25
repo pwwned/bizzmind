@@ -96,7 +96,7 @@ export default function Landing() {
           </div>
           <div className="rounded-2xl border border-border bg-card p-2 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/shots/dashboard_light.png" alt="" className="w-full rounded-xl" />
+            <img src={`/shots/dashboard_light_${lang}.png`} alt="" className="w-full rounded-xl" />
           </div>
         </div>
       </section>

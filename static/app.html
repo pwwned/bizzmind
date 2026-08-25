@@ -122,7 +122,14 @@
     background: var(--grad-cyan); border-radius: 99px; padding: 1px 7px; margin-left: 2px;
   }
   #tab-dash { flex: 1; overflow-y: auto; padding: 24px; min-height: 0; }
-  #tab-data { flex: 1; padding: 20px 24px; min-height: 0; display: flex; gap: 18px; }
+  #tab-data { flex: 1; padding: 20px 24px; min-height: 0; display: flex; }
+  #datacol { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; max-width: 980px; margin: 0 auto; width: 100%; }
+  .datafoot { display: flex; justify-content: flex-end; padding: 2px 4px 8px; }
+  .phead2.toggle { cursor: pointer; user-select: none; margin-bottom: 0; }
+  .phead2.toggle .chev { color: var(--text-muted); font-size: 14px; transition: transform .18s; margin-left: 4px; }
+  .sec.closed .phead2 .chev { transform: rotate(-90deg); }
+  .sec.closed .secbody { display: none; }
+  .secbody { margin-top: 16px; display: flex; flex-direction: column; min-height: 0; }
   #subnav { width: 210px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
   #subnav .sn {
     display: flex; align-items: center; gap: 10px; text-align: left; width: 100%;
@@ -136,10 +143,10 @@
   #subnav .sn .snl { flex: 1; }
   #subnav .sn.on .pcount { background: var(--grad-cyan); color: var(--navy-deep); border-color: transparent; }
   #subnav .ghost { margin-top: 0; }
-  .sec { flex: 1; min-width: 0; }
-  .sec[hidden] { display: none; }
-  #files { flex: 1; min-height: 0; overflow-y: auto; max-height: none; margin-top: 14px; padding-right: 6px; }
-  #brandfiles { flex: 1; min-height: 0; overflow-y: auto; margin-top: 12px; padding-right: 6px; }
+  .sec { flex: 0 0 auto; min-width: 0; }
+  #files { overflow-y: auto; max-height: 320px; margin-top: 14px; padding-right: 6px; }
+  #brandfiles { overflow-y: auto; max-height: 260px; margin-top: 12px; padding-right: 6px; }
+  #notes { overflow-y: auto; max-height: 360px; padding-right: 6px; }
   #brandkit { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
   #brandkit:empty { display: none; }
   #brandkit .sw { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); }
@@ -151,8 +158,8 @@
   /* data & knowledge panel cards: fill the tab, scroll inside */
   .panelcard {
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 18px;
-    padding: 22px; backdrop-filter: blur(8px);
-    flex: 1; min-height: 0; display: flex; flex-direction: column;
+    padding: 20px 22px; backdrop-filter: blur(8px);
+    display: flex; flex-direction: column;
   }
   .phead2 { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
   .phead2.sub { margin-top: 26px; }
@@ -595,38 +602,39 @@
     </nav>
 
     <section id="tab-data">
-      <nav id="subnav">
-        <button class="sn on" data-sec="files"><span class="sni">📁</span><span class="snl" data-i18n="sec_files">Файлове</span><span class="pcount" id="filecount">0</span></button>
-        <button class="sn" data-sec="brand"><span class="sni">🎨</span><span class="snl" data-i18n="sec_brand">Бранд</span><span class="pcount" id="brandcount">0</span></button>
-        <button class="sn" data-sec="notes"><span class="sni">🧠</span><span class="snl" data-i18n="sec_notes">Знание</span><span class="pcount" id="notecount">0</span></button>
-        <div class="spacer"></div>
-        <button class="ghost" id="resetbtn" data-i18n="reset_project">Изчисти проекта</button>
-      </nav>
-
+      <div id="datacol">
       <div class="sec panelcard" id="sec-files">
-        <div class="phead2"><span class="pico">📁</span><div><h3 data-i18n="files_title">Файлове на проекта</h3><div class="phint" style="margin:2px 0 0;" data-i18n="files_hint">Excel / CSV — всеки лист става таблица в базата (виж таб „Данни“).</div></div></div>
+        <div class="phead2 toggle" data-sec="files"><span class="pico">📁</span><div><h3 data-i18n="files_title">Файлове на проекта</h3><div class="phint" style="margin:2px 0 0;" data-i18n="files_hint">Excel / CSV — всеки лист става таблица в базата (виж таб „Данни“).</div></div><span class="pcount" id="filecount">0</span><span class="chev">▾</span></div>
+        <div class="secbody">
         <div id="dropzone">
           <span class="dz-label" data-i18n-html="dropzone_html"><strong>Пусни Excel / CSV файлове</strong><br>или кликни за избор</span>
           <input type="file" id="fileinput" multiple accept=".xlsx,.xls,.csv" hidden>
         </div>
         <div id="files"></div>
+        </div>
       </div>
 
-      <div class="sec panelcard" id="sec-brand" hidden>
-        <div class="phead2"><span class="pico">🎨</span><div><h3 data-i18n="brand_title">Бранд на проекта</h3><div class="phint" style="margin:2px 0 0;" data-i18n="brand_hint">Логото качваш ти (PNG/JPG). От brand book PDF-а се извличат цветовата гама и шрифтовете — прилагат се в презентациите.</div></div></div>
+      <div class="sec panelcard" id="sec-brand">
+        <div class="phead2 toggle" data-sec="brand"><span class="pico">🎨</span><div><h3 data-i18n="brand_title">Бранд на проекта</h3><div class="phint" style="margin:2px 0 0;" data-i18n="brand_hint">Логото качваш ти (PNG/JPG). От brand book PDF-а се извличат цветовата гама и шрифтовете — прилагат се в презентациите.</div></div><span class="pcount" id="brandcount">0</span><span class="chev">▾</span></div>
+        <div class="secbody">
         <div id="branddrop" data-i18n="brand_drop">＋ Пусни лого (PNG/JPG) или brand book (PDF)</div>
         <input type="file" id="brandinput" multiple accept=".pdf,.png,.jpg,.jpeg,.svg" hidden>
         <div id="brandkit"></div>
         <div id="brandfiles"></div>
+        </div>
       </div>
 
-      <div class="sec panelcard" id="sec-notes" hidden>
-        <div class="phead2"><span class="pico">🧠</span><div><h3 data-i18n="notes_title">Знание на проекта</h3><div class="phint" style="margin:2px 0 0;" data-i18n="notes_hint">Какво знае AI-ят — от интервюто и собствените му открития. Кликни бележка, за да я редактираш.</div></div></div>
+      <div class="sec panelcard" id="sec-notes">
+        <div class="phead2 toggle" data-sec="notes"><span class="pico">🧠</span><div><h3 data-i18n="notes_title">Знание на проекта</h3><div class="phint" style="margin:2px 0 0;" data-i18n="notes_hint">Какво знае AI-ят — от интервюто и собствените му открития. Кликни бележка, за да я редактираш.</div></div><span class="pcount" id="notecount">0</span><span class="chev">▾</span></div>
+        <div class="secbody">
         <form id="noteform">
           <input id="noteinput" data-i18n-ph="note_ph" placeholder="Добави ново знание за данните…">
           <button type="submit" data-i18n-title="add" title="Добави">+</button>
         </form>
         <ul id="notes"></ul>
+        </div>
+      </div>
+      <div class="datafoot"><button class="ghost" id="resetbtn" data-i18n="reset_project">Изчисти проекта</button></div>
       </div>
     </section>
 
@@ -843,15 +851,20 @@ function switchTab(tab) {
 document.querySelectorAll('#tabbar .tab').forEach(b =>
   b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
-/* sub-navigation inside „Файлове и знание“: one section at a time, full height */
-function switchSection(sec) {
-  document.querySelectorAll('#subnav .sn').forEach(b => b.classList.toggle('on', b.dataset.sec === sec));
-  document.querySelectorAll('#tab-data .sec').forEach(s => s.hidden = s.id !== 'sec-' + sec);
-  try { localStorage.setItem('sec', sec); } catch {}
+/* „Файлове и знание“: three collapsible cards in one scrollable column (state remembered) */
+function setSectionOpen(sec, open) {
+  const card = $('#sec-' + sec);
+  if (!card) return;
+  card.classList.toggle('closed', !open);
+  try { localStorage.setItem('sec:' + sec, open ? '1' : '0'); } catch {}
 }
-document.querySelectorAll('#subnav .sn').forEach(b =>
-  b.addEventListener('click', () => switchSection(b.dataset.sec)));
-try { switchSection(localStorage.getItem('sec') || 'files'); } catch { switchSection('files'); }
+function switchSection(sec) { setSectionOpen(sec, true); $('#sec-' + sec)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+document.querySelectorAll('#tab-data .phead2.toggle').forEach(hd =>
+  hd.addEventListener('click', () => setSectionOpen(hd.dataset.sec, $('#sec-' + hd.dataset.sec).classList.contains('closed'))));
+['files', 'brand', 'notes'].forEach(sec => {
+  let v = '1'; try { v = localStorage.getItem('sec:' + sec) ?? '1'; } catch {}
+  setSectionOpen(sec, v !== '0');
+});
 
 /* ======================= projects home ======================= */
 async function loadProjects() {

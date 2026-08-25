@@ -550,6 +550,9 @@
   #gmodal .warn { font-size: 11.5px; color: #ffcf6e; background: rgba(255,207,110,0.08); border: 1px solid rgba(255,207,110,0.25); border-radius: 9px; padding: 8px 10px; margin-bottom: 12px; }
   #gmodal .result { margin-top: 14px; font-size: 13px; line-height: 1.7; }
   #gmodal .result a { color: var(--cyan); font-weight: 700; }
+  #studio-view.loading #tabs-content, #studio-view.loading #grid, #studio-view.loading #tab-data { opacity: .45; transition: opacity .15s; }
+  #studio-view.loading::after { content: ""; position: fixed; top: 0; left: 0; height: 2px; width: 40%; background: var(--grad-cyan); animation: barslide 1s ease-in-out infinite alternate; z-index: 999; }
+  @keyframes barslide { from { transform: translateX(0); } to { transform: translateX(150%); } }
 </style>
 </head>
 <body>
@@ -774,16 +777,21 @@ async function route() {
     chartsKnown = -1;
     Object.keys(selections).forEach(k => delete selections[k]);
     $('#projects-view').style.display = 'none';
-    $('#studio-view').style.display = 'flex';
     $('#backbtn').style.display = 'inline-block';
     $('#chatlog').innerHTML = '';
     addMsg('ai', t('welcome'));
-    const data = await loadState();
-    // remembered tab per project; first open defaults to the dashboard if built
+    // decide tab + chat BEFORE the studio becomes visible, so nothing jumps:
+    // remembered tab per project; first open lands on the dashboard if it has charts
     let saved = null, chatOpen = '1';
     try { saved = localStorage.getItem('tab:' + PID); chatOpen = localStorage.getItem('chatOpen') ?? '1'; } catch {}
-    switchTab(saved || (data && data.charts && data.charts.length ? 'dash' : 'data'));
+    const known = (window._projectCards || {})[PID];
+    switchTab(saved || (known && known.charts > 0 ? 'dash' : 'data'));
     setChatVisible(chatOpen !== '0');
+    $('#studio-view').style.display = 'flex';
+    $('#studio-view').classList.add('loading');
+    const data = await loadState();
+    $('#studio-view').classList.remove('loading');
+    if (!saved && data && !known) switchTab(data.charts && data.charts.length ? 'dash' : 'data');
   } else {
     PID = null;
     $('#projects-view').style.display = 'block';
@@ -836,6 +844,7 @@ async function loadProjects() {
   grid.innerHTML = '';
   try {
     const data = await fetchJSON('/api/projects');
+    window._projectCards = Object.fromEntries(data.projects.map(p => [p.id, p]));
     for (const p of data.projects) {
       const card = document.createElement('div');
       card.className = 'pcard';

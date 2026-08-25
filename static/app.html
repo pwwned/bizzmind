@@ -571,8 +571,11 @@
   #dashboard-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 50vh; color: var(--text-muted); font-size: 13.5px; }
   #dashboard-loading .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.12); border-top-color: var(--cyan); animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #studio-view.loading #dashboard-empty, #studio-view.loading #grid { display: none !important; }
+  #studio-view.loading #dashboard-empty { display: none !important; }
+  #studio-view.loading #grid { visibility: hidden; }
   #studio-view.loading #dashboard-loading { display: flex !important; }
+  .pill-busy { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 99px; padding: 6px 12px; background: var(--surface-1); white-space: nowrap; }
+  .pill-busy::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); border-top-color: var(--cyan); animation: spin .8s linear infinite; }
 </style>
 </head>
 <body>
@@ -843,6 +846,7 @@ async function route() {
     $('#studio-view').style.display = 'flex';
     const data = await loadState();
     $('#studio-view').classList.remove('loading');
+    requestAnimationFrame(() => chartInstances.forEach(({ inst }) => { try { inst.resize(); } catch {} }));
     if (data && !(data.charts && data.charts.length)) $('#dashboard-empty').style.display = '';
     if (data && !known && data.charts && data.charts.length) switchTab('dash');
   } else {
@@ -1629,11 +1633,25 @@ function applyI18nInfo(info, replace) {
   else { Object.assign(FIELD_LABELS, info.field_labels || {}); Object.assign(VALUE_LABELS, info.value_labels || {}); }
   const key = `${PID}:${I18N.lang}:${info.missing || 0}`;
   if (info.needs_translation && translateTried !== key && !translateBusy) {
-    translateTried = key; translateBusy = true;
-    runAgentRequest(api('/translate'), {}, t('translating')).finally(() => { translateBusy = false; refreshDashboard(); });
+    translateTried = key;
+    translateSilently();
   }
 }
 let translateBusy = false;
+/* Content translation runs quietly in the background: a small pill in the
+   dashboard toolbar, no chat takeover, no disabled inputs. */
+async function translateSilently() {
+  translateBusy = true;
+  const pid = PID;
+  const pill = document.createElement('span');
+  pill.className = 'pill-busy'; pill.textContent = t('translating');
+  ($('#dashtools') || document.body).appendChild(pill);
+  try {
+    await runJob(api('/translate'), {}, null);
+    if (pid === PID) { await loadState(); refreshDashboard(); }
+  } catch (e) { console.warn('translate:', e.message); }
+  finally { pill.remove(); translateBusy = false; }
+}
 let currentBrand = { theme: { primary: '#04142c', accent: '#0ADDF5' }, logo: null };
 
 function loadScriptOnce(src) {

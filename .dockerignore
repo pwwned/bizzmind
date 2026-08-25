@@ -1,0 +1,10 @@
+.venv
+data
+__pycache__
+*.pyc
+.env
+server.log
+worker.log
+brand/brandbook-preview.html
+static/shots
+.git

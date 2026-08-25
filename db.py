@@ -30,8 +30,14 @@ from psycopg_pool import ConnectionPool
 
 log = logging.getLogger("studio")
 
-DB_URL = (os.environ.get("SUPABASE_DB_URL") or os.environ.get("DATABASE_URL")
-          or "postgresql://localhost/inceptiq_dev")
+DB_URL: str | None = None   # resolved lazily so app.py can load .env first (override for tests)
+
+
+def db_url() -> str:
+    return (DB_URL or os.environ.get("SUPABASE_DB_URL") or os.environ.get("DATABASE_URL")
+            or "postgresql://localhost/inceptiq_dev")
+
+
 QUERY_TIMEOUT_MS = int(os.environ.get("SQL_TIMEOUT_MS", "20000"))
 
 _pool: ConnectionPool | None = None
@@ -50,9 +56,9 @@ atexit.register(close)
 def pool() -> ConnectionPool:
     global _pool
     if _pool is None:
-        _pool = ConnectionPool(DB_URL, min_size=1, max_size=int(os.environ.get("DB_POOL_MAX", "8")),
-                               kwargs={"autocommit": False}, open=True)
-        log.info(f"db: pool opened -> {re.sub(r':[^:@/]+@', ':***@', DB_URL)}")
+        _pool = ConnectionPool(db_url(), min_size=1, max_size=int(os.environ.get("DB_POOL_MAX", "8")),
+                               kwargs={"autocommit": False, "prepare_threshold": None}, open=True)
+        log.info(f"db: pool opened -> {re.sub(r':[^:@/]+@', ':***@', db_url())}")
     return _pool
 
 
@@ -126,9 +132,9 @@ def ensure_project(pid: str) -> None:
 COMPAT_FUNCTIONS = [
     # ROUND(double, n) — Postgres only has round(numeric, int)
     "CREATE OR REPLACE FUNCTION {s}.round(double precision, integer) RETURNS numeric "
-    "LANGUAGE sql IMMUTABLE AS 'SELECT round($1::numeric, $2)'",
+    "LANGUAGE sql IMMUTABLE SET search_path = '' AS 'SELECT pg_catalog.round($1::numeric, $2)'",
     "CREATE OR REPLACE FUNCTION {s}.round(bigint, integer) RETURNS numeric "
-    "LANGUAGE sql IMMUTABLE AS 'SELECT round($1::numeric, $2)'",
+    "LANGUAGE sql IMMUTABLE SET search_path = '' AS 'SELECT pg_catalog.round($1::numeric, $2)'",
 ]
 
 
@@ -288,3 +294,84 @@ def _coerce(v, t: str):
     if t == "BOOLEAN":
         return bool(v)
     return v
+
+
+# --------------------------------------------------------------- project metadata
+# public.projects holds everything that used to live in per-project JSON files
+# (meta/dashboard/filters/notes/chat/i18n/progress). Written with the service
+# connection; RLS guards direct client access.
+from psycopg.types.json import Jsonb  # noqa: E402
+
+PROJECT_COLS = ("meta", "dashboard", "filters", "notes", "chat", "i18n", "progress")
+
+
+def project_load(pid: str) -> dict | None:
+    with pool().connection() as con:
+        row = con.execute(
+            "SELECT id, org_id, name, created_at, meta, dashboard, filters, notes, chat, i18n, progress "
+            "FROM public.projects WHERE id = %s", (pid,)).fetchone()
+    if not row:
+        return None
+    keys = ("id", "org_id", "name", "created_at", "meta", "dashboard", "filters", "notes", "chat", "i18n", "progress")
+    return dict(zip(keys, row))
+
+
+def project_exists(pid: str) -> bool:
+    with pool().connection() as con:
+        return con.execute("SELECT 1 FROM public.projects WHERE id = %s", (pid,)).fetchone() is not None
+
+
+def project_create(pid: str, name: str, org_id=None, **cols) -> None:
+    payload = {k: cols.get(k) for k in PROJECT_COLS if k in cols}
+    with pool().connection() as con:
+        con.execute(
+            "INSERT INTO public.projects (id, org_id, name, meta, dashboard, filters, notes, chat, i18n, progress) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO NOTHING",
+            (pid, org_id, name,
+             Jsonb(payload.get("meta") or {}), Jsonb(payload.get("dashboard") or []),
+             Jsonb(payload.get("filters") or []), Jsonb(payload.get("notes") or []),
+             Jsonb(payload.get("chat") or []), Jsonb(payload.get("i18n") or {}),
+             payload.get("progress")))
+        con.commit()
+
+
+def project_save(pid: str, **cols) -> None:
+    sets, vals = [], []
+    for k, v in cols.items():
+        if k == "name":
+            sets.append("name = %s"); vals.append(v)
+        elif k == "progress":
+            sets.append("progress = %s"); vals.append(v)
+        elif k in PROJECT_COLS:
+            sets.append(f"{k} = %s"); vals.append(Jsonb(v))
+    if not sets:
+        return
+    with pool().connection() as con:
+        con.execute(f"UPDATE public.projects SET {', '.join(sets)} WHERE id = %s", (*vals, pid))
+        con.commit()
+
+
+def project_delete(pid: str) -> None:
+    with pool().connection() as con:
+        con.execute("DELETE FROM public.projects WHERE id = %s", (pid,))
+        con.commit()
+
+
+def project_list(org_id=None) -> list[dict]:
+    q = ("SELECT id, name, created_at, jsonb_array_length(dashboard), jsonb_array_length(notes) "
+         "FROM public.projects" + (" WHERE org_id = %s" if org_id else "") + " ORDER BY created_at")
+    with pool().connection() as con:
+        rows = con.execute(q, (org_id,) if org_id else None).fetchall()
+    return [{"id": r[0], "name": r[1], "created": r[2].strftime("%Y-%m-%d") if r[2] else "",
+             "charts": r[3], "notes": r[4]} for r in rows]
+
+
+def default_org() -> str:
+    """The single organisation used until Supabase Auth / multi-tenant onboarding lands."""
+    with pool().connection() as con:
+        row = con.execute("SELECT id FROM public.organizations ORDER BY created_at LIMIT 1").fetchone()
+        if row:
+            return str(row[0])
+        row = con.execute("INSERT INTO public.organizations (name) VALUES ('Inceptiq') RETURNING id").fetchone()
+        con.commit()
+        return str(row[0])

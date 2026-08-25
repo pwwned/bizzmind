@@ -338,31 +338,28 @@ class Project:
 
     def __init__(self, pid: str):
         self.id = pid
+        # files (uploads, brand assets, PROGRESS.md for the agent) still live on disk;
+        # all structured state lives in public.projects (Supabase)
         self.dir = PROJECTS_DIR / pid
         self.dir.mkdir(parents=True, exist_ok=True)
         self.uploads_dir = self.dir / "uploads"
         self.uploads_dir.mkdir(exist_ok=True)
         self.db_path = self.dir / "project.duckdb"   # legacy DuckDB file (migration only)
-        self._meta_p = self.dir / "meta.json"
-        self._chat_p = self.dir / "chat.json"
-        self._notes_p = self.dir / "notes.json"
-        self._filters_p = self.dir / "filters.json"
-        self._dash_p = self.dir / "dashboard.json"
         self.progress_p = self.dir / "PROGRESS.md"
 
-        def _load(p, default):
-            try:
-                return json.loads(p.read_text()) if p.exists() else default
-            except Exception:
-                return default
-
-        self.meta = _load(self._meta_p, {"name": pid, "created": time.strftime("%Y-%m-%d"),
-                                         "files": {}})
+        row = db.project_load(pid)
+        if row is None:
+            row = self._import_legacy_files(pid)
+        self.org_id = row.get("org_id")
+        self.meta = row.get("meta") or {}
+        self.meta.setdefault("name", row.get("name") or pid)
+        self.meta.setdefault("created", row["created_at"].strftime("%Y-%m-%d") if row.get("created_at") else time.strftime("%Y-%m-%d"))
         self.meta.setdefault("files", {})
-        self.chat = _load(self._chat_p, [])
-        self.notes = _load(self._notes_p, [])
-        self.filters = _load(self._filters_p, [])
-        self.dashboard = _load(self._dash_p, [])
+        self.chat = row.get("chat") or []
+        self.notes = row.get("notes") or []
+        self.filters = row.get("filters") or []
+        self.dashboard = row.get("dashboard") or []
+        self.i18n = row.get("i18n") or {}
         self.chart_seq = max((c["id"] for c in self.dashboard), default=0)
 
         self.messages: list = []          # API-backend conversation (in-memory)
@@ -374,12 +371,36 @@ class Project:
         self.lang = "bg"                  # UI language of the request driving this turn
         self.sub_lang: str | None = None  # language the SDK session's prompt was built for
 
-    # ---- persistence
-    def save_meta(self):    self._meta_p.write_text(json.dumps(self.meta, ensure_ascii=False))
-    def save_chat(self):    self._chat_p.write_text(json.dumps(self.chat, ensure_ascii=False))
-    def save_notes(self):   self._notes_p.write_text(json.dumps(self.notes, ensure_ascii=False))
-    def save_filters(self): self._filters_p.write_text(json.dumps(self.filters, ensure_ascii=False))
-    def save_dash(self):    self._dash_p.write_text(json.dumps(self.dashboard, ensure_ascii=False))
+    # ---- persistence (public.projects)
+    def _import_legacy_files(self, pid: str) -> dict:
+        """First run after the move to Supabase: lift the old per-project JSON
+        files into the projects table (and i18n_<lang>.json into the i18n column)."""
+        def _load(name, default):
+            p = self.dir / name
+            try:
+                return json.loads(p.read_text()) if p.exists() else default
+            except Exception:
+                return default
+        meta = _load("meta.json", {"name": pid, "created": time.strftime("%Y-%m-%d"), "files": {}})
+        i18n = {}
+        for p in self.dir.glob("i18n_*.json"):
+            try:
+                i18n[p.stem.split("_", 1)[1]] = json.loads(p.read_text())
+            except Exception:
+                pass
+        progress = self.progress_p.read_text() if self.progress_p.exists() else None
+        db.project_create(pid, meta.get("name", pid), org_id=db.default_org(),
+                          meta=meta, dashboard=_load("dashboard.json", []), filters=_load("filters.json", []),
+                          notes=_load("notes.json", []), chat=_load("chat.json", []), i18n=i18n, progress=progress)
+        log.info(f"[{pid}] metadata imported from legacy JSON files into public.projects")
+        return db.project_load(pid)
+
+    def save_meta(self):    db.project_save(self.id, meta=self.meta, name=self.meta.get("name", self.id))
+    def save_chat(self):    db.project_save(self.id, chat=self.chat)
+    def save_notes(self):   db.project_save(self.id, notes=self.notes)
+    def save_filters(self): db.project_save(self.id, filters=self.filters)
+    def save_dash(self):    db.project_save(self.id, dashboard=self.dashboard)
+    def save_i18n(self):    db.project_save(self.id, i18n=self.i18n)
 
     def add_chat(self, role: str, text: str, questions: list | None = None):
         if not text and not questions:
@@ -420,7 +441,9 @@ def backfill_file_map(proj: Project):
 
 
 def get_project(pid: str) -> Project:
-    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", pid) or not (PROJECTS_DIR / pid).exists():
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", pid):
+        raise HTTPException(404, f"Unknown project '{pid}'")
+    if pid not in PROJECTS and not db.project_exists(pid) and not (PROJECTS_DIR / pid / "meta.json").exists():
         raise HTTPException(404, f"Unknown project '{pid}'")
     if pid not in PROJECTS:
         PROJECTS[pid] = Project(pid)
@@ -486,6 +509,7 @@ def write_progress(proj: Project):
             [f"- #{c['id']} **{c['title']}** ({c['chart_type']}) — {c['insight']}"
              for c in proj.dashboard] or ["- (none)"])
         proj.progress_p.write_text("\n".join(parts))
+        db.project_save(proj.id, progress="\n".join(parts))
     except Exception as e:
         log.info(f"progress: could not write PROGRESS.md — {_short(e)}")
 
@@ -1696,21 +1720,28 @@ class ProjectCreate(BaseModel):
 
 @app.get("/api/projects")
 def list_projects():
-    out = []
+    # one-time lift of pre-Supabase projects (folders with meta.json but no DB row)
+    known = {r["id"] for r in db.project_list()}
     for pdir in sorted(PROJECTS_DIR.iterdir()):
-        if not pdir.is_dir():
-            continue
+        if pdir.is_dir() and (pdir / "meta.json").exists() and pdir.name not in known:
+            try:
+                get_project(pdir.name)
+            except Exception as e:
+                log.info(f"[{pdir.name}] legacy import failed — {_short(e)}")
+    out = []
+    for row in db.project_list():
         try:
-            proj = get_project(pdir.name)
+            proj = get_project(row["id"])
             out.append({
                 "id": proj.id,
                 "name": proj.meta.get("name", proj.id),
-                "created": proj.meta.get("created", ""),
-                "tables": len(describe_schema(proj)),
+                "created": proj.meta.get("created", row["created"]),
+                "tables": len(db.list_tables(proj.id)),
                 "charts": len(proj.dashboard),
                 "notes": len(proj.notes),
             })
-        except Exception:
+        except Exception as e:
+            log.info(f"[{row['id']}] list: {_short(e)}")
             continue
     return {"projects": out}
 
@@ -1720,12 +1751,12 @@ def create_project(req: ProjectCreate, request: Request):
     name = req.name.strip() or T(req_lang(request), "new_project")
     # project ids are ASCII URL slugs; non-Latin names fall back to a random id
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:40] or f"project-{uuid.uuid4().hex[:6]}"
-    pid = slug if not (PROJECTS_DIR / slug).exists() else f"{slug}-{uuid.uuid4().hex[:6]}"
-    (PROJECTS_DIR / pid).mkdir(parents=True)
+    pid = slug if not (db.project_exists(slug) or (PROJECTS_DIR / slug).exists()) else f"{slug}-{uuid.uuid4().hex[:6]}"
+    (PROJECTS_DIR / pid).mkdir(parents=True, exist_ok=True)
     db.ensure_project(pid)
+    db.project_create(pid, name, org_id=db.default_org(),
+                      meta={"name": name, "created": time.strftime("%Y-%m-%d"), "files": {}})
     proj = get_project(pid)
-    proj.meta["name"] = name
-    proj.save_meta()
     write_progress(proj)
     log.info(f"[{pid}] project created: '{name}'")
     return {"id": pid, "name": name}
@@ -1753,6 +1784,7 @@ async def delete_project(pid: str):
     PROJECTS.pop(pid, None)
     shutil.rmtree(proj.dir, ignore_errors=True)
     try:
+        db.project_delete(pid)
         db.drop_project(pid)
     except Exception as e:
         log.info(f"[{pid}] drop schema failed — {_short(e)}")
@@ -1813,16 +1845,13 @@ def _h(text: str) -> str:
     return hashlib.sha1(text.encode()).hexdigest()[:12]
 
 
-def _i18n_path(proj: Project, lang: str) -> Path:
-    return proj.dir / f"i18n_{lang}.json"
-
-
 def _load_i18n(proj: Project, lang: str) -> dict:
-    p = _i18n_path(proj, lang)
-    try:
-        return json.loads(p.read_text()) if p.exists() else {}
-    except Exception:
-        return {}
+    return dict(proj.i18n.get(lang) or {})
+
+
+def _save_i18n(proj: Project, lang: str, tr: dict) -> None:
+    proj.i18n[lang] = tr
+    proj.save_i18n()
 
 
 def _has_letters(v) -> bool:
@@ -1980,13 +2009,13 @@ async def translate_content(pid: str, request: Request):
             if k in chunk and isinstance(v, str) and v.strip():
                 tr[k] = v.strip()
                 done += 1
-        _i18n_path(proj, lang).write_text(json.dumps(tr, ensure_ascii=False, indent=1))
+        _save_i18n(proj, lang, tr)
     pend = getattr(proj, "i18n_pending", {}).get(lang)
     if pend:
         pend.difference_update({v for v in pend if _h(v) in tr})
     # drop entries whose source text no longer exists (keeps the file small)
     tr = {k: v for k, v in tr.items() if k in items}
-    _i18n_path(proj, lang).write_text(json.dumps(tr, ensure_ascii=False, indent=1))
+    _save_i18n(proj, lang, tr)
     log.info(f"[{pid}] i18n: done — {done}/{len(missing)} translated")
     proj.log_activity("info", T(lang, "act_translated", n=done))
     return {"translated": done, "missing": len(missing) - done, "content_lang": src,
@@ -2276,6 +2305,9 @@ async def reset(pid: str):
     proj.save_dash(); proj.save_notes(); proj.save_filters(); proj.save_chat(); proj.save_meta()
     if proj.progress_p.exists():
         proj.progress_p.unlink()
+    proj.i18n = {}
+    proj.save_i18n()
+    db.project_save(pid, progress=None)
     proj.meta["views"] = {}
     proj.save_meta()
     try:

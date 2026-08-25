@@ -1,18 +1,18 @@
-/* Inceptiq Analytics — dictionaries for the public pages (landing.html, login.html).
+/* Bizzmind — dictionaries for the public pages (landing.html, login.html).
    Loaded after core.js. Keys with markup are used via data-i18n-html. */
 I18N.add('bg', {
   /* ---- landing: head / nav ---- */
-  landing_title: 'Inceptiq Analytics — личният ти AI аналитик',
+  landing_title: 'Bizzmind — личният ти AI аналитик',
   landing_meta_desc: 'Качи екселите си. AI те интервюира и построява жив дашборд с филтри, анализи и презентации — без формули, без BI обучение.',
   nav_open_app: 'Отвори приложението',
   /* ---- landing: hero ---- */
   hero_tag: 'AI аналитик за нетехнически екипи',
   hero_h1: 'Качи екселите.<br>Получи <em>жив дашборд</em>.<br>Без формули. Без BI.',
-  hero_sub: 'Inceptiq Analytics е личният аналитик на твоя търговски екип: качваш справките, AI-ят ги проучва, задава ти въпросите, които истински аналитик би задал — и строи табло с живи филтри, изводи и графики по твоите отговори.',
+  hero_sub: 'Bizzmind е личният аналитик на твоя търговски екип: качваш справките, AI-ят ги проучва, задава ти въпросите, които истински аналитик би задал — и строи табло с живи филтри, изводи и графики по твоите отговори.',
   hero_cta_primary: 'Създай първия си проект →',
   hero_cta_how: 'Как работи',
   hero_note: 'Данните ти остават в изолирана среда за всеки проект.',
-  hero_shot_alt: 'Живият дашборд на Inceptiq Analytics — обобщение на анализа, графики и филтри',
+  hero_shot_alt: 'Живият дашборд на Bizzmind — обобщение на анализа, графики и филтри',
   /* ---- landing: how it works ---- */
   how_kicker: 'Как работи',
   how_title: 'От ексел до дашборд в три стъпки',
@@ -38,7 +38,7 @@ I18N.add('bg', {
   step3_h3: 'Получаваш жив дашборд',
   step3_p: 'Графики с истински филтри — по месец, човек, продукт, канал. Всяка промяна се преизчислява от базата на проекта, не от статични картинки.',
   /* ---- landing: why ---- */
-  why_kicker: 'Защо Inceptiq Analytics',
+  why_kicker: 'Защо Bizzmind',
   why_title: 'Построен като истински аналитик, не като чатбот',
   b1_h3: 'Изводи, не само графики',
   b1_p: 'AI-ят не спира до „ето ти графика“ — прави обобщение на целия анализ: наблюдение, число и конкретна препоръка на всеки ред, готово за отчета в понеделник.',
@@ -75,10 +75,10 @@ I18N.add('bg', {
   cta_h2: 'Дай на екипа си личен аналитик',
   cta_p: 'Първият дашборд е на минути разстояние — качи една справка и виж сам.',
   cta_btn: 'Започни сега →',
-  footer_proto: 'Inceptiq Analytics — прототип',
+  footer_proto: 'Bizzmind — прототип',
   footer_app: 'Приложение',
   /* ---- login ---- */
-  login_title: 'Вход — Inceptiq Analytics',
+  login_title: 'Вход — Bizzmind',
   login_sub: 'Влез в акаунта си, за да отвориш проектите',
   login_email: 'Имейл',
   login_password: 'Парола',
@@ -89,17 +89,17 @@ I18N.add('bg', {
 
 I18N.add('en', {
   /* ---- landing: head / nav ---- */
-  landing_title: 'Inceptiq Analytics — your personal AI analyst',
+  landing_title: 'Bizzmind — your personal AI analyst',
   landing_meta_desc: 'Upload your spreadsheets. The AI interviews you and builds a live dashboard with filters, insights and presentations — no formulas, no BI training.',
   nav_open_app: 'Open the app',
   /* ---- landing: hero ---- */
   hero_tag: 'AI analyst for non-technical teams',
   hero_h1: 'Upload your spreadsheets.<br>Get a <em>live dashboard</em>.<br>No formulas. No BI.',
-  hero_sub: 'Inceptiq Analytics is the personal analyst of your sales team: you upload the reports, the AI explores them, asks the questions a real analyst would ask — and builds a dashboard with live filters, insights and charts from your answers.',
+  hero_sub: 'Bizzmind is the personal analyst of your sales team: you upload the reports, the AI explores them, asks the questions a real analyst would ask — and builds a dashboard with live filters, insights and charts from your answers.',
   hero_cta_primary: 'Create your first project →',
   hero_cta_how: 'How it works',
   hero_note: 'Your data stays in an isolated environment for every project.',
-  hero_shot_alt: 'The live Inceptiq Analytics dashboard — analysis summary, charts and filters',
+  hero_shot_alt: 'The live Bizzmind dashboard — analysis summary, charts and filters',
   /* ---- landing: how it works ---- */
   how_kicker: 'How it works',
   how_title: 'From spreadsheet to dashboard in three steps',
@@ -125,7 +125,7 @@ I18N.add('en', {
   step3_h3: 'Get a live dashboard',
   step3_p: 'Charts with real filters — by month, person, product, channel. Every change is recomputed from the project database, not from static images.',
   /* ---- landing: why ---- */
-  why_kicker: 'Why Inceptiq Analytics',
+  why_kicker: 'Why Bizzmind',
   why_title: 'Built like a real analyst, not a chatbot',
   b1_h3: 'Insights, not just charts',
   b1_p: 'The AI does not stop at "here is a chart" — it summarises the whole analysis: an observation, a number and a concrete recommendation on every line, ready for Monday’s report.',
@@ -162,10 +162,10 @@ I18N.add('en', {
   cta_h2: 'Give your team a personal analyst',
   cta_p: 'Your first dashboard is minutes away — upload one report and see for yourself.',
   cta_btn: 'Get started →',
-  footer_proto: 'Inceptiq Analytics — prototype',
+  footer_proto: 'Bizzmind — prototype',
   footer_app: 'App',
   /* ---- login ---- */
-  login_title: 'Sign in — Inceptiq Analytics',
+  login_title: 'Sign in — Bizzmind',
   login_sub: 'Sign in to your account to open your projects',
   login_email: 'Email',
   login_password: 'Password',

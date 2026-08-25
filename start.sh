@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Стартира Inceptiq Analytics + публичен тунел (за Gamma да тегли графики/лого).
+# Стартира Bizzmind + публичен тунел (за Gamma да тегли графики/лого).
 # Употреба: ./start.sh        (Ctrl+C спира и двете)
 cd "$(dirname "$0")"
 pkill -f "uvicorn app:app" 2>/dev/null; pkill -f "cloudflared tunnel" 2>/dev/null; sleep 1

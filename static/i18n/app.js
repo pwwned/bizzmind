@@ -1,7 +1,7 @@
-/* Inceptiq Analytics — studio (app.html) strings. Registered via core.js. */
+/* Bizzmind — studio (app.html) strings. Registered via core.js. */
 I18N.add('bg', {
   translating: '🌐 Превеждам съдържанието на дашборда',
-  page_title: 'Inceptiq Analytics Studio',
+  page_title: 'Bizzmind Studio',
   all_projects: '← Всички проекти',
   home: 'Начало',
   logout: 'Изход',
@@ -162,7 +162,7 @@ I18N.add('bg', {
 
 I18N.add('en', {
   translating: '🌐 Translating the dashboard content',
-  page_title: 'Inceptiq Analytics Studio',
+  page_title: 'Bizzmind Studio',
   all_projects: '← All projects',
   home: 'Home',
   logout: 'Log out',

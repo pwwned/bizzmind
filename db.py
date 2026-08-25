@@ -1,4 +1,4 @@
-"""Inceptiq Analytics — project data layer on PostgreSQL (Supabase).
+"""Bizzmind — project data layer on PostgreSQL (Supabase).
 
 Every project gets its own schema (p_<id>) holding the tables imported from the
 user's spreadsheets and the semantic views the AI defines. AI-authored SQL runs

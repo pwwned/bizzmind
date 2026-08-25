@@ -1,4 +1,4 @@
-/* Inceptiq Analytics — i18n core (shared by every page).
+/* Bizzmind — i18n core (shared by every page).
    Language lives in the `lang` cookie (bg|en) so the server sees it too
    (error messages, AI output language, PDF labels). Dictionaries are
    registered per page via I18N.add(lang, {key: text}). Usage:

@@ -1,4 +1,4 @@
-"""Inceptiq Analytics — prototype backend.
+"""Bizzmind — prototype backend.
 
 Multi-project: every project is an isolated environment (own PostgreSQL schema,
 chat transcript, knowledge notes, filters, dashboard, uploaded files,
@@ -71,7 +71,7 @@ MAX_PREVIEW_ROWS = 50
 MAX_SERIES = 8
 SUB_TIMEOUT_S = 600
 
-app = FastAPI(title="Inceptiq Analytics (prototype)")
+app = FastAPI(title="Bizzmind")
 client = anthropic.Anthropic()
 
 # ------------------------------------------------------------------- auth
@@ -2869,7 +2869,7 @@ def _gamma_call(method: str, path: str, body: dict | None = None, lang: str = "b
         headers={"X-API-KEY": GAMMA_API_KEY, "Content-Type": "application/json",
                  "Accept": "application/json",
                  # Cloudflare in front of Gamma rejects the default Python-urllib UA
-                 "User-Agent": "InceptiqAnalytics/1.0 (+https://inceptiq.ai)"})
+                 "User-Agent": "Bizzmind/1.0 (+https://bizzmind.ai)"})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read().decode() or "{}")

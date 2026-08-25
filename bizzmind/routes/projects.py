@@ -58,21 +58,24 @@ class ProjectCreate(BaseModel):
 @router.get("/api/projects")
 def list_projects():
     # one-time lift of pre-Supabase projects (folders with meta.json but no DB row)
-    known = {r["id"] for r in db.project_list()}
-    for pdir in sorted(PROJECTS_DIR.iterdir()):
-        if pdir.is_dir() and (pdir / "meta.json").exists() and pdir.name not in known:
+    legacy = [d for d in PROJECTS_DIR.iterdir() if d.is_dir() and (d / "meta.json").exists()] if PROJECTS_DIR.exists() else []
+    if legacy:
+        known = {r["id"] for r in db.project_list()}
+        for pdir in legacy:
+            if pdir.name not in known:
+                try:
+                    get_project(pdir.name)
+                except Exception as e:
+                    log.info(f"[{pdir.name}] legacy import failed — {_short(e)}")
+        for pdir in legacy:   # imported -> retire the marker so this scan stays a no-op
             try:
-                get_project(pdir.name)
-            except Exception as e:
-                log.info(f"[{pdir.name}] legacy import failed — {_short(e)}")
-    out = []
+                (pdir / "meta.json").rename(pdir / "meta.legacy.json")
+            except Exception:
+                pass
     u = sb_auth.current_user()
-    counts = db.table_counts()
-    for row in db.project_list():
-        if u is not None and not u.can_read(row.get("org_id")):
-            continue
-        out.append({"id": row["id"], "name": row["name"], "created": row["created"],
-                    "tables": counts.get(row["id"], 0), "charts": row["charts"], "notes": row["notes"]})
+    out = [{"id": r["id"], "name": r["name"], "created": r["created"], "tables": r["tables"],
+            "charts": r["charts"], "notes": r["notes"]}
+           for r in db.project_list() if u is None or u.can_read(r.get("org_id"))]
     return {"projects": out}
 
 

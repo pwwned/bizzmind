@@ -20,6 +20,7 @@ import logging
 import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 
@@ -109,13 +110,15 @@ def sign_in(email: str, password: str) -> dict:
                  {"email": email.strip().lower(), "password": password})
 
 
-def sign_up(email: str, password: str, name: str = "") -> dict:
+def sign_up(email: str, password: str, name: str = "", redirect_to: str | None = None) -> dict:
     """Self-service registration. With email confirmation enabled in Supabase the
-    response has no session (user must confirm first)."""
+    response has no session (user must confirm first). `redirect_to` is where the
+    confirmation link lands — must be in Supabase Auth "Redirect URLs"."""
     body = {"email": email.strip().lower(), "password": password}
     if name:
         body["data"] = {"full_name": name}
-    return _call("POST", "/auth/v1/signup", body)
+    path = "/auth/v1/signup" + (f"?redirect_to={urllib.parse.quote(redirect_to, safe='')}" if redirect_to else "")
+    return _call("POST", path, body)
 
 
 def admin_invite(email: str, redirect_to: str | None = None) -> dict:

@@ -121,7 +121,8 @@ export const endpoints = {
   me: () => api<Me>("/api/auth/me"),
   login: (email: string, password: string) => post<{ ok: boolean; email: string }>("/api/auth/login", { email, password }),
   register: (email: string, password: string, name: string) =>
-    post<{ ok: boolean; confirmed: boolean; message?: string }>("/api/auth/register", { email, password, name }),
+    post<{ ok: boolean; confirmed: boolean; message?: string }>("/api/auth/register",
+      { email, password, name, redirect: typeof window !== "undefined" ? window.location.origin : "" }),
   logout: () => post<{ ok: boolean }>("/api/auth/logout"),
   projects: () => api<{ projects: ProjectCard[] }>("/api/projects"),
   createProject: (name: string) => post<{ id: string; name: string }>("/api/projects", { name }),

@@ -38,6 +38,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     name: str = ""
+    redirect: str = ""      # origin of the app the user registered from (confirmation link target)
 
 
 @router.post("/api/auth/register")
@@ -46,7 +47,9 @@ def auth_register(req: RegisterRequest, request: Request):
     if len(req.password) < 8:
         return JSONResponse({"detail": T(lang, "password_short")}, status_code=400)
     try:
-        res = sb_auth.sign_up(req.email, req.password, req.name)
+        redirect = req.redirect.strip() or (request.headers.get("origin") or "").rstrip("/")
+        res = sb_auth.sign_up(req.email, req.password, req.name,
+                              redirect_to=(redirect + "/login") if redirect.startswith("http") else None)
     except sb_auth.AuthError as e:
         log.info(f"auth: register failed for '{req.email}' ({e.status}: {e.detail})")
         if e.status == 422 or "already" in e.detail.lower():

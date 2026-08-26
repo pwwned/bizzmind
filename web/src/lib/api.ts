@@ -1,3 +1,5 @@
+import * as React from "react";
+
 /* Typed client for the Bizzmind FastAPI backend.
    Same-origin (Next.js rewrites /api → FastAPI), cookies carry the Supabase
    session, so no tokens are handled here. */
@@ -206,6 +208,14 @@ export async function runJob<T>(
 export function cacheGet<T>(key: string): T | undefined {
   try { const raw = localStorage.getItem("bz:" + key); return raw ? (JSON.parse(raw) as T) : undefined; } catch { return undefined; }
 }
+/* Hydration-safe localStorage placeholder: returns undefined during SSR and
+   the hydration pass, the cached value on subsequent renders. */
+export function useCachedPlaceholder() {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  return mounted;
+}
+
 export function getModelPref(pid: string): string {
   return cacheGet<string>(`model:${pid}`) ?? "standard";
 }

@@ -1,0 +1,34 @@
+{
+  "Bizzmind Pro": {
+    "product_id": "pro_01m0ypmacee9jq8hts6hpfec9n",
+    "prices": {
+      "month": "pri_01m0ypmaj7gejthhejwz3xp007",
+      "year": "pri_01m0ypmat13ejyjjaybs7skbw9"
+    }
+  },
+  "Bizzmind Ultra": {
+    "product_id": "pro_01m0ypmb1ptgmhswhdwmmvqrzf",
+    "prices": {
+      "month": "pri_01m0ypmb7repkv0p3cdhcxebad",
+      "year": "pri_01m0ypmbesr5ye6500ddp89sa3"
+    }
+  },
+  "Bizzmind Credits 1000": {
+    "product_id": "pro_01m0ypmbpcczprbyz3yfzp5d4b",
+    "prices": {
+      "once": "pri_01m0ypmbwa6kam1zhhvmwtm5hc"
+    }
+  },
+  "Bizzmind Credits 4000": {
+    "product_id": "pro_01m0ypmc3m4m5vav4v7x2tbt6d",
+    "prices": {
+      "once": "pri_01m0ypmc9a6dz56frqj8zbx87k"
+    }
+  },
+  "Bizzmind Credits 10000": {
+    "product_id": "pro_01m0ypmchbr5heqgd7fs1sm7bv",
+    "prices": {
+      "once": "pri_01m0ypmcqvy68jfqtdbzgxbg15"
+    }
+  }
+}

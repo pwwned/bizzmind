@@ -1,7 +1,7 @@
 "use client";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { cacheGet, cacheSet, endpoints, type Chart, type ProjectState } from "@/lib/api";
+import { cacheGet, cacheSet, endpoints, useCachedPlaceholder, type Chart, type ProjectState } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
 import { useT } from "@/lib/i18n";
 import { AppHeader } from "@/components/app-header";
@@ -27,10 +27,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const uploadRef = useRef<(() => void) | null>(null);
 
   const { lang } = useLang();
+  const hydrated = useCachedPlaceholder();
   const state = useQuery({
     queryKey: ["state", pid],
     queryFn: async () => { const d = await endpoints.state(pid); cacheSet(`state:${pid}:${lang}`, d); return d; },
-    placeholderData: () => cacheGet<ProjectState>(`state:${pid}:${lang}`),
+    placeholderData: () => (hydrated ? cacheGet<ProjectState>(`state:${pid}:${lang}`) : undefined),
   });
   const hasSel = Object.values(selections).some((v) => (Array.isArray(v) ? v.length : !!v));
   const refresh = useQuery({

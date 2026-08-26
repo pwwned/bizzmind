@@ -1,0 +1,195 @@
+
+> web@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.29:3000
+- Environments: .env.local
+✓ Ready in 250ms
+✓ Running next.config.ts took 14ms
+
+ GET / 200 in 282ms (next.js: 93ms, proxy.ts: 81ms, application-code: 109ms)
+ GET /pricing 200 in 27ms (next.js: 5ms, proxy.ts: 1.4ms, application-code: 21ms)
+ GET /app 200 in 59ms (next.js: 9ms, proxy.ts: 3ms, application-code: 47ms)
+ GET /app 200 in 35ms (next.js: 1.1ms, proxy.ts: 1.1ms, application-code: 33ms)
+ GET /pricing 200 in 18ms (next.js: 2ms, proxy.ts: 1.6ms, application-code: 14ms)
+ GET /pricing 200 in 22ms (next.js: 0.9ms, proxy.ts: 1.7ms, application-code: 19ms)
+ GET /pricing 200 in 83ms (next.js: 59ms, proxy.ts: 3ms, application-code: 20ms)
+ GET /pricing 200 in 54ms (next.js: 3ms, proxy.ts: 5ms, application-code: 45ms)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="app/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/app" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+                <SegmentViewNode type="page" pagePath="app/page.tsx">
+                  <SegmentTrieNode>
+                  <ClientPageRoot Component={function ProjectsPage} serverProvidedParams={{...}}>
+                    <ProjectsPage params={Promise} searchParams={Promise}>
+                      <AppHeader>
+                      <main className="page-enter...">
+                        <div>
+                        <div className="grid gap-4...">
+                          <LinkComponent href="/p/poli-demo" onClick={function onClick} className={"group re..."}>
++                           <a
++                             className={"group relative flex flex-col gap-3 rounded-2xl border border-border bg-card..."}
++                             ref={function}
++                             onClick={function onClick}
++                             onMouseEnter={function onMouseEnter}
++                             onTouchStart={function onTouchStart}
++                             href="/p/poli-demo"
++                           >
+-                           <div data-slot="skeleton" className="animate-pulse bg-muted h-36 rounded-2xl">
+                          ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at a (<anonymous>)
+    at <unknown> (src/app/app/page.tsx:96:13)
+    at Array.map (<anonymous>)
+    at ProjectsPage (src/app/app/page.tsx:95:17)
+  94 |         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  95 |           {list.map((p) => (
+> 96 |             <Link key={p.id} href={`/p/${p.id}`}
+     |             ^
+  97 |               onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setOpening(p.id); }}
+  98 |               className={`group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-olive/50 hover:shadow-[0_10px_40px_rgba(181,211,61,0.12)] ${opening && op...
+  99 |               {opening === p.id && (
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="app/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/app" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+                <SegmentViewNode type="page" pagePath="app/page.tsx">
+                  <SegmentTrieNode>
+                  <ClientPageRoot Component={function ProjectsPage} serverProvidedParams={{...}}>
+                    <ProjectsPage params={Promise} searchParams={Promise}>
+                      <AppHeader>
+                      <main className="page-enter...">
+                        <div>
+                        <div className="grid gap-4...">
+                          <LinkComponent href="/p/poli-demo" onClick={function onClick} className={"group re..."}>
++                           <a
++                             className={"group relative flex flex-col gap-3 rounded-2xl border border-border bg-card..."}
++                             ref={function}
++                             onClick={function onClick}
++                             onMouseEnter={function onMouseEnter}
++                             onTouchStart={function onTouchStart}
++                             href="/p/poli-demo"
++                           >
+-                           <div data-slot="skeleton" className="animate-pulse bg-muted h-36 rounded-2xl">
+                          ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at a (<anonymous>)
+    at <unknown> (src/app/app/page.tsx:96:13)
+    at Array.map (<anonymous>)
+    at ProjectsPage (src/app/app/page.tsx:95:17)
+  94 |         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  95 |           {list.map((p) => (
+> 96 |             <Link key={p.id} href={`/p/${p.id}`}
+     |             ^
+  97 |               onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setOpening(p.id); }}
+  98 |               className={`group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-olive/50 hover:shadow-[0_10px_40px_rgba(181,211,61,0.12)] ${opening && op...
+  99 |               {opening === p.id && (
+ GET /app 200 in 63ms (next.js: 30ms, proxy.ts: 8ms, application-code: 24ms)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="app/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/app" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+                <SegmentViewNode type="page" pagePath="app/page.tsx">
+                  <SegmentTrieNode>
+                  <ClientPageRoot Component={function ProjectsPage} serverProvidedParams={{...}}>
+                    <ProjectsPage params={Promise} searchParams={Promise}>
+                      <AppHeader>
+                      <main className="page-enter...">
+                        <div>
+                        <div className="grid gap-4...">
+                          <LinkComponent href="/p/poli-demo" onClick={function onClick} className={"group re..."}>
++                           <a
++                             className={"group relative flex flex-col gap-3 rounded-2xl border border-border bg-card..."}
++                             ref={function}
++                             onClick={function onClick}
++                             onMouseEnter={function onMouseEnter}
++                             onTouchStart={function onTouchStart}
++                             href="/p/poli-demo"
++                           >
+-                           <div data-slot="skeleton" className="animate-pulse bg-muted h-36 rounded-2xl">
+                          ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at a (<anonymous>)
+    at <unknown> (src/app/app/page.tsx:96:13)
+    at Array.map (<anonymous>)
+    at ProjectsPage (src/app/app/page.tsx:95:17)
+  94 |         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  95 |           {list.map((p) => (
+> 96 |             <Link key={p.id} href={`/p/${p.id}`}
+     |             ^
+  97 |               onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setOpening(p.id); }}
+  98 |               className={`group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-olive/50 hover:shadow-[0_10px_40px_rgba(181,211,61,0.12)] ${opening && op...
+  99 |               {opening === p.id && (
+ GET /p/poli-demo 200 in 296ms (next.js: 279ms, proxy.ts: 6ms, application-code: 11ms)
+ GET /account 200 in 48ms (next.js: 33ms, proxy.ts: 4ms, application-code: 11ms)
+ GET /usage 200 in 41ms (next.js: 27ms, proxy.ts: 4ms, application-code: 10ms)
+ GET /app 200 in 29ms (next.js: 7ms, proxy.ts: 4ms, application-code: 18ms)
+ GET / 200 in 55ms (next.js: 15ms, proxy.ts: 5ms, application-code: 35ms)
+ GET / 200 in 13ms (next.js: 3ms, proxy.ts: 2ms, application-code: 8ms)
+✓ Compiled in 319ms
+ GET /pricing 200 in 17ms (next.js: 4ms, proxy.ts: 0.9ms, application-code: 13ms)
+ GET /pricing 200 in 19ms (next.js: 1.0ms, proxy.ts: 1.8ms, application-code: 17ms)
+ GET /pricing 200 in 22ms (next.js: 3ms, proxy.ts: 2ms, application-code: 17ms)
+ GET /pricing 200 in 15ms (next.js: 0.9ms, proxy.ts: 1.2ms, application-code: 13ms)
+ GET /welcome 200 in 210ms (next.js: 182ms, proxy.ts: 6ms, application-code: 22ms)
+ GET /login?next=%2Fapp 307 in 23ms (proxy.ts: 4ms)
+ GET /login?next=%2Fapp 200 in 16ms (next.js: 1.8ms, proxy.ts: 3ms, application-code: 11ms)
+ GET /app 307 in 14ms (proxy.ts: 4ms)
+ GET /app 200 in 19ms (next.js: 2ms, proxy.ts: 2ms, application-code: 15ms)

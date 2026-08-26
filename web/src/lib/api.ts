@@ -190,6 +190,8 @@ export const endpoints = {
   subKeep: () => post<{ ok: boolean }>("/api/account/subscription/keep"),
   paymentMethodTxn: () => post<{ transaction_id: string }>("/api/account/payment-method-txn"),
   invoices: () => api<{ invoices: InvoiceRow[] }>("/api/account/invoices"),
+  paymentMethods: () => api<{ cards: { id: string; type: string; last4: string }[] }>("/api/account/payment-methods"),
+  removePaymentMethod: (id: string) => post<{ ok: boolean }>("/api/account/payment-method/remove", { id }),
 };
 
 /* Run a background job: POST → {job_id} → poll until done. Inline results

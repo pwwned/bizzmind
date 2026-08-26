@@ -312,6 +312,45 @@ def account_payment_method_txn(request: Request):
     return {"transaction_id": d.get("id")}
 
 
+@router.get("/api/account/payment-methods")
+def account_payment_methods(request: Request):
+    """Standalone saved cards (subscription-bound cards are not listed by Paddle)."""
+    from bizzmind import paddle_billing
+    u, org = _me_org()
+    if org is None:
+        return {"cards": []}
+    with plans.pool().connection() as con:
+        row = con.execute("SELECT paddle_customer_id FROM public.organizations WHERE id = %s", (org,)).fetchone()
+    if not row or not row[0]:
+        return {"cards": []}
+    pms = paddle_billing.api("GET", f"/customers/{row[0]}/payment-methods")
+    out = []
+    for pm in pms if isinstance(pms, list) else []:
+        card = pm.get("card") or {}
+        out.append({"id": pm.get("id"), "type": card.get("type", pm.get("type", "")),
+                    "last4": card.get("last4", "")})
+    return {"cards": out}
+
+
+class RemoveCardRequest(BaseModel):
+    id: str
+
+
+@router.post("/api/account/payment-method/remove")
+def account_payment_method_remove(req: RemoveCardRequest, request: Request):
+    from bizzmind import paddle_billing
+    u, org = _me_org()
+    if org is None or not u.can_admin(org):
+        raise HTTPException(403, T(req_lang(request), "forbidden"))
+    with plans.pool().connection() as con:
+        row = con.execute("SELECT paddle_customer_id FROM public.organizations WHERE id = %s", (org,)).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(404)
+    paddle_billing.api("DELETE", f"/customers/{row[0]}/payment-methods/{req.id}")
+    log.info(f"billing: payment method {req.id} removed for org {org}")
+    return {"ok": True}
+
+
 @router.get("/api/account/invoices")
 def account_invoices(request: Request):
     from bizzmind import paddle_billing

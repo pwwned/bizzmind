@@ -47,6 +47,12 @@ export default function BillingPage() {
   const acc = useQuery({ queryKey: ["account"], queryFn: endpoints.account });
   const sub = useQuery({ queryKey: ["subscription"], queryFn: endpoints.subscription });
   const invoices = useQuery({ queryKey: ["invoices"], queryFn: endpoints.invoices });
+  const cards = useQuery({ queryKey: ["payment-methods"], queryFn: endpoints.paymentMethods });
+  const removeCard = useMutation({
+    mutationFn: (id: string) => endpoints.removePaymentMethod(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["payment-methods"] }); toast.success(t("card_removed")); },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [form, setForm] = useState<Billing>(EMPTY);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -200,6 +206,27 @@ export default function BillingPage() {
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
                   {t("no_subscription")}
                   <Button variant="outline" nativeButton={false} render={<Link href="/pricing" />}>{t("see_pricing")}</Button>
+                </div>
+              )}
+              {(cards.data?.cards?.length ?? 0) > 0 && (
+                <div className="mt-4 border-t border-border pt-4">
+                  <div className="mb-2 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{t("saved_cards")}</div>
+                  <ul className="flex flex-col gap-1.5">
+                    {cards.data!.cards.map((c) => (
+                      <li key={c.id} className="flex items-center gap-3 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-[13px]">
+                        <CreditCard className="size-4 text-olive" />
+                        <span className="flex-1">{c.type} •••• {c.last4}</span>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          disabled={!admin || removeCard.isPending}
+                          onClick={async () => {
+                            if (await confirm({ title: t("remove_card"), description: t("remove_card_confirm"), actionLabel: t("remove_card"), destructive: true }))
+                              removeCard.mutate(c.id);
+                          }}>
+                          {t("remove_card")}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </Card>

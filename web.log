@@ -281,3 +281,10 @@ https://react.dev/link/hydration-mismatch
  GET /usage 200 in 27ms (next.js: 3ms, proxy.ts: 1.4ms, application-code: 23ms)
  GET /welcome 200 in 40ms (next.js: 11ms, proxy.ts: 4ms, application-code: 25ms)
  GET /billing 200 in 88ms (next.js: 25ms, proxy.ts: 11ms, application-code: 52ms)
+ GET /billing 200 in 46ms (next.js: 4ms, proxy.ts: 4ms, application-code: 38ms)
+ GET /account 200 in 32ms (next.js: 16ms, proxy.ts: 4ms, application-code: 12ms)
+ GET /billing 200 in 25ms (next.js: 4ms, proxy.ts: 5ms, application-code: 16ms)
+ GET /usage 200 in 26ms (next.js: 9ms, proxy.ts: 3ms, application-code: 15ms)
+ GET /billing 200 in 24ms (next.js: 3ms, proxy.ts: 4ms, application-code: 17ms)
+✓ Compiled in 71ms
+ GET /billing 200 in 11ms (next.js: 3ms, proxy.ts: 1.0ms, application-code: 7ms)

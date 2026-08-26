@@ -16,6 +16,11 @@ MSG: dict = {
         "confirm_email": "Изпратихме линк за потвърждение на имейла ти. Потвърди го и влез.",
         "forbidden": "Нямаш достъп до този проект.",
         "pres_no_credits": "Кредитите за презентации на организацията са изчерпани. Свържи се с нас, за да добавим още.",
+        "no_credits": "Кредитите на организацията са изчерпани — добави още от Акаунт → Кредити.",
+        "model_not_in_plan": "Моделът Max е достъпен от план Pro нагоре.",
+        "plan_projects_limit": "Планът {plan} позволява до {n} проект(а). Премини на по-висок план за повече.",
+        "plan_files_limit": "Планът {plan} позволява до {n} файла на проект.",
+        "plan_file_too_big": "„{name}“ е {mb} MB — планът {plan} позволява до {max} MB на файл.",
         "act_translating": "🌐 Превеждам съдържанието на дашборда ({n} текста)…",
         "act_translated": "🌐 Преведох {n} текста",
         # auth / projects
@@ -91,6 +96,11 @@ MSG: dict = {
         "confirm_email": "We sent a confirmation link to your email. Confirm it, then sign in.",
         "forbidden": "You do not have access to this project.",
         "pres_no_credits": "Your organisation has run out of presentation credits. Contact us to top up.",
+        "no_credits": "Your organisation is out of credits — top up from Account → Credits.",
+        "model_not_in_plan": "The Max model is available from the Pro plan up.",
+        "plan_projects_limit": "The {plan} plan allows up to {n} project(s). Upgrade for more.",
+        "plan_files_limit": "The {plan} plan allows up to {n} files per project.",
+        "plan_file_too_big": "\u201c{name}\u201d is {mb} MB — the {plan} plan allows up to {max} MB per file.",
         "act_translating": "🌐 Translating the dashboard content ({n} texts)…",
         "act_translated": "🌐 Translated {n} texts",
         # auth / projects

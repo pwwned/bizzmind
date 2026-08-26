@@ -22,6 +22,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import app as core   # noqa: E402  (FastAPI module: agent, prompts, project logic)
+import db
 import jobs          # noqa: E402
 
 log = logging.getLogger("studio")
@@ -39,6 +40,9 @@ async def run_job(job: dict) -> dict:
     proj.lang = job.get("lang") or "bg"
     proj.job_id = job["id"]
     kind, p = job["kind"], job["payload"] or {}
+    if kind in ("chat", "review"):
+        from bizzmind import plans
+        proj.ai_model_id = plans.MODELS[plans.norm_model(p.get("model"))]["model_id"]
     try:
         if kind == "chat":
             proj.add_chat("user", p["message"])
@@ -64,7 +68,16 @@ async def main(once: bool = False):
     log.info(f"worker: online (backend={core.AI_BACKEND})")
     idle = 0.0
     while not _stop:
-        job = jobs.claim()
+        try:
+            job = jobs.claim()
+        except Exception as e:
+            log.info(f"worker: db connection hiccup — {core._short(e, 120)}; reconnecting…")
+            try:
+                db.close()
+            except Exception:
+                pass
+            await asyncio.sleep(2)
+            continue
         if not job:
             if once:
                 return

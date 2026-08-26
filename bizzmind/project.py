@@ -63,7 +63,8 @@ class Project:
         self._uploads_synced = False
 
         self.messages: list = []          # API-backend conversation (in-memory)
-        self.sub_client = None            # Agent SDK session
+        self.sub_client = None
+        self.ai_model_id = None       # chosen per request/job: plans.MODELS[...]["model_id"]            # Agent SDK session
         self.new_charts: list = []        # charts created during current turn
         self.new_questions: list = []     # interview questions from current turn
         self.activity: list = []

@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { endpoints, runJob, type AgentResult, type ChatMessage, type JobEvent, type Question } from "@/lib/api";
-import { useT } from "@/lib/i18n";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { endpoints, getModelPref, runJob, setModelPref, type AgentResult, type ChatMessage, type JobEvent, type Question } from "@/lib/api";
+import { useT, type Key } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, Send, X } from "lucide-react";
@@ -18,6 +18,12 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
   const [items, setItems] = useState<Item[]>(initial);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [model, setModel] = useState(() => getModelPref(pid));
+  const credits = useQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid), staleTime: 60_000 });
+  const maxLocked = credits.data ? !["pro", "ultra"].includes(credits.data.plan) : false;
+  const costChat = credits.data?.costs?.chat?.[model];
+  const costAnalysis = credits.data?.costs?.analysis?.[model];
+  function pickModel(m: string) { setModel(m); setModelPref(pid, m); }
   const logRef = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(0);
 
@@ -48,7 +54,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
     if (key === lastPending.current) return;
     lastPending.current = key;
     onOpenChange(true);
-    run(t("thinking"), endpoints.review(pid, pending.tables, "", ""));
+    run(t("thinking"), endpoints.review(pid, pending.tables, "", "", model));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
 
@@ -56,7 +62,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
     if (!msg.trim() || busy) return;
     setItems((it) => [...it, { role: "user", text: msg }]);
     setText("");
-    run(t("thinking"), endpoints.chat(pid, msg));
+    run(t("thinking"), endpoints.chat(pid, msg, model));
   }
 
   return (
@@ -73,6 +79,29 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
           <span className="text-sm font-bold">{t("chat")}</span>
           <span className="flex-1" />
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}><X className="size-4" /></Button>
+        </div>
+        <div className="border-b border-border px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t("model_label")}</span>
+            <div className="inline-flex overflow-hidden rounded-lg border border-border text-[11.5px] font-bold">
+              {(["standard", "max"] as const).map((m) => (
+                <button key={m} type="button" disabled={m === "max" && maxLocked}
+                  title={m === "max" && maxLocked ? t("model_max_locked") : ""}
+                  onClick={() => pickModel(m)}
+                  className={`px-2.5 py-1 transition-colors ${model === m ? "grad-olive text-primary-foreground" : "text-muted-foreground hover:text-foreground"} ${m === "max" && maxLocked ? "cursor-not-allowed opacity-40" : ""}`}>
+                  {m === "standard" ? t("model_standard") : t("model_max")}
+                </button>
+              ))}
+            </div>
+            {costAnalysis != null && (
+              <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">
+                {t("cost_hint", { q: costChat ?? 0, a: costAnalysis })}
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-[11px] leading-snug text-muted-foreground">
+            {t((model === "max" ? "model_max_desc" : "model_standard_desc") as Key)}
+          </div>
         </div>
         <div ref={logRef} className="flex-1 space-y-3 overflow-auto px-4 py-4">
           {items.map((m, i) => (
@@ -102,7 +131,8 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
           <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={t("chat_ph")} rows={2}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(text); } }}
             className="min-h-0 resize-none" disabled={busy} />
-          <Button type="submit" disabled={busy || !text.trim()} className="grad-olive text-primary-foreground"><Send className="size-4" /></Button>
+          <Button type="submit" disabled={busy || !text.trim()} title={costChat != null ? t("approx_cr", { n: costChat }) : ""}
+            className="grad-olive text-primary-foreground"><Send className="size-4" /></Button>
         </form>
       </aside>
     </>

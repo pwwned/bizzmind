@@ -842,7 +842,7 @@ def run_agent_api(proj: Project, user_content: str):
     while True:
         try:
             response = client.beta.messages.create(
-                model=MODEL,
+                model=getattr(proj, "ai_model_id", None) or MODEL,
                 max_tokens=16000,
                 betas=["server-side-fallback-2026-07-01"],
                 fallbacks="default",

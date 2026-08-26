@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from bizzmind.config import log
 from bizzmind.i18n import T, req_lang
 from bizzmind.auth_middleware import _set_auth_cookies
+from bizzmind import plans
 
 router = APIRouter()
 
@@ -137,3 +138,106 @@ def auth_me(request: Request):
     if not u:
         return JSONResponse({"detail": "not logged in"}, status_code=401)
     return {"email": u.email, "id": u.id, "orgs": u.orgs, "roles": u.roles}
+
+
+# ------------------------------------------------------------------ account
+
+class PasswordChange(BaseModel):
+    password: str
+
+
+class AccountPrefs(BaseModel):
+    auto_recharge: bool
+
+
+class BillingInfo(BaseModel):
+    company: str = ""
+    eik: str = ""           # company registration number (ЕИК/Bulstat)
+    vat_id: str = ""        # VAT number
+    mol: str = ""           # authorised representative
+    address: str = ""
+    city: str = ""
+    country: str = ""
+    invoice_email: str = ""
+
+
+def _me_org():
+    u = sb_auth.current_user()
+    if not u:
+        raise HTTPException(401)
+    return u, (u.orgs[0] if u.orgs else None)
+
+
+@router.get("/api/plans")
+def public_plans():
+    """Public: plan definitions for the pricing page (no auth, no org data)."""
+    return {"plans": plans.PLANS, "packs": plans.PACKS, "costs": plans.COSTS}
+
+
+@router.get("/api/account")
+def account(request: Request):
+    u, org = _me_org()
+    st = plans.org_state(org) if org else {"plan": "free", "quota": 0, "extra": 0,
+                                           "used": 0, "remaining": 0, "auto_recharge": False, "org_name": ""}
+    return {
+        "email": u.email,
+        "org_name": st["org_name"],
+        "role": u.roles.get(str(org), "member") if org else "member",
+        "plan": st["plan"],
+        "plans": plans.PLANS,
+        "costs": plans.COSTS,
+        "models": {k: {"label": v["label"], "min_plan": v["min_plan"]} for k, v in plans.MODELS.items()},
+        "packs": plans.PACKS,
+        "credits": {"quota": st["quota"], "extra": st["extra"], "used": st["used"],
+                    "remaining": st["remaining"]},
+        "auto_recharge": st["auto_recharge"],
+        "projects_used": plans.project_count(org) if org else 0,
+        "usage": plans.usage_breakdown(org) if org else [],
+        "billing": _org_billing(org),
+    }
+
+
+def _org_billing(org) -> dict:
+    if org is None:
+        return {}
+    with plans.pool().connection() as con:
+        row = con.execute("SELECT billing FROM public.organizations WHERE id = %s", (org,)).fetchone()
+    return row[0] if row and row[0] else {}
+
+
+@router.post("/api/account/billing")
+def account_billing(req: BillingInfo, request: Request):
+    import json as _json
+    u, org = _me_org()
+    if org is None or not u.can_admin(org):
+        raise HTTPException(403, T(req_lang(request), "forbidden"))
+    with plans.pool().connection() as con:
+        con.execute("UPDATE public.organizations SET billing = %s::jsonb WHERE id = %s",
+                    (_json.dumps(req.model_dump()), org))
+    log.info(f"account: billing details updated for org {org}")
+    return {"ok": True}
+
+
+@router.post("/api/account/password")
+def account_password(req: PasswordChange, request: Request):
+    u, _ = _me_org()
+    lang = req_lang(request)
+    if len(req.password) < 8:
+        raise HTTPException(400, T(lang, "password_short"))
+    try:
+        sb_auth.admin_update_password(u.id, req.password)
+    except sb_auth.AuthError as e:
+        raise HTTPException(e.status, e.detail)
+    log.info(f"account: password changed for {u.email}")
+    return {"ok": True}
+
+
+@router.post("/api/account/prefs")
+def account_prefs(req: AccountPrefs, request: Request):
+    u, org = _me_org()
+    if org is None or not u.can_admin(org):
+        raise HTTPException(403, T(req_lang(request), "forbidden"))
+    with plans.pool().connection() as con:
+        con.execute("UPDATE public.organizations SET auto_recharge = %s WHERE id = %s",
+                    (req.auto_recharge, org))
+    return {"ok": True, "auto_recharge": req.auto_recharge}

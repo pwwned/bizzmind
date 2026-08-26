@@ -14,6 +14,7 @@ import db
 import jobs
 import storage
 import auth as sb_auth
+from bizzmind import plans
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
@@ -53,6 +54,8 @@ async def _execute_claimed(job: dict) -> dict:
     proj.lang = job.get("lang") or "bg"
     proj.job_id = job["id"]
     kind, pl = job["kind"], job["payload"] or {}
+    if kind in ("chat", "review"):
+        proj.ai_model_id = plans.MODELS[plans.norm_model(pl.get("model"))]["model_id"]
     try:
         if kind == "chat":
             proj.add_chat("user", pl["message"])
@@ -152,10 +155,15 @@ def create_project(req: ProjectCreate, request: Request):
     # project ids are ASCII URL slugs; non-Latin names fall back to a random id
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:40] or f"project-{uuid.uuid4().hex[:6]}"
     pid = slug if not (db.project_exists(slug) or (PROJECTS_DIR / slug).exists()) else f"{slug}-{uuid.uuid4().hex[:6]}"
-    (PROJECTS_DIR / pid).mkdir(parents=True, exist_ok=True)
-    db.ensure_project(pid)
     u = sb_auth.current_user()
     org = (u.orgs[0] if u and u.orgs else db.default_org())
+    st = plans.org_state(org)
+    lim = plans.limits_of(st["plan"])
+    if plans.project_count(org) >= lim["projects"]:
+        raise HTTPException(402, T(req_lang(request), "plan_projects_limit",
+                                   plan=lim["label"], n=lim["projects"]))
+    (PROJECTS_DIR / pid).mkdir(parents=True, exist_ok=True)
+    db.ensure_project(pid)
     db.project_create(pid, name, org_id=org,
                       meta={"name": name, "created": time.strftime("%Y-%m-%d"), "files": {}})
     proj = get_project(pid)
@@ -203,10 +211,12 @@ async def delete_project(pid: str):
 
 class ChatRequest(BaseModel):
     message: str
+    model: str = "standard"
 
 
 class ReviewRequest(BaseModel):
     tables: list[str]
+    model: str = "standard"
     context: str = ""   # optional: what the user already knows about the data
     goal: str = ""      # optional: what they want to achieve
 
@@ -288,6 +298,19 @@ async def _ingest(proj, fname: str, payload: bytes, loaded: list) -> None:
     proj.meta["files"][fname] = file_tables
 
 
+def _check_upload_limits(proj, new_names: list[str], lang: str, sizes: dict[str, int] | None = None):
+    org = plans.org_of_project(proj.id)
+    lim = plans.limits_of(plans.org_state(org)["plan"]) if org else plans.PLANS["ultra"]
+    existing = set(proj.meta.get("files", {}))
+    total = len(existing | {n for n in new_names})
+    if total > lim["files_per_project"]:
+        raise HTTPException(402, T(lang, "plan_files_limit", plan=lim["label"], n=lim["files_per_project"]))
+    for name, size in (sizes or {}).items():
+        if size > lim["max_file_mb"] * 1024 * 1024:
+            raise HTTPException(413, T(lang, "plan_file_too_big", name=name,
+                                       mb=round(size / 1048576, 1), plan=lim["label"], max=lim["max_file_mb"]))
+
+
 @router.post("/api/p/{pid}/upload")
 async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)):
     """Direct multipart upload (small files / local dev). Hosted API bodies are
@@ -295,12 +318,15 @@ async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)
     proj = get_project(pid)
     proj.lang = req_lang(request)
     log.info(f"[{pid}] upload: {len(files)} file(s) received")
+    payloads = [(Path(f.filename).name, await f.read()) for f in files]
+    _check_upload_limits(proj, [n for n, _ in payloads], proj.lang,
+                         {n: len(b) for n, b in payloads})
     proj.ensure_uploads()
     loaded = []
     db.ensure_project(pid)
     try:
-        for f in files:
-            await _ingest(proj, Path(f.filename).name, await f.read(), loaded)
+        for fname, payload in payloads:
+            await _ingest(proj, fname, payload, loaded)
     finally:
         proj.save_meta()
         await run_in_threadpool(storage.sync_up, pid, "uploads", proj.uploads_dir)
@@ -319,6 +345,7 @@ def upload_sign(pid: str, req: SignRequest, request: Request):
     proj = get_project(pid)
     if not storage.enabled():
         raise HTTPException(503, "storage not configured")
+    _check_upload_limits(proj, [Path(n).name for n in req.filenames[:20]], req_lang(request))
     out = []
     for name in req.filenames[:20]:
         fname = Path(name).name
@@ -339,6 +366,7 @@ async def upload_ingest(pid: str, req: SignRequest, request: Request):
         for name in req.filenames[:20]:
             fname = Path(name).name
             payload = await run_in_threadpool(storage.get, f"{pid}/uploads/{fname}")
+            _check_upload_limits(proj, [fname], proj.lang, {fname: len(payload)})
             await _ingest(proj, fname, payload, loaded)
     finally:
         proj.save_meta()
@@ -523,26 +551,32 @@ async def refresh_dashboard(pid: str, req: RefreshRequest, request: Request):
 
 @router.post("/api/p/{pid}/chat")
 async def chat(pid: str, req: ChatRequest, request: Request):
+    plans.charge(pid, "chat", req_lang(request), req.model)
     proj = get_project(pid)
     lang = req_lang(request)
+    proj.ai_model_id = plans.MODELS[plans.norm_model(req.model)]["model_id"]
     if INLINE_JOBS:
         proj.lang = lang
         proj.add_chat("user", req.message)
         return await dispatch_agent(proj, req.message)
     u = sb_auth.current_user()
-    return {"job_id": jobs.enqueue(pid, "chat", {"message": req.message}, lang, u.id if u else None)}
+    return {"job_id": jobs.enqueue(pid, "chat", {"message": req.message, "model": req.model},
+                                   lang, u.id if u else None)}
 
 
 @router.post("/api/p/{pid}/review")
 async def review(pid: str, req: ReviewRequest, request: Request):
+    plans.charge(pid, "analysis", req_lang(request), req.model)
     proj = get_project(pid)
     lang = req_lang(request)
+    proj.ai_model_id = plans.MODELS[plans.norm_model(req.model)]["model_id"]
     if INLINE_JOBS:
         proj.lang = lang
         return await run_review(proj, req.tables, req.context, req.goal)
     u = sb_auth.current_user()
     return {"job_id": jobs.enqueue(pid, "review", {"tables": req.tables, "context": req.context,
-                                                    "goal": req.goal}, lang, u.id if u else None)}
+                                                    "goal": req.goal, "model": req.model},
+                                   lang, u.id if u else None)}
 
 
 @router.post("/api/p/{pid}/reset")

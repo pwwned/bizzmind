@@ -15,6 +15,7 @@ from bizzmind.i18n import LANGS, T, req_lang
 from bizzmind.project import get_project
 from bizzmind.brand import brand_colors, brand_dir, brand_logo_path
 from db import pool
+from bizzmind import plans
 
 
 # ------------------------------------------------------------------ Gamma
@@ -123,16 +124,14 @@ def _md_table(columns: list, rows: list, limit: int = 12) -> str:
 
 
 def pres_credits(pid: str) -> dict:
-    """The org's presentation-credit balance. Users only ever see these
-    numbers — never the upstream engine's own account balance."""
-    with pool().connection() as con:
-        row = con.execute(
-            "SELECT o.id, o.pres_quota, o.pres_used FROM public.organizations o "
-            "JOIN public.projects p ON p.org_id = o.id WHERE p.id = %s", (pid,)).fetchone()
-    if not row:
-        return {"quota": 0, "used": 0, "remaining": 0}
-    _, q, u = row
-    return {"quota": q, "used": u, "remaining": max(0, q - u)}
+    """The org's unified credit balance + prices, for in-app predictions."""
+    org = plans.org_of_project(pid)
+    st = plans.org_state(org) if org else {"plan": "free", "quota": 0, "extra": 0, "used": 0, "remaining": 0}
+    return {"quota": st["quota"] + st["extra"], "used": st["used"],
+            "remaining": st["remaining"], "plan": st["plan"],
+            "cost": plans.cost_of("presentation"),
+            "costs": plans.COSTS, "models": {k: {"label": v["label"], "min_plan": v["min_plan"]}
+                                             for k, v in plans.MODELS.items()}}
 
 
 def gamma_generate(pid: str, req: GammaRequest, request: Request):
@@ -140,8 +139,7 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
     import shutil
     proj = get_project(pid)
     lang = req_lang(request)
-    if pres_credits(pid)["remaining"] <= 0:
-        raise HTTPException(402, T(lang, "pres_no_credits"))
+    plans.ensure_can_afford(pid, "presentation", lang)
     proj.lang = lang
     req.language = req.language if req.language in LANGS else lang
     token = secrets.token_urlsafe(12)
@@ -266,6 +264,7 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
                 "INSERT INTO public.pres_generations (gid, org_id, project_id) "
                 "SELECT %s, org_id, id FROM public.projects WHERE id = %s "
                 "ON CONFLICT (gid) DO NOTHING", (gid, pid))
+        plans.charge(pid, "presentation", lang)
     return {"generation_id": gid, "warnings": warnings}
 
 
@@ -273,27 +272,20 @@ def gamma_status(gid: str):
     d = _gamma_call("GET", f"/generations/{gid}")
     if d.get("status") in ("completed", "failed"):
         log.info(f"gamma: {gid} -> {d.get('status')} {d.get('gammaUrl', '')}")
-    # meter our own credits; the engine's balance never leaves the backend
+    # the engine's own cost is recorded for margin auditing only; users are
+    # billed our fixed price (charged at generation start) from the unified pool
     credits = None
     if d.get("status") == "completed":
         deducted = (d.get("credits") or {}).get("deducted")
         with pool().connection() as con:
             row = con.execute(
-                "SELECT org_id, credits FROM public.pres_generations WHERE gid = %s", (gid,)).fetchone()
+                "SELECT org_id FROM public.pres_generations WHERE gid = %s", (gid,)).fetchone()
             if row:
-                org, already = row
-                if already is None and deducted is not None:
-                    took = con.execute(
-                        "UPDATE public.pres_generations SET credits = %s, status = 'completed' "
-                        "WHERE gid = %s AND credits IS NULL RETURNING 1", (deducted, gid)).fetchone()
-                    if took:
-                        con.execute("UPDATE public.organizations SET pres_used = pres_used + %s "
-                                    "WHERE id = %s", (deducted, org))
-                    already = deducted
-                bal = con.execute("SELECT pres_quota, pres_used FROM public.organizations "
-                                  "WHERE id = %s", (org,)).fetchone()
-                if bal:
-                    credits = {"deducted": already, "remaining": max(0, bal[0] - bal[1])}
+                if deducted is not None:
+                    con.execute("UPDATE public.pres_generations SET credits = %s, status = 'completed' "
+                                "WHERE gid = %s AND credits IS NULL", (deducted, gid))
+                st = plans.org_state(row[0])
+                credits = {"deducted": plans.cost_of("presentation"), "remaining": st["remaining"]}
     return {"status": d.get("status"), "gamma_url": d.get("gammaUrl"),
             "export_url": d.get("exportUrl"), "credits": credits,
             "error": d.get("error")}

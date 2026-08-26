@@ -58,6 +58,7 @@ def pool() -> ConnectionPool:
     if _pool is None:
         _pool = ConnectionPool(db_url(), min_size=int(os.environ.get("DB_POOL_MIN", "2")),
                                max_size=int(os.environ.get("DB_POOL_MAX", "8")),
+                               check=ConnectionPool.check_connection,   # drop connections the pooler closed
                                kwargs={"autocommit": False, "prepare_threshold": None}, open=True)
         log.info(f"db: pool opened -> {re.sub(r':[^:@/]+@', ':***@', db_url())}")
     return _pool

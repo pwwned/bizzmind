@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has("sb_access") || request.cookies.has("sb_refresh");
-  const isPublic = pathname === "/" || pathname === "/login";
+  const isPublic = pathname === "/" || pathname === "/login" || pathname === "/pricing" || pathname === "/welcome";
   if (!hasSession && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

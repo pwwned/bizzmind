@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, endpoints, p as apiPath, runJob, type Chart, type I18nInfo } from "@/lib/api";
+
 import { localeOf, useLang, useT } from "@/lib/i18n";
 import { buildOption, PALETTES, useLabelMaps } from "@/components/chart-card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -89,7 +90,7 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
   const qc = useQueryClient();
   const credits = useQuery({
     queryKey: ["pres-credits", pid],
-    queryFn: () => api<{ quota: number; used: number; remaining: number }>(apiPath(pid, "/pres/credits")),
+    queryFn: () => endpoints.credits(pid),
     enabled: open,
   });
   const remaining = credits.data?.remaining;
@@ -382,6 +383,7 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
             disabled={busy || !o?.enabled || (remaining != null && remaining <= 0)}
             onClick={() => void generate()}>
             {generating ? t("generating") : result ? t("generate_again") : t("generate")}
+            {!generating && credits.data && <span className="ml-1.5 text-[11px] font-semibold opacity-80">{t("approx_cr", { n: credits.data.cost })}</span>}
           </Button>
         </DialogFooter>
       </DialogContent>

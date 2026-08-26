@@ -187,6 +187,10 @@ def get_user(access_token: str) -> dict | None:
     return u
 
 
+def admin_update_password(user_id: str, password: str) -> dict:
+    return _call("PUT", f"/auth/v1/admin/users/{user_id}", {"password": password}, service=True)
+
+
 def admin_create_user(email: str, password: str, confirm: bool = True) -> dict:
     return _call("POST", "/auth/v1/admin/users",
                  {"email": email.strip().lower(), "password": password, "email_confirm": confirm},

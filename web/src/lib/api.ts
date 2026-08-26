@@ -11,6 +11,7 @@ export class ApiError extends Error {
 }
 
 let loggingOut = false;
+let redirected = false;            // one navigation per page load, never a loop
 export function beginLogout() { loggingOut = true; }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -20,7 +21,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: "same-origin",
     cache: "no-store",
   });
-  if (res.status === 401 && typeof window !== "undefined" && !loggingOut && !location.pathname.startsWith("/login")) {
+  if (res.status === 401 && typeof window !== "undefined" && !loggingOut && !redirected && !location.pathname.startsWith("/login")) {
+    redirected = true;
     location.href = "/login?next=" + encodeURIComponent(location.pathname);
   }
   const text = await res.text();
@@ -116,6 +118,29 @@ export interface AgentResult {
   reply: string; charts: number[]; questions?: Question[];
 }
 
+export interface PlanDef {
+  label: string; price_eur: number; projects: number; files_per_project: number;
+  max_file_mb: number; credits: number; monthly: boolean;
+}
+export interface OrgCredits {
+  quota: number; used: number; remaining: number; plan: string; cost: number;
+  costs: Record<string, Record<string, number>>;
+  models: Record<string, { label: string; min_plan: string }>;
+}
+
+export interface Account {
+  email: string; org_name: string; role: string; plan: string;
+  plans: Record<string, PlanDef>;
+  costs: Record<string, Record<string, number>>;
+  models: Record<string, { label: string; min_plan: string }>;
+  packs: { credits: number; price_eur: number }[];
+  credits: { quota: number; extra: number; used: number; remaining: number };
+  auto_recharge: boolean;
+  projects_used: number;
+  usage: { kind: string; count: number; credits: number }[];
+  billing?: Record<string, string>;
+}
+
 /* ---------------------------------------------------------------- endpoints */
 
 export const p = (pid: string, path: string) => `/api/p/${encodeURIComponent(pid)}${path}`;
@@ -136,14 +161,18 @@ export const endpoints = {
   rows: (pid: string, table: string, q: URLSearchParams) =>
     api<TableRows>(p(pid, `/table/${encodeURIComponent(table)}/rows?${q.toString()}`)),
   job: <T,>(id: string, since = 0) => api<JobStatus<T>>(`/api/jobs/${id}?since=${since}`),
-  chat: (pid: string, message: string) => post<{ job_id: string } | AgentResult>(p(pid, "/chat"), { message }),
-  review: (pid: string, tables: string[], context: string, goal: string) =>
-    post<{ job_id: string } | AgentResult>(p(pid, "/review"), { tables, context, goal }),
+  chat: (pid: string, message: string, model = "standard") => post<{ job_id: string } | AgentResult>(p(pid, "/chat"), { message, model }),
+  review: (pid: string, tables: string[], context: string, goal: string, model = "standard") =>
+    post<{ job_id: string } | AgentResult>(p(pid, "/review"), { tables, context, goal, model }),
   translate: (pid: string) => post<{ job_id?: string; translated?: number }>(p(pid, "/translate")),
   addNote: (pid: string, note: string) => post<{ notes: string[] }>(p(pid, "/notes"), { note }),
   deleteFile: (pid: string, filename: string) => del<{ ok: boolean }>(p(pid, `/files/${encodeURIComponent(filename)}`)),
   reset: (pid: string) => post<{ ok: boolean }>(p(pid, "/reset")),
   deck: (pid: string) => post<{ job_id: string } | { spec: unknown }>(p(pid, "/deck")),
+  account: () => api<Account>("/api/account"),
+  credits: (pid: string) => api<OrgCredits>(p(pid, "/pres/credits")),
+  changePassword: (password: string) => post<{ ok: boolean }>("/api/account/password", { password }),
+  accountPrefs: (auto_recharge: boolean) => post<{ ok: boolean }>("/api/account/prefs", { auto_recharge }),
 };
 
 /* Run a background job: POST → {job_id} → poll until done. Inline results
@@ -177,6 +206,13 @@ export async function runJob<T>(
 export function cacheGet<T>(key: string): T | undefined {
   try { const raw = localStorage.getItem("bz:" + key); return raw ? (JSON.parse(raw) as T) : undefined; } catch { return undefined; }
 }
+export function getModelPref(pid: string): string {
+  return cacheGet<string>(`model:${pid}`) ?? "standard";
+}
+export function setModelPref(pid: string, model: string) {
+  cacheSet(`model:${pid}`, model);
+}
+
 export function cacheSet(key: string, value: unknown) {
   try { localStorage.setItem("bz:" + key, JSON.stringify(value)); } catch { /* quota / private mode */ }
 }

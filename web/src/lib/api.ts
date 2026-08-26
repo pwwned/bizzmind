@@ -10,6 +10,9 @@ export class ApiError extends Error {
   }
 }
 
+let loggingOut = false;
+export function beginLogout() { loggingOut = true; }
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -17,7 +20,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: "same-origin",
     cache: "no-store",
   });
-  if (res.status === 401 && typeof window !== "undefined" && !location.pathname.startsWith("/login")) {
+  if (res.status === 401 && typeof window !== "undefined" && !loggingOut && !location.pathname.startsWith("/login")) {
     location.href = "/login?next=" + encodeURIComponent(location.pathname);
   }
   const text = await res.text();

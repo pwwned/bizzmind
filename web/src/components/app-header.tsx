@@ -1,8 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { endpoints } from "@/lib/api";
+import { beginLogout, endpoints } from "@/lib/api";
 import { useLang, useT } from "@/lib/i18n";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import { ThemeToggle } from "@/lib/theme";
 export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
   const t = useT();
   const { lang, setLang } = useLang();
-  const router = useRouter();
   const me = useQuery({ queryKey: ["me"], queryFn: endpoints.me, staleTime: 5 * 60_000 });
 
   return (
@@ -47,7 +45,11 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
       <Button
         variant="ghost"
         size="sm"
-        onClick={async () => { await endpoints.logout(); router.push("/"); router.refresh(); }}
+        onClick={async () => {
+          beginLogout();                       // a concurrent 401 must not hijack navigation
+          try { await endpoints.logout(); } catch { /* cookies may already be gone */ }
+          window.location.assign("/");         // hard reload: clears all client state
+        }}
       >
         <LogOut className="size-4" />{t("sign_out")}
       </Button>

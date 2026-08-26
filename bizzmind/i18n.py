@@ -15,6 +15,7 @@ MSG: dict = {
         "email_taken": "Вече има акаунт с този имейл.",
         "confirm_email": "Изпратихме линк за потвърждение на имейла ти. Потвърди го и влез.",
         "forbidden": "Нямаш достъп до този проект.",
+        "pres_no_credits": "Кредитите за презентации на организацията са изчерпани. Свържи се с нас, за да добавим още.",
         "act_translating": "🌐 Превеждам съдържанието на дашборда ({n} текста)…",
         "act_translated": "🌐 Преведох {n} текста",
         # auth / projects
@@ -89,6 +90,7 @@ MSG: dict = {
         "email_taken": "An account with this email already exists.",
         "confirm_email": "We sent a confirmation link to your email. Confirm it, then sign in.",
         "forbidden": "You do not have access to this project.",
+        "pres_no_credits": "Your organisation has run out of presentation credits. Contact us to top up.",
         "act_translating": "🌐 Translating the dashboard content ({n} texts)…",
         "act_translated": "🌐 Translated {n} texts",
         # auth / projects

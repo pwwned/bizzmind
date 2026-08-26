@@ -3,10 +3,10 @@
    charts are rendered to PNGs, and Gamma builds an editable presentation.
    Mirrors the old UI's gmodal, on shadcn primitives. */
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, endpoints, p as apiPath, runJob, type Chart, type I18nInfo } from "@/lib/api";
-import { useLang, useT } from "@/lib/i18n";
+import { localeOf, useLang, useT } from "@/lib/i18n";
 import { buildOption, PALETTES, useLabelMaps } from "@/components/chart-card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -79,15 +79,23 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GammaStatus | null>(null);
+  const [resultGid, setResultGid] = useState<string | null>(null);
   const specKey = pid + "|" + charts.map((c) => c.id + ":" + c.title).join("|");
   const busy = phase !== "idle";
   const generating = phase === "rendering" || phase === "building";
   const lockRef = useRef(false);
   lockRef.current = generating;
 
+  const qc = useQueryClient();
+  const credits = useQuery({
+    queryKey: ["pres-credits", pid],
+    queryFn: () => api<{ quota: number; used: number; remaining: number }>(apiPath(pid, "/pres/credits")),
+    enabled: open,
+  });
+  const remaining = credits.data?.remaining;
   const opts = useQuery({
     queryKey: ["gamma-options", lang],
-    queryFn: () => api<GammaOptions>("/api/gamma/options"),
+    queryFn: () => api<GammaOptions>("/api/pres/options"),
     enabled: open,
     staleTime: 30 * 60_000,
   });
@@ -193,16 +201,18 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
         image_source: imageSource, dimensions: dims, export_as: exportAs,
         language: deckLang, extra_instructions: extra.trim(),
       };
-      const start = await api<{ generation_id: string; warnings?: string[] }>(apiPath(pid, "/gamma"),
+      const start = await api<{ generation_id: string; warnings?: string[] }>(apiPath(pid, "/pres"),
         { method: "POST", body: JSON.stringify(body) });
       setWarnings(start.warnings ?? []);
+      setResultGid(start.generation_id);
       setPhase("building");
       const t0 = Date.now();
       for (;;) {
         await new Promise((r) => setTimeout(r, 5000));
-        const st = await api<GammaStatus>(`/api/gamma/status/${encodeURIComponent(start.generation_id)}`);
+        const st = await api<GammaStatus>(`/api/pres/status/${encodeURIComponent(start.generation_id)}`);
         if (st.status === "completed") {
           setResult(st);
+          qc.invalidateQueries({ queryKey: ["pres-credits", pid] });
           toast.success(t("done_in", { s: Math.round((Date.now() - t0) / 1000) }));
           break;
         }
@@ -349,22 +359,27 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
                     )}
                     {result.gamma_url && <span className="text-[12px] text-muted-foreground">{t("editable")}</span>}
                     {result.export_url && (
-                      <a href={result.export_url} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 font-bold text-olive hover:underline">
+                      <a href={`/api/pres/file/${encodeURIComponent(resultGid ?? "")}`} className="inline-flex items-center gap-1.5 font-bold text-olive hover:underline">
                         <Download className="size-4" />{t("download_fmt", { fmt: exportAs.toUpperCase() })}
                       </a>
                     )}
                   </div>
-                  {result.credits && <div className="text-[11px] text-muted-foreground">{t("credits_line", { used: result.credits.deducted ?? 0, left: result.credits.remaining ?? 0 })}</div>}
+                  {result.credits?.deducted != null && <div className="text-[11px] text-muted-foreground">{t("credits_line", { used: result.credits.deducted })}</div>}
                 </div>
               )}
             </>
           )}
         </div>
 
-        <DialogFooter className="border-t border-border px-6 py-4">
+        <DialogFooter className="border-t border-border px-6 py-4 sm:items-center">
+          {remaining != null && (
+            <span className={`mr-auto text-[12px] ${remaining <= 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
+              {remaining <= 0 ? t("pres_no_credits") : t("credits_left", { n: remaining.toLocaleString(localeOf(lang)) })}
+            </span>
+          )}
           <Button variant="ghost" disabled={generating} onClick={() => setOpen(false)}>{t("cancel")}</Button>
           <Button className="grad-olive font-bold text-primary-foreground hover:opacity-90"
-            disabled={busy || !o?.enabled}
+            disabled={busy || !o?.enabled || (remaining != null && remaining <= 0)}
             onClick={() => void generate()}>
             {generating ? t("generating") : result ? t("generate_again") : t("generate")}
           </Button>

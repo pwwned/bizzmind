@@ -14,6 +14,7 @@ from bizzmind.config import DATA_DIR, GAMMA_API_KEY, PUBLIC_BASE_URL, _short, lo
 from bizzmind.i18n import LANGS, T, req_lang
 from bizzmind.project import get_project
 from bizzmind.brand import brand_colors, brand_dir, brand_logo_path
+from db import pool
 
 
 # ------------------------------------------------------------------ Gamma
@@ -121,11 +122,26 @@ def _md_table(columns: list, rows: list, limit: int = 12) -> str:
     return "\n".join(out)
 
 
+def pres_credits(pid: str) -> dict:
+    """The org's presentation-credit balance. Users only ever see these
+    numbers — never the upstream engine's own account balance."""
+    with pool().connection() as con:
+        row = con.execute(
+            "SELECT o.id, o.pres_quota, o.pres_used FROM public.organizations o "
+            "JOIN public.projects p ON p.org_id = o.id WHERE p.id = %s", (pid,)).fetchone()
+    if not row:
+        return {"quota": 0, "used": 0, "remaining": 0}
+    _, q, u = row
+    return {"quota": q, "used": u, "remaining": max(0, q - u)}
+
+
 def gamma_generate(pid: str, req: GammaRequest, request: Request):
     import base64
     import shutil
     proj = get_project(pid)
     lang = req_lang(request)
+    if pres_credits(pid)["remaining"] <= 0:
+        raise HTTPException(402, T(lang, "pres_no_credits"))
     proj.lang = lang
     req.language = req.language if req.language in LANGS else lang
     token = secrets.token_urlsafe(12)
@@ -243,16 +259,60 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
         raise
     if d.get("warnings"):
         warnings.append(str(d["warnings"]))
-    return {"generation_id": d.get("generationId"), "warnings": warnings}
+    gid = d.get("generationId")
+    if gid:
+        with pool().connection() as con:
+            con.execute(
+                "INSERT INTO public.pres_generations (gid, org_id, project_id) "
+                "SELECT %s, org_id, id FROM public.projects WHERE id = %s "
+                "ON CONFLICT (gid) DO NOTHING", (gid, pid))
+    return {"generation_id": gid, "warnings": warnings}
 
 
 def gamma_status(gid: str):
     d = _gamma_call("GET", f"/generations/{gid}")
     if d.get("status") in ("completed", "failed"):
         log.info(f"gamma: {gid} -> {d.get('status')} {d.get('gammaUrl', '')}")
+    # meter our own credits; the engine's balance never leaves the backend
+    credits = None
+    if d.get("status") == "completed":
+        deducted = (d.get("credits") or {}).get("deducted")
+        with pool().connection() as con:
+            row = con.execute(
+                "SELECT org_id, credits FROM public.pres_generations WHERE gid = %s", (gid,)).fetchone()
+            if row:
+                org, already = row
+                if already is None and deducted is not None:
+                    took = con.execute(
+                        "UPDATE public.pres_generations SET credits = %s, status = 'completed' "
+                        "WHERE gid = %s AND credits IS NULL RETURNING 1", (deducted, gid)).fetchone()
+                    if took:
+                        con.execute("UPDATE public.organizations SET pres_used = pres_used + %s "
+                                    "WHERE id = %s", (deducted, org))
+                    already = deducted
+                bal = con.execute("SELECT pres_quota, pres_used FROM public.organizations "
+                                  "WHERE id = %s", (org,)).fetchone()
+                if bal:
+                    credits = {"deducted": already, "remaining": max(0, bal[0] - bal[1])}
     return {"status": d.get("status"), "gamma_url": d.get("gammaUrl"),
-            "export_url": d.get("exportUrl"), "credits": d.get("credits"),
+            "export_url": d.get("exportUrl"), "credits": credits,
             "error": d.get("error")}
+
+
+def pres_file(gid: str):
+    """Stream the exported file through our own domain (white-label download)."""
+    import urllib.request
+    from fastapi.responses import StreamingResponse
+    d = _gamma_call("GET", f"/generations/{gid}")
+    url = d.get("exportUrl")
+    if not url:
+        raise HTTPException(404)
+    r = urllib.request.urlopen(urllib.request.Request(
+        url, headers={"User-Agent": "Bizzmind/1.0 (+https://bizzmind.ai)"}), timeout=120)
+    ext = "pptx" if ".pptx" in url.split("?")[0] else "pdf"
+    return StreamingResponse(
+        r, media_type=r.headers.get("Content-Type", "application/octet-stream"),
+        headers={"Content-Disposition": f'attachment; filename="presentation.{ext}"'})
 
 
 def pub_file(token: str, name: str):

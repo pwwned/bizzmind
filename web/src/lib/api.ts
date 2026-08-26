@@ -139,7 +139,7 @@ export interface InvoiceRow {
 }
 
 export interface Account {
-  email: string; org_name: string; role: string; plan: string;
+  email: string; org_id?: string | null; org_name: string; role: string; plan: string;
   plans: Record<string, PlanDef>;
   costs: Record<string, Record<string, number>>;
   models: Record<string, { label: string; min_plan: string }>;

@@ -1,8 +1,12 @@
 "use client";
 /* Usage: credit balance, spend breakdown, price list, packs, plans. */
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { endpoints, type Account } from "@/lib/api";
+import { getPaddle } from "@/lib/paddle";
+import { TIERS } from "@/lib/tiers";
+import { useConfirm } from "@/components/confirm-dialog";
 import { localeOf, useLang, useT, type Key } from "@/lib/i18n";
 import { AppHeader } from "@/components/app-header";
 import { Card } from "@/components/ui/card";
@@ -23,6 +27,33 @@ export default function UsagePage() {
   const loc = localeOf(lang);
   const qc = useQueryClient();
   const acc = useQuery({ queryKey: ["account"], queryFn: endpoints.account });
+  const sub = useQuery({ queryKey: ["subscription"], queryFn: endpoints.subscription });
+  const confirm = useConfirm();
+  const [cycle, setCycle] = useState<"month" | "year">("month");
+  const change = useMutation({
+    mutationFn: (v: { plan: string; interval: string }) => endpoints.subChange(v.plan, v.interval),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["subscription"] });
+      qc.invalidateQueries({ queryKey: ["account"] });
+      toast.success(t("plan_changed"));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  async function subscribeNow(planKey: string) {
+    try {
+      const tier = TIERS.find((x) => x.key === planKey);
+      const priceId = tier?.priceId?.[cycle];
+      if (!priceId) { toast.error(t("pricing_not_configured")); return; }
+      const paddle = await getPaddle();
+      if (!paddle) throw new Error("checkout failed to load");
+      paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        ...(a?.email ? { customer: { email: a.email } } : {}),
+        ...(a?.org_id ? { customData: { org_id: a.org_id } } : {}),
+        settings: { displayMode: "overlay", variant: "one-page", successUrl: `${window.location.origin}/welcome`, locale: lang },
+      });
+    } catch (e) { toast.error((e as Error).message); }
+  }
   const prefs = useMutation({
     mutationFn: (v: boolean) => endpoints.accountPrefs(v),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["account"] }),
@@ -118,10 +149,26 @@ export default function UsagePage() {
             </Card>
 
             <div>
-              <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("plan_title")}</h2>
+              <div className="mb-3 flex items-center gap-4">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("plan_title")}</h2>
+                <div className="inline-flex overflow-hidden rounded-lg border border-border text-[12px] font-bold">
+                  {(["month", "year"] as const).map((c) => (
+                    <button key={c} type="button" onClick={() => setCycle(c)} aria-pressed={cycle === c}
+                      className={`px-3 py-1.5 transition-colors ${cycle === c ? "grad-olive text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                      {t(c === "month" ? "billing_monthly" : "billing_yearly")}
+                    </button>
+                  ))}
+                </div>
+                {cycle === "year" && <span className="text-[12px] font-semibold text-olive">{t("yearly_hint")}</span>}
+              </div>
               <div className="grid gap-4 md:grid-cols-3">
                 {Object.entries(a.plans).map(([key, p]) => {
-                  const current = key === a.plan;
+                  const hasSub = !!sub.data?.active;
+                  const current = hasSub
+                    ? sub.data?.plan === key && (key === "free" || sub.data?.interval === cycle)
+                    : key === a.plan;
+                  const admin = a.role === "owner" || a.role === "admin";
+                  const price = cycle === "month" ? p.price_eur : p.price_eur * 10;
                   return (
                     <Card key={key} className={`flex flex-col gap-3 p-5 ${current ? "border-olive/60 ring-1 ring-olive/40" : ""}`}>
                       <div className="flex items-center justify-between">
@@ -129,7 +176,7 @@ export default function UsagePage() {
                         {current && <span className="rounded-full bg-olive/15 px-2.5 py-0.5 text-[11px] font-extrabold text-olive">{t("current_plan")}</span>}
                       </div>
                       <div className="text-2xl font-extrabold">
-                        {p.price_eur === 0 ? t("free_price") : <>€{p.price_eur}<span className="text-sm font-semibold text-muted-foreground">/{t("per_month")}</span></>}
+                        {p.price_eur === 0 ? t("free_price") : <>€{price}<span className="text-sm font-semibold text-muted-foreground">/{t(cycle === "month" ? "per_month" : "per_year")}</span></>}
                       </div>
                       <ul className="flex flex-1 flex-col gap-1.5 text-[13px]">
                         {planFeatures(key, p).map((f) => (
@@ -138,8 +185,31 @@ export default function UsagePage() {
                       </ul>
                       {current ? (
                         <Button variant="secondary" disabled className="mt-1">{t("current_plan")}</Button>
+                      ) : key === "free" ? (
+                        hasSub ? (
+                          <Button variant="ghost" nativeButton={false} render={<Link href="/billing" />}
+                            className="mt-1 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                            {t("stop_subscription")}
+                          </Button>
+                        ) : (
+                          <Button variant="secondary" disabled className="mt-1">{t("current_plan")}</Button>
+                        )
+                      ) : hasSub ? (
+                        <Button variant="outline" disabled={!admin || change.isPending} className="mt-1"
+                          onClick={async () => {
+                            if (await confirm({
+                              title: t("change_plan"),
+                              description: t("change_plan_confirm", { name: `${p.label} · ${t(cycle === "month" ? "billing_monthly" : "billing_yearly").toLowerCase()}` }),
+                              actionLabel: t("change_plan"),
+                            })) change.mutate({ plan: key, interval: cycle });
+                          }}>
+                          {t("switch_to", { name: p.label })}
+                        </Button>
                       ) : (
-                        <Button variant="outline" nativeButton={false} render={<Link href="/pricing" />} className="mt-1">{t("see_pricing")}</Button>
+                        <Button disabled={!admin} className="grad-olive mt-1 font-bold text-primary-foreground hover:opacity-90"
+                          onClick={() => subscribeNow(key)}>
+                          {t("subscribe")}
+                        </Button>
                       )}
                     </Card>
                   );

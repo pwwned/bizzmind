@@ -104,6 +104,7 @@ export const dict = {
     reason_expensive: "Скъпо ми е", reason_unused: "Не го ползвам достатъчно", reason_missing_features: "Липсва ми функционалност",
     reason_technical: "Технически проблеми", reason_switching: "Минавам на друго решение", reason_other: "Друго",
     cancel_comment_ph: "Разкажи ни повече (по избор)…",
+    switch_to: "Премини на {name}", stop_subscription: "Спри абонамента",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -204,6 +205,7 @@ export const dict = {
     reason_expensive: "Too expensive", reason_unused: "Not using it enough", reason_missing_features: "Missing features",
     reason_technical: "Technical problems", reason_switching: "Switching to another solution", reason_other: "Other",
     cancel_comment_ph: "Tell us more (optional)…",
+    switch_to: "Switch to {name}", stop_subscription: "Stop subscription",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

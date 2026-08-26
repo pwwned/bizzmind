@@ -181,6 +181,7 @@ def account(request: Request):
                                            "used": 0, "remaining": 0, "auto_recharge": False, "org_name": ""}
     return {
         "email": u.email,
+        "org_id": str(org) if org else None,
         "org_name": st["org_name"],
         "role": u.roles.get(str(org), "member") if org else "member",
         "plan": st["plan"],

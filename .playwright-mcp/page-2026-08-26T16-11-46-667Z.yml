@@ -1,0 +1,124 @@
+- generic [active] [ref=f28e1]:
+  - generic [ref=f28e5]:
+    - generic [ref=f28e6]:
+      - generic [ref=f28e7]:
+        - generic [ref=f28e9]:
+          - generic [ref=f28e10]:
+            - group "Gamma" [ref=f28e11] [cursor=pointer]
+            - group "Home" [ref=f28e17] [cursor=pointer]:
+              - paragraph [ref=f28e21]: Home
+            - group "Media" [ref=f28e22] [cursor=pointer]:
+              - paragraph [ref=f28e26]: Media
+            - group "Templates" [ref=f28e27] [cursor=pointer]:
+              - paragraph [ref=f28e31]: Templates
+            - group "Library" [ref=f28e32] [cursor=pointer]:
+              - paragraph [ref=f28e36]: Library
+            - group "Settings" [ref=f28e37] [cursor=pointer]:
+              - paragraph [ref=f28e41]: Settings
+            - group "More" [ref=f28e42] [cursor=pointer]:
+              - generic:
+                - paragraph: More
+          - generic [ref=f28e43]:
+            - group "Invite teammates" [ref=f28e45] [cursor=pointer]
+            - group "Support & feedback" [ref=f28e50] [cursor=pointer]
+        - group "Workspace and account" [ref=f28e52] [cursor=pointer]:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img "George Sotirov's Workspace": GW
+                - generic:
+                  - img "George Sotirov": GS
+      - generic [ref=f28e56]:
+        - heading "Workspace" [level=2] [ref=f28e57]
+        - generic [ref=f28e58]:
+          - link "Overview" [ref=f28e59] [cursor=pointer]:
+            - /url: /settings
+            - paragraph [ref=f28e64]: Overview
+          - link "Members" [ref=f28e65] [cursor=pointer]:
+            - /url: /settings/members
+            - paragraph [ref=f28e70]: Members
+          - link "Billing" [ref=f28e71] [cursor=pointer]:
+            - /url: /settings/billing
+            - paragraph [ref=f28e76]: Billing
+          - link "Sharing & access" [ref=f28e77] [cursor=pointer]:
+            - /url: /settings/sharing
+            - paragraph [ref=f28e82]: Sharing & access
+          - link "Design & templates" [ref=f28e83] [cursor=pointer]:
+            - /url: /settings/design
+            - paragraph [ref=f28e88]: Design & templates
+        - heading "Admin" [level=2] [ref=f28e89]
+        - link "Security & authentication" [ref=f28e91] [cursor=pointer]:
+          - /url: /settings/sso
+          - paragraph [ref=f28e96]: Security & authentication
+        - separator [ref=f28e97]
+        - heading "Personal" [level=2] [ref=f28e98]
+        - generic [ref=f28e99]:
+          - link "My connectors" [ref=f28e100] [cursor=pointer]:
+            - /url: /settings/my-connectors
+            - generic [ref=f28e104]:
+              - paragraph [ref=f28e105]: My connectors
+              - paragraph [ref=f28e106]:
+                - generic [ref=f28e107]: Beta
+          - link "My API keys" [ref=f28e108] [cursor=pointer]:
+            - /url: /settings/api-keys
+            - paragraph [ref=f28e113]: My API keys
+    - generic [ref=f28e114]:
+      - generic [ref=f28e123]:
+        - heading "Billing and subscription" [level=2] [ref=f28e124]
+        - generic [ref=f28e125]:
+          - generic [ref=f28e126]:
+            - generic [ref=f28e128]:
+              - heading "Workspace subscription" [level=2] [ref=f28e129]
+              - paragraph [ref=f28e130]:
+                - generic [ref=f28e131]:
+                  - paragraph [ref=f28e132]:
+                    - text: Your workspace is currently subscribed to the
+                    - strong [ref=f28e133]: Pro Monthly
+                    - text: plan.
+                  - paragraph [ref=f28e134]: Renews on September 25th, 2026.
+                - button "View all plans" [ref=f28e137] [cursor=pointer]
+            - generic [ref=f28e146]:
+              - generic [ref=f28e147]:
+                - generic [ref=f28e148]:
+                  - heading "Pro" [level=2] [ref=f28e149]
+                  - paragraph [ref=f28e150]: Monthly
+                - button "Switch to annual and save 28%" [ref=f28e151] [cursor=pointer]
+              - button "Upgrade to Ultra" [ref=f28e153] [cursor=pointer]
+          - generic [ref=f28e155]:
+            - generic [ref=f28e157]:
+              - heading "Credits" [level=2] [ref=f28e158]
+              - paragraph [ref=f28e159]:
+                - paragraph [ref=f28e161]: Credits are used for AI features throughout Gamma. Your Pro plan includes 4,000 credits per month. Unused credits roll over to the next month, up to 8,000 total.
+            - generic [ref=f28e164]:
+              - generic [ref=f28e165]:
+                - paragraph [ref=f28e166]: Your credits
+                - heading [level=2] [ref=f28e168]:
+                  - list [ref=f28e170]:
+                    - listitem [ref=f28e171]
+                    - listitem [ref=f28e176]: 4,268 credits
+              - generic [ref=f28e177]:
+                - paragraph [ref=f28e182]: Credits refresh on Sep 25, 2026
+                - paragraph [ref=f28e187]: Unused credits roll over (up to 8,000 max)
+              - generic [ref=f28e188]:
+                - button "Buy credits" [ref=f28e189] [cursor=pointer]
+                - button "Enable auto-recharge" [ref=f28e190] [cursor=pointer]
+          - generic [ref=f28e192]:
+            - generic [ref=f28e194]:
+              - heading "Manage subscription" [level=2] [ref=f28e195]
+              - paragraph [ref=f28e196]: You can get invoices, update your payment method, and adjust your subscription in Stripe.
+            - generic [ref=f28e199]:
+              - link [ref=f28e201] [cursor=pointer]:
+                - /url: https://api.gamma.app/billing/portal?workspaceId=23blmbgwrnxfmvq
+              - button "Cancel subscription" [ref=f28e209] [cursor=pointer]
+      - button "Help" [ref=f28e118] [cursor=pointer]
+  - alert [ref=f28e121]
+  - generic:
+    - region "Notifications-top"
+    - region "Notifications-top-left"
+    - region "Notifications-top-right"
+    - region "Notifications-bottom-left"
+    - region "Notifications-bottom"
+    - region "Notifications-bottom-right"
+  - iframe [ref=f28e122]:
+    

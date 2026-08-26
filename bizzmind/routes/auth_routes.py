@@ -351,6 +351,51 @@ def account_payment_method_remove(req: RemoveCardRequest, request: Request):
     return {"ok": True}
 
 
+class BuyCreditsRequest(BaseModel):
+    credits: int
+
+
+@router.post("/api/account/buy-credits")
+def account_buy_credits(req: BuyCreditsRequest, request: Request):
+    """One-click pack purchase: bill the org's saved payment method through
+    Paddle. Falls back to {status: "checkout"} when there is nothing saved —
+    the frontend then opens the normal checkout overlay."""
+    import time as _time
+    from bizzmind import paddle_billing
+    u, org = _me_org()
+    lang = req_lang(request)
+    if org is None or not u.can_admin(org):
+        raise HTTPException(403, T(lang, "forbidden"))
+    pack = next((p for p in plans.PACKS if p["credits"] == req.credits), None)
+    if not pack:
+        raise HTTPException(400, "unknown pack")
+    price_id = plans.PACK_PADDLE_PRICES.get(req.credits)
+    with plans.pool().connection() as con:
+        row = con.execute("SELECT paddle_customer_id FROM public.organizations WHERE id = %s",
+                          (org,)).fetchone()
+    cust = row[0] if row else None
+    if not cust or not price_id:
+        return {"status": "checkout"}
+    try:
+        txn = paddle_billing.api("POST", "/transactions", {
+            "items": [{"price_id": price_id, "quantity": 1}],
+            "customer_id": cust,
+            "collection_mode": "automatic",
+            "custom_data": {"org_id": str(org)},
+        })
+    except HTTPException:
+        return {"status": "checkout"}
+    txn_id = txn.get("id")
+    for _ in range(10):                      # the charge is async; give it a few seconds
+        if txn.get("status") in ("completed", "paid"):
+            return {"status": "charged", "transaction_id": txn_id}
+        if txn.get("status") in ("canceled", "past_due"):
+            return {"status": "checkout"}
+        _time.sleep(1)
+        txn = paddle_billing.api("GET", f"/transactions/{txn_id}")
+    return {"status": "pending", "transaction_id": txn_id}
+
+
 @router.get("/api/account/invoices")
 def account_invoices(request: Request):
     from bizzmind import paddle_billing

@@ -1,0 +1,120 @@
+- generic [ref=f9e1]:
+  - generic [ref=f9e3]:
+    - generic [ref=f9e5]:
+      - button [ref=f9e7] [cursor=pointer]
+      - generic [ref=f9e15]:
+        - heading "Sign in" [level=2] [ref=f9e17]
+        - generic [ref=f9e19]:
+          - generic [ref=f9e20]:
+            - button [ref=f9e21] [cursor=pointer]
+            - button [ref=f9e25] [cursor=pointer]
+            - generic [ref=f9e29]:
+              - separator [ref=f9e30]
+              - paragraph [ref=f9e31]: or
+              - separator [ref=f9e32]
+          - group [ref=f9e33]:
+            - generic [ref=f9e34]: Email
+            - textbox "Email" [active] [ref=f9e35]
+          - group [ref=f9e36]:
+            - generic [ref=f9e37]: Password
+            - generic [ref=f9e38]:
+              - textbox "Password" [ref=f9e39]
+              - button "Reveal password" [ref=f9e41] [cursor=pointer]
+          - link "Forgot password?" [ref=f9e44] [cursor=pointer]:
+            - /url: /forgot
+          - button "Sign in" [disabled] [ref=f9e46]
+          - paragraph [ref=f9e47]:
+            - text: Don't have an account?
+            - link "Sign up" [ref=f9e48] [cursor=pointer]:
+              - /url: /signup?
+          - paragraph [ref=f9e49]:
+            - link "Continue with Single Sign On (SSO)" [ref=f9e50] [cursor=pointer]:
+              - /url: /sso?
+        - generic [ref=f9e51]:
+          - link [ref=f9e53] [cursor=pointer]:
+            - /url: /
+          - paragraph [ref=f9e61]: © 2026 Gamma Tech, Inc.
+    - generic [ref=f9e62]:
+      - img "Image 0" [ref=f9e64]
+      - img "Image 1" [ref=f9e66]
+      - img "Image 2" [ref=f9e68]
+      - img "Image 3" [ref=f9e70]
+      - img "Image 4" [ref=f9e72]
+      - img "Image 5" [ref=f9e74]
+      - img "Image 6" [ref=f9e76]
+      - img "Image 7" [ref=f9e78]
+      - img "Image 8" [ref=f9e80]
+      - img "Image 9" [ref=f9e82]
+      - img "Image 10" [ref=f9e84]
+      - img "Image 11" [ref=f9e86]
+      - img "Image 12" [ref=f9e88]
+      - img "Image 13" [ref=f9e90]
+      - img "Image 14" [ref=f9e92]
+      - img "Image 15" [ref=f9e94]
+      - img "Image 16" [ref=f9e96]
+      - img "Image 17" [ref=f9e98]
+      - img "Image 18" [ref=f9e100]
+      - img "Image 19" [ref=f9e102]
+      - img "Image 20" [ref=f9e104]
+      - img "Image 21" [ref=f9e106]
+      - img "Image 22" [ref=f9e108]
+      - img "Image 23" [ref=f9e110]
+      - img "Image 24" [ref=f9e112]
+      - img "Image 25" [ref=f9e114]
+      - img "Image 26" [ref=f9e116]
+      - img "Image 27" [ref=f9e118]
+      - img "Image 28" [ref=f9e120]
+      - img "Image 29" [ref=f9e122]
+      - img "Image 30" [ref=f9e124]
+      - img "Image 31" [ref=f9e126]
+      - img "Image 32" [ref=f9e128]
+      - img "Image 33" [ref=f9e130]
+      - img "Image 34" [ref=f9e132]
+      - img "Image 35" [ref=f9e134]
+      - img "Image 36" [ref=f9e136]
+      - img "Image 37" [ref=f9e138]
+      - img "Image 38" [ref=f9e140]
+      - img "Image 39" [ref=f9e142]
+      - img "Image 40" [ref=f9e144]
+      - img "Image 41" [ref=f9e146]
+      - img "Image 42" [ref=f9e148]
+      - img "Image 43" [ref=f9e150]
+      - img "Image 44" [ref=f9e152]
+      - img "Image 45" [ref=f9e154]
+      - img "Image 46" [ref=f9e156]
+      - img "Image 47" [ref=f9e158]
+      - img "Image 48" [ref=f9e160]
+      - img "Image 49" [ref=f9e162]
+      - img "Image 50" [ref=f9e164]
+      - img "Image 51" [ref=f9e166]
+  - alert [ref=f9e167]
+  - generic:
+    - region "Notifications-top"
+    - region "Notifications-top-left"
+    - region "Notifications-top-right"
+    - region "Notifications-bottom-left"
+    - region "Notifications-bottom"
+    - region "Notifications-bottom-right"
+  - region "Cookie banner" [ref=f9e168]:
+    - dialog "About our cookies 🍪" [ref=f9e169]:
+      - generic [ref=f9e170]:
+        - generic [ref=f9e172]:
+          - heading "About our cookies 🍪" [level=2] [ref=f9e173]
+          - generic [ref=f9e174]:
+            - text: We use cookies and similar technologies as set out in our
+            - link "Cookie Notice" [ref=f9e175] [cursor=pointer]:
+              - /url: /cookie-notice
+            - text: . By clicking "Accept All", you agree to our use of optional cookies and similar technologies for the purposes set out in our
+            - link "Cookie Notice" [ref=f9e176] [cursor=pointer]:
+              - /url: /cookie-notice
+            - text: .
+        - generic [ref=f9e178]:
+          - button "Cookies Settings, Opens the preference center dialog" [ref=f9e179] [cursor=pointer]: Cookies Settings
+          - generic [ref=f9e180]:
+            - button "Reject All" [ref=f9e181] [cursor=pointer]
+            - button "Accept All" [ref=f9e182] [cursor=pointer]
+        - button "Close" [ref=f9e184] [cursor=pointer]
+  - iframe [ref=f9e187]:
+    - generic [ref=f15e6]:
+      - text: protected by
+      - strong [ref=f15e7]: reCAPTCHA

@@ -111,10 +111,11 @@ export default function BillingPage() {
           <div className="flex flex-col gap-5">
             {/* subscription */}
             <Card className="p-6">
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-1 flex items-center gap-2">
                 <CreditCard className="size-4 text-olive" />
                 <h2 className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{t("subscription_title")}</h2>
               </div>
+              <div className="mb-4 text-[11.5px] text-muted-foreground">{t("paddle_note")}</div>
               {s.active ? (
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -132,6 +133,18 @@ export default function BillingPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      {s.interval === "month" && !s.cancel_scheduled_at && (
+                        <Button className="grad-olive font-bold text-primary-foreground hover:opacity-90"
+                          disabled={!admin} onClick={async () => {
+                            if (await confirm({ title: t("switch_annual"), description: t("switch_annual_desc"), actionLabel: t("switch_annual") }))
+                              endpoints.subChange(s.plan ?? "pro", "year").then(() => {
+                                qc.invalidateQueries({ queryKey: ["subscription"] });
+                                toast.success(t("plan_changed"));
+                              }).catch((e: Error) => toast.error(e.message));
+                          }}>
+                          {t("switch_annual_save")}
+                        </Button>
+                      )}
                       <Button variant="outline" disabled={!admin} onClick={changeCard}>
                         <CreditCard className="size-4" />{t("change_card")}
                       </Button>

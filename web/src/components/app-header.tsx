@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, CircleUserRound, CreditCard, LogOut, Wallet } from "lucide-react";
 import { ThemeToggle } from "@/lib/theme";
+import { CreditsChip } from "@/components/credits-chip";
 
 export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
   const t = useT();
@@ -46,6 +47,7 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
         ))}
       </div>
       <ThemeToggle />
+      <CreditsChip />
       <DropdownMenu>
         <DropdownMenuTrigger
           className="inline-flex size-8 items-center justify-center rounded-full border border-olive/40 bg-olive/10 text-[13px] font-extrabold text-olive transition-colors hover:bg-olive/20"

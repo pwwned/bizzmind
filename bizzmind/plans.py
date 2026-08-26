@@ -58,6 +58,12 @@ PADDLE_PRICES = {
     ("ultra", "year"):  "pri_01m0ypmbesr5ye6500ddp89sa3",
 }
 
+PACK_PADDLE_PRICES = {
+    1000:  "pri_01m0ypmbwa6kam1zhhvmwtm5hc",
+    4000:  "pri_01m0ypmc9a6dz56frqj8zbx87k",
+    10000: "pri_01m0ypmcqvy68jfqtdbzgxbg15",
+}
+
 # top-up packs: the bigger the pack, the better the rate
 PACKS = [
     {"credits": 1000,  "price_eur": 7},

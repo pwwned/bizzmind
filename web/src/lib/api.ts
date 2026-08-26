@@ -130,6 +130,14 @@ export interface OrgCredits {
   models: Record<string, { label: string; min_plan: string }>;
 }
 
+export interface SubscriptionInfo {
+  active: boolean; status?: string; plan?: string; next_billed_at?: string | null;
+  amount?: string; currency?: string; interval?: string; cancel_scheduled_at?: string | null;
+}
+export interface InvoiceRow {
+  id: string; date: string; total: string; currency: string; status: string; number?: string | null;
+}
+
 export interface Account {
   email: string; org_name: string; role: string; plan: string;
   plans: Record<string, PlanDef>;
@@ -176,6 +184,11 @@ export const endpoints = {
   credits: (pid: string) => api<OrgCredits>(p(pid, "/pres/credits")),
   changePassword: (password: string) => post<{ ok: boolean }>("/api/account/password", { password }),
   accountPrefs: (auto_recharge: boolean) => post<{ ok: boolean }>("/api/account/prefs", { auto_recharge }),
+  subscription: () => api<SubscriptionInfo>("/api/account/subscription"),
+  subCancel: () => post<{ ok: boolean }>("/api/account/subscription/cancel"),
+  subKeep: () => post<{ ok: boolean }>("/api/account/subscription/keep"),
+  paymentMethodTxn: () => post<{ transaction_id: string }>("/api/account/payment-method-txn"),
+  invoices: () => api<{ invoices: InvoiceRow[] }>("/api/account/invoices"),
 };
 
 /* Run a background job: POST → {job_id} → poll until done. Inline results

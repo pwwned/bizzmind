@@ -209,33 +209,105 @@ def _org_subscription(org) -> dict | None:
     return {"customer_id": row[0], "subscription_id": row[1], "plan": row[2]}
 
 
-@router.post("/api/account/portal")
-def account_portal(request: Request):
-    """Paddle customer portal session — manage subscription / payment method."""
-    import json as _json
-    import os
-    import urllib.request
+def _billing_org(request: Request, admin: bool = True):
     u, org = _me_org()
-    if org is None or not u.can_admin(org):
+    if org is None or (admin and not u.can_admin(org)):
         raise HTTPException(403, T(req_lang(request), "forbidden"))
     with plans.pool().connection() as con:
-        row = con.execute("SELECT paddle_customer_id FROM public.organizations WHERE id = %s",
-                          (org,)).fetchone()
-    if not row or not row[0]:
-        raise HTTPException(404, "no billing customer")
-    key = os.environ.get("PADDLE_API_KEY", "")
-    base = "https://sandbox-api.paddle.com" if key.startswith("pdl_sdbx_") else "https://api.paddle.com"
-    req = urllib.request.Request(f"{base}/customers/{row[0]}/portal-sessions", method="POST",
-        data=b"{}", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        row = con.execute("SELECT paddle_customer_id, paddle_subscription_id "
+                          "FROM public.organizations WHERE id = %s", (org,)).fetchone()
+    if not row or not row[1]:
+        raise HTTPException(404, "no subscription")
+    return org, row[0], row[1]
+
+
+@router.get("/api/account/subscription")
+def account_subscription(request: Request):
+    """Live subscription details, served white-label from our API."""
+    from bizzmind import paddle_billing
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            d = _json.loads(r.read())["data"]
-    except Exception as e:
-        log.info(f"paddle portal failed: {e}")
-        raise HTTPException(502, "portal unavailable")
-    urls = d.get("urls") or {}
-    general = (urls.get("general") or {}).get("overview")
-    return {"url": general}
+        org, _cust, sub_id = _billing_org(request, admin=False)
+    except HTTPException:
+        return {"active": False}
+    d = paddle_billing.api("GET", f"/subscriptions/{sub_id}")
+    item = (d.get("items") or [{}])[0]
+    price = item.get("price") or {}
+    cycle = price.get("billing_cycle") or {}
+    sched = d.get("scheduled_change") or {}
+    return {
+        "active": d.get("status") in ("active", "trialing", "past_due"),
+        "status": d.get("status"),
+        "plan": (price.get("custom_data") or {}).get("plan"),
+        "next_billed_at": d.get("next_billed_at"),
+        "amount": (price.get("unit_price") or {}).get("amount"),
+        "currency": (price.get("unit_price") or {}).get("currency_code"),
+        "interval": cycle.get("interval"),
+        "cancel_scheduled_at": sched.get("effective_at") if sched.get("action") == "cancel" else None,
+    }
+
+
+@router.post("/api/account/subscription/cancel")
+def account_subscription_cancel(request: Request):
+    from bizzmind import paddle_billing
+    _org, _cust, sub_id = _billing_org(request)
+    paddle_billing.api("POST", f"/subscriptions/{sub_id}/cancel",
+                       {"effective_from": "next_billing_period"})
+    log.info(f"billing: cancel scheduled for {sub_id}")
+    return {"ok": True}
+
+
+@router.post("/api/account/subscription/keep")
+def account_subscription_keep(request: Request):
+    from bizzmind import paddle_billing
+    _org, _cust, sub_id = _billing_org(request)
+    paddle_billing.api("PATCH", f"/subscriptions/{sub_id}", {"scheduled_change": None})
+    log.info(f"billing: scheduled cancel removed for {sub_id}")
+    return {"ok": True}
+
+
+@router.post("/api/account/payment-method-txn")
+def account_payment_method_txn(request: Request):
+    """A zero-total transaction the frontend opens as an overlay to change the card."""
+    from bizzmind import paddle_billing
+    _org, _cust, sub_id = _billing_org(request)
+    d = paddle_billing.api("GET", f"/subscriptions/{sub_id}/update-payment-method-transaction")
+    return {"transaction_id": d.get("id")}
+
+
+@router.get("/api/account/invoices")
+def account_invoices(request: Request):
+    from bizzmind import paddle_billing
+    try:
+        _org, cust, sub_id = _billing_org(request, admin=False)
+    except HTTPException:
+        return {"invoices": []}
+    d = paddle_billing.api("GET", f"/transactions?subscription_id={sub_id}&per_page=12")
+    out = []
+    for t in d if isinstance(d, list) else []:
+        totals = (t.get("details") or {}).get("totals") or {}
+        out.append({"id": t.get("id"), "date": (t.get("billed_at") or t.get("created_at") or "")[:10],
+                    "total": totals.get("total"), "currency": t.get("currency_code"),
+                    "status": t.get("status"), "number": t.get("invoice_number")})
+    return {"invoices": out}
+
+
+@router.get("/api/account/invoice/{txn_id}")
+def account_invoice_pdf(txn_id: str, request: Request):
+    """Invoice PDF streamed through our own domain (white-label)."""
+    import urllib.request
+    from fastapi.responses import StreamingResponse
+    from bizzmind import paddle_billing
+    _org, cust, _sub = _billing_org(request, admin=False)
+    txn = paddle_billing.api("GET", f"/transactions/{txn_id}")
+    if txn.get("customer_id") != cust:
+        raise HTTPException(403, T(req_lang(request), "forbidden"))
+    d = paddle_billing.api("GET", f"/transactions/{txn_id}/invoice")
+    url = d.get("url")
+    if not url:
+        raise HTTPException(404)
+    r = urllib.request.urlopen(url, timeout=60)
+    return StreamingResponse(r, media_type="application/pdf",
+                             headers={"Content-Disposition": f'attachment; filename="invoice-{txn_id[-8:]}.pdf"'})
 
 
 def _org_billing(org) -> dict:

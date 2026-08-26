@@ -27,6 +27,21 @@ def _api_base() -> str:
     return "https://sandbox-api.paddle.com" if _sandbox() else "https://api.paddle.com"
 
 
+def api(method: str, path: str, body: dict | None = None) -> dict:
+    """Server-side Paddle API call (management operations)."""
+    key = os.environ["PADDLE_API_KEY"]
+    req = urllib.request.Request(_api_base() + path, method=method,
+        data=json.dumps(body).encode() if body is not None else None,
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read())["data"]
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode(errors="replace")[:300]
+        log.info(f"paddle api {method} {path} -> {e.code}: {detail}")
+        raise HTTPException(502, "billing operation failed")
+
+
 # ------------------------------------------------------------- IP allowlist
 
 _ips_cache: dict = {"at": 0.0, "nets": []}

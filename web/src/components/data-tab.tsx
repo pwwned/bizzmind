@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { api, p as apiPath } from "@/lib/api";
 import { endpoints, type ProjectState } from "@/lib/api";
 import { useLang, useT, localeOf } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
@@ -10,7 +12,25 @@ import { ChevronLeft, ChevronRight, Table2, Eye } from "lucide-react";
 export function DataTab({ pid, state }: { pid: string; state: ProjectState }) {
   const t = useT();
   const { lang } = useLang();
+  const qc = useQueryClient();
   const [table, setTable] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ rid: string; col: string; value: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function saveCell() {
+    if (!editing || !table) return;
+    setSaving(true);
+    try {
+      await api(apiPath(pid, `/table/${encodeURIComponent(table)}/cell`), {
+        method: "POST", body: JSON.stringify({ rowid: editing.rid, column: editing.col, value: editing.value }),
+      });
+      setEditing(null);
+      await qc.invalidateQueries({ queryKey: ["rows", pid, table] });
+      qc.invalidateQueries({ queryKey: ["state", pid] });     // charts reflect the change
+      qc.invalidateQueries({ queryKey: ["refresh", pid] });
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSaving(false); }
+  }
   const [q, setQ] = useState("");
   const [qDebounced, setQDebounced] = useState("");
   const [offset, setOffset] = useState(0);
@@ -64,6 +84,7 @@ export function DataTab({ pid, state }: { pid: string; state: ProjectState }) {
                 <Button variant="ghost" size="icon" disabled={!rows.data || offset + limit >= rows.data.total} onClick={() => setOffset(offset + limit)}><ChevronRight className="size-4" /></Button>
               </div>
             </div>
+            <div className="border-b border-border px-4 py-1.5 text-[11px] text-muted-foreground">{t("edit_hint")}</div>
             <div className={`flex-1 overflow-auto ${rows.isFetching ? "opacity-60" : ""}`}>
               <table className="w-max min-w-full border-collapse text-[12.5px]">
                 <thead className="sticky top-0 z-10 bg-card">
@@ -82,7 +103,23 @@ export function DataTab({ pid, state }: { pid: string; state: ProjectState }) {
                     <tr key={String(r.__rid ?? i)} className="border-t border-border/60 hover:bg-secondary/40">
                       {rows.data!.columns.map((c) => {
                         const v = r[c.name];
-                        return <td key={c.name} className={`max-w-[360px] truncate px-3 py-1.5 ${typeof v === "number" ? "text-right tabular-nums" : ""}`} title={v == null ? "" : String(v)}>{v == null ? "" : String(v)}</td>;
+                        const rid = String(r.__rid ?? "");
+                        const isEditing = editing && editing.rid === rid && editing.col === c.name;
+                        const isView = (state.tables.find((x) => x.table === table) || {}).kind === "view";
+                        return (
+                          <td key={c.name}
+                            className={`max-w-[360px] px-3 py-1.5 ${typeof v === "number" ? "text-right tabular-nums" : ""} ${isView ? "" : "cursor-text hover:bg-olive/10"} ${isEditing ? "bg-olive/10 ring-1 ring-olive" : "truncate"}`}
+                            title={v == null ? "" : String(v)}
+                            onClick={() => { if (!isView && !isEditing) setEditing({ rid, col: c.name, value: v == null ? "" : String(v) }); }}>
+                            {isEditing ? (
+                              <input autoFocus value={editing.value} disabled={saving}
+                                onChange={(e) => setEditing({ ...editing, value: e.target.value })}
+                                onKeyDown={(e) => { if (e.key === "Enter") saveCell(); if (e.key === "Escape") setEditing(null); }}
+                                onBlur={() => { if (!saving) saveCell(); }}
+                                className="w-full min-w-[80px] bg-transparent outline-none" />
+                            ) : (v == null ? "" : String(v))}
+                          </td>
+                        );
                       })}
                     </tr>
                   ))}

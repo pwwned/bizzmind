@@ -32,6 +32,7 @@ export const dict = {
     brand_title: "Бранд на проекта", notes_title: "Знание на проекта", note_ph: "Добави ново знание за данните…", add: "Добави",
     tables_title: "Таблици", pick_table: "Избери таблица отляво.", search_table: "Търси в таблицата…",
     rows: "реда", cols: "колони", of: "от", view: "изглед",
+    edit_hint: "Кликни клетка, за да я редактираш — Enter записва, Esc отказва; промяната се отразява в графиките. Изгледите не се редактират.",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -60,6 +61,7 @@ export const dict = {
     brand_title: "Project brand", notes_title: "Project knowledge", note_ph: "Add new knowledge about the data…", add: "Add",
     tables_title: "Tables", pick_table: "Pick a table on the left.", search_table: "Search this table…",
     rows: "rows", cols: "columns", of: "of", view: "view",
+    edit_hint: "Click a cell to edit it — Enter saves, Esc cancels; charts update accordingly. Views are read-only.",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

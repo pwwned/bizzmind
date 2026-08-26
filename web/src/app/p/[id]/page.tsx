@@ -77,7 +77,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           </Tabs>
         </div>
 
-        <main className={`flex min-h-0 flex-1 flex-col px-6 py-5 transition-[padding] ${chatOpen ? "lg:pr-[440px]" : ""}`}>
+        <main key={pid} className={`page-enter flex min-h-0 flex-1 flex-col px-6 py-5 transition-[padding] ${chatOpen ? "lg:pr-[440px]" : ""}`}>
           {!state.data ? (
             <DashboardLoading />
           ) : tab === "dash" ? (

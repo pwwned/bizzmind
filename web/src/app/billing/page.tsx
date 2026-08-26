@@ -12,10 +12,12 @@ import { getPaddle } from "@/lib/paddle";
 import { useConfirm } from "@/components/confirm-dialog";
 import { AppHeader } from "@/components/app-header";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, Download, FileText, Undo2 } from "lucide-react";
+import { ArrowUpDown, CreditCard, Download, FileText, Undo2 } from "lucide-react";
 
 type Billing = {
   company: string; eik: string; vat_id: string; mol: string;
@@ -46,6 +48,9 @@ export default function BillingPage() {
   const sub = useQuery({ queryKey: ["subscription"], queryFn: endpoints.subscription });
   const invoices = useQuery({ queryKey: ["invoices"], queryFn: endpoints.invoices });
   const [form, setForm] = useState<Billing>(EMPTY);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [reasonText, setReasonText] = useState("");
   useEffect(() => {
     if (acc.data) setForm({ ...EMPTY, ...(acc.data.billing ?? {}) });
   }, [acc.data]);
@@ -56,8 +61,17 @@ export default function BillingPage() {
     onError: (e: Error) => toast.error(e.message),
   });
   const cancel = useMutation({
-    mutationFn: endpoints.subCancel,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscription"] }); toast.success(t("sub_cancel_done")); },
+    mutationFn: () => endpoints.subCancel(reason, reasonText.trim()),
+    onSuccess: () => { setCancelOpen(false); qc.invalidateQueries({ queryKey: ["subscription"] }); toast.success(t("sub_cancel_done")); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const change = useMutation({
+    mutationFn: (v: { plan: string; interval: string }) => endpoints.subChange(v.plan, v.interval),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["subscription"] });
+      qc.invalidateQueries({ queryKey: ["account"] });
+      toast.success(t("plan_changed"));
+    },
     onError: (e: Error) => toast.error(e.message),
   });
   const keep = useMutation({
@@ -122,14 +136,45 @@ export default function BillingPage() {
                       ) : (
                         <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                           disabled={!admin || cancel.isPending}
-                          onClick={async () => {
-                            if (await confirm({ title: t("cancel_subscription"), description: t("cancel_sub_confirm"), actionLabel: t("cancel_subscription"), destructive: true }))
-                              cancel.mutate();
-                          }}>
+                          onClick={() => { setReason(""); setReasonText(""); setCancelOpen(true); }}>
                           {t("cancel_subscription")}
                         </Button>
                       )}
                     </div>
+                  </div>
+
+                  <div className="border-t border-border pt-4">
+                    <div className="mb-2 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <ArrowUpDown className="size-3.5" />{t("change_plan")}
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {(["pro", "ultra"] as const).flatMap((pk) =>
+                        (["month", "year"] as const).map((iv) => {
+                          const def = a.plans[pk];
+                          if (!def) return null;
+                          const price = iv === "month" ? def.price_eur : def.price_eur * 10;
+                          const current = s.plan === pk && s.interval === iv;
+                          return (
+                            <button key={pk + iv} type="button" disabled={!admin || current || change.isPending}
+                              onClick={async () => {
+                                if (await confirm({
+                                  title: t("change_plan"),
+                                  description: t("change_plan_confirm", { name: `${def.label} · ${t(iv === "month" ? "billing_monthly" : "billing_yearly").toLowerCase()}` }),
+                                  actionLabel: t("change_plan"),
+                                })) change.mutate({ plan: pk, interval: iv });
+                              }}
+                              className={`flex items-center justify-between rounded-xl border px-4 py-2.5 text-left text-[13px] transition-colors ${current ? "border-olive bg-olive/10" : "border-border bg-secondary/40 hover:border-olive/50"} ${!admin || current ? "cursor-default" : ""}`}>
+                              <span><b>{def.label}</b> · {t(iv === "month" ? "billing_monthly" : "billing_yearly").toLowerCase()}</span>
+                              <span className="tabular-nums">
+                                €{price}<span className="text-[11px] text-muted-foreground">/{t(iv === "month" ? "per_month" : "per_year")}</span>
+                                {current && <span className="ml-2 rounded-full bg-olive/20 px-2 py-0.5 text-[10px] font-extrabold text-olive">{t("current_plan")}</span>}
+                              </span>
+                            </button>
+                          );
+                        }),
+                      )}
+                    </div>
+                    <div className="mt-1.5 text-[11px] text-muted-foreground">{t("proration_note")}</div>
                   </div>
 
                   {(invoices.data?.invoices?.length ?? 0) > 0 && (
@@ -182,6 +227,32 @@ export default function BillingPage() {
           </div>
         )}
       </main>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("cancel_subscription")}</DialogTitle>
+            <DialogDescription>{t("cancel_sub_confirm")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <div className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{t("cancel_reason_title")}</div>
+            {(["expensive", "unused", "missing_features", "technical", "switching", "other"] as const).map((r) => (
+              <label key={r} className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-[13px] has-[:checked]:border-olive has-[:checked]:bg-olive/10">
+                <input type="radio" name="cancel-reason" checked={reason === r} onChange={() => setReason(r)}
+                  className="size-3.5 accent-[var(--olive,#b5d33d)]" />
+                {t(("reason_" + r) as Key)}
+              </label>
+            ))}
+            <Textarea value={reasonText} onChange={(e) => setReasonText(e.target.value)} placeholder={t("cancel_comment_ph")} rows={2} className="mt-1 text-[13px]" />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setCancelOpen(false)}>{t("cancel")}</Button>
+            <Button className="bg-destructive text-white hover:bg-destructive/90" disabled={!reason || cancel.isPending} onClick={() => cancel.mutate()}>
+              {t("cancel_subscription")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

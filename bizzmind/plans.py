@@ -46,6 +46,14 @@ def cost_of(kind: str, model: str | None = None) -> int:
 def model_allowed(plan: str, model: str | None) -> bool:
     return MODELS[norm_model(model)]["min_plan"] == "free" or plan != "free"
 
+# Paddle price ids per plan/interval (sandbox; swap for live ids at go-live)
+PADDLE_PRICES = {
+    ("pro", "month"):   "pri_01m0ypmaj7gejthhejwz3xp007",
+    ("pro", "year"):    "pri_01m0ypmat13ejyjjaybs7skbw9",
+    ("ultra", "month"): "pri_01m0ypmb7repkv0p3cdhcxebad",
+    ("ultra", "year"):  "pri_01m0ypmbesr5ye6500ddp89sa3",
+}
+
 # top-up packs: the bigger the pack, the better the rate
 PACKS = [
     {"credits": 1000,  "price_eur": 7},

@@ -246,13 +246,46 @@ def account_subscription(request: Request):
     }
 
 
+class CancelRequest(BaseModel):
+    reason: str = ""
+    comment: str = ""
+
+
+class PlanChangeRequest(BaseModel):
+    plan: str
+    interval: str = "month"
+
+
 @router.post("/api/account/subscription/cancel")
-def account_subscription_cancel(request: Request):
+def account_subscription_cancel(req: CancelRequest, request: Request):
     from bizzmind import paddle_billing
-    _org, _cust, sub_id = _billing_org(request)
+    org, _cust, sub_id = _billing_org(request)
+    with plans.pool().connection() as con:
+        con.execute("INSERT INTO public.cancellation_feedback (org_id, subscription_id, reason, comment) "
+                    "VALUES (%s, %s, %s, %s)", (org, sub_id, req.reason[:100] or "unspecified", req.comment[:2000]))
     paddle_billing.api("POST", f"/subscriptions/{sub_id}/cancel",
                        {"effective_from": "next_billing_period"})
-    log.info(f"billing: cancel scheduled for {sub_id}")
+    log.info(f"billing: cancel scheduled for {sub_id} — reason: {req.reason or 'unspecified'}")
+    return {"ok": True}
+
+
+@router.post("/api/account/subscription/change")
+def account_subscription_change(req: PlanChangeRequest, request: Request):
+    """In-app plan switch: Paddle prorates, the webhook applies the new plan."""
+    from bizzmind import paddle_billing
+    price_id = plans.PADDLE_PRICES.get((req.plan, req.interval))
+    if not price_id:
+        raise HTTPException(400, "unknown plan")
+    _org, _cust, sub_id = _billing_org(request)
+    current = paddle_billing.api("GET", f"/subscriptions/{sub_id}")
+    if current.get("scheduled_change"):
+        paddle_billing.api("PATCH", f"/subscriptions/{sub_id}", {"scheduled_change": None})
+    mode = "do_not_bill" if current.get("status") == "trialing" else "prorated_immediately"
+    paddle_billing.api("PATCH", f"/subscriptions/{sub_id}", {
+        "items": [{"price_id": price_id, "quantity": 1}],
+        "proration_billing_mode": mode,
+    })
+    log.info(f"billing: {sub_id} -> {req.plan}/{req.interval} ({mode})")
     return {"ok": True}
 
 

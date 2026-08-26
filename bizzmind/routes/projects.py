@@ -242,9 +242,15 @@ async def translate_content(pid: str, request: Request):
 def state(pid: str, request: Request):
     proj = get_project(pid)
     lang = req_lang(request)
-    charts, notes, filters, i18n = localized_content(proj, lang)
+    # remote Postgres: run the independent pieces side by side (schema, filters/options)
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        f_schema = ex.submit(describe_schema, proj)
+        f_content = ex.submit(localized_content, proj, lang)
+        tables = f_schema.result()
+        charts, notes, filters, i18n = f_content.result()
     return {"name": proj.meta.get("name", pid),
-            "tables": describe_schema(proj), "charts": charts,
+            "tables": tables, "charts": charts,
             "notes": notes, "filters": filters, "i18n": i18n,
             "chat": proj.chat, "brand": brand_files(proj),
             "brand_theme": {
@@ -289,6 +295,7 @@ async def upload(pid: str, request: Request, files: list[UploadFile] = File(...)
     proj = get_project(pid)
     proj.lang = req_lang(request)
     log.info(f"[{pid}] upload: {len(files)} file(s) received")
+    proj.ensure_uploads()
     loaded = []
     db.ensure_project(pid)
     try:
@@ -343,6 +350,7 @@ async def upload_ingest(pid: str, req: SignRequest, request: Request):
 @router.delete("/api/p/{pid}/files/{filename}")
 def delete_file(pid: str, filename: str):
     proj = get_project(pid)
+    proj.ensure_uploads()
     fname = Path(filename).name
     tables = proj.meta["files"].pop(fname, [])
     for t in tables:

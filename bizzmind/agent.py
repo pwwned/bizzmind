@@ -8,7 +8,6 @@ import json
 import re
 import time
 
-import anthropic
 import db
 from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
@@ -47,14 +46,16 @@ except ImportError:  # pragma: no cover
         return None
 
 
-_client: anthropic.Anthropic | None = None
+_client = None
 
 
 class _LazyClient:
-    """anthropic.Anthropic() needs ANTHROPIC_API_KEY at construction — create it on first use."""
+    """anthropic.Anthropic() needs ANTHROPIC_API_KEY at construction (and the
+    import costs ~0.3 s on a cold start) — create it on first use."""
     def __getattr__(self, name):
         global _client
         if _client is None:
+            import anthropic
             _client = anthropic.Anthropic()
         return getattr(_client, name)
 
@@ -830,6 +831,7 @@ async def run_agent_subscription(proj: Project, user_content: str):
 
 
 def run_agent_api(proj: Project, user_content: str):
+    import anthropic  # lazy: heavy import, only needed in API mode
     """Production path: Anthropic API with a manual tool loop."""
     if not proj.messages:  # fresh process: continue from the stored transcript
         user_content = conversation_recap(proj) + user_content

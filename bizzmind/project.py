@@ -57,9 +57,15 @@ class Project:
         self.dashboard = row.get("dashboard") or []
         self.i18n = row.get("i18n") or {}
         self.chart_seq = max((c["id"] for c in self.dashboard), default=0)
-        # local dirs are a cache of Supabase Storage — fill them on a cold start
-        storage.sync_down(pid, "uploads", self.uploads_dir)
+        # local dirs are a cache of Supabase Storage. Brand assets are needed by
+        # /state (logo, colours) → sync now; uploads only when a file route asks.
         storage.sync_down(pid, "brand", self.dir / "brand")
+        self._uploads_synced = False
+
+    def ensure_uploads(self):
+        if not self._uploads_synced:
+            storage.sync_down(self.id, "uploads", self.uploads_dir)
+            self._uploads_synced = True
 
         self.messages: list = []          # API-backend conversation (in-memory)
         self.sub_client = None            # Agent SDK session

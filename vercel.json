@@ -17,5 +17,8 @@
       "path": "/api/cron/jobs",
       "schedule": "0 3 * * *"
     }
+  ],
+  "regions": [
+    "fra1"
   ]
 }

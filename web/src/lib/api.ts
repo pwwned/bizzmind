@@ -165,3 +165,14 @@ export async function runJob<T>(
     if (j.status === "failed") throw new Error(j.error ?? "job failed");
   }
 }
+
+
+/* ------------------------------------------------ small local cache (perceived speed)
+   Last successful responses are kept in localStorage and used as placeholder
+   data while the fresh request is in flight. Never a source of truth. */
+export function cacheGet<T>(key: string): T | undefined {
+  try { const raw = localStorage.getItem("bz:" + key); return raw ? (JSON.parse(raw) as T) : undefined; } catch { return undefined; }
+}
+export function cacheSet(key: string, value: unknown) {
+  try { localStorage.setItem("bz:" + key, JSON.stringify(value)); } catch { /* quota / private mode */ }
+}

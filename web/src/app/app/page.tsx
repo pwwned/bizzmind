@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { endpoints } from "@/lib/api";
+import { cacheGet, cacheSet, endpoints, type ProjectCard } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,11 @@ export default function ProjectsPage() {
   const t = useT();
   const qc = useQueryClient();
   const router = useRouter();
-  const projects = useQuery({ queryKey: ["projects"], queryFn: endpoints.projects });
+  const projects = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => { const d = await endpoints.projects(); cacheSet("projects", d); return d; },
+    placeholderData: () => cacheGet<{ projects: ProjectCard[] }>("projects"),
+  });
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
 

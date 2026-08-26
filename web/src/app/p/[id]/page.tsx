@@ -1,7 +1,8 @@
 "use client";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { endpoints, type Chart, type ProjectState } from "@/lib/api";
+import { cacheGet, cacheSet, endpoints, type Chart, type ProjectState } from "@/lib/api";
+import { useLang } from "@/lib/i18n";
 import { useT } from "@/lib/i18n";
 import { AppHeader } from "@/components/app-header";
 import { ChartCard, useLabelMaps } from "@/components/chart-card";
@@ -25,7 +26,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [pendingReview, setPendingReview] = useState<{ tables: string[] } | null>(null);
   const uploadRef = useRef<(() => void) | null>(null);
 
-  const state = useQuery({ queryKey: ["state", pid], queryFn: () => endpoints.state(pid) });
+  const { lang } = useLang();
+  const state = useQuery({
+    queryKey: ["state", pid],
+    queryFn: async () => { const d = await endpoints.state(pid); cacheSet(`state:${pid}:${lang}`, d); return d; },
+    placeholderData: () => cacheGet<ProjectState>(`state:${pid}:${lang}`),
+  });
   const hasSel = Object.values(selections).some((v) => (Array.isArray(v) ? v.length : !!v));
   const refresh = useQuery({
     queryKey: ["refresh", pid, selections],

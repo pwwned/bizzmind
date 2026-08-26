@@ -305,7 +305,14 @@ def apply_filters_to_sql(proj: Project, sql: str, selections: dict) -> str:
 
 
 def filters_with_options(proj: Project) -> list:
-    return [{**f, "resolved_options": resolve_filter_options(proj, f)} for f in proj.filters]
+    """Resolve every filter's options; SQL-backed ones run concurrently (one
+    remote round trip each), cached per project."""
+    from concurrent.futures import ThreadPoolExecutor
+    if len(proj.filters) <= 1:
+        return [{**f, "resolved_options": resolve_filter_options(proj, f)} for f in proj.filters]
+    with ThreadPoolExecutor(max_workers=min(6, len(proj.filters))) as ex:
+        opts = list(ex.map(lambda f: resolve_filter_options(proj, f), proj.filters))
+    return [{**f, "resolved_options": o} for f, o in zip(proj.filters, opts)]
 
 
 # ------------------------------------------------------------ verification

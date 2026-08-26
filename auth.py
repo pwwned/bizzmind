@@ -139,6 +139,29 @@ def sign_out(access_token: str) -> None:
         pass
 
 
+_jwks_client = None
+
+
+def _verify_locally(access_token: str) -> dict | None:
+    """Validate the Supabase JWT with the project's public keys (JWKS, ES256) —
+    no network round trip per request. Returns {id, email} or None."""
+    global _jwks_client
+    try:
+        import jwt
+        from jwt import PyJWKClient
+        if _jwks_client is None:
+            _jwks_client = PyJWKClient(_url() + "/auth/v1/.well-known/jwks.json", cache_keys=True, lifespan=3600)
+        key = _jwks_client.get_signing_key_from_jwt(access_token).key
+        claims = jwt.decode(access_token, key, algorithms=["ES256", "RS256"], audience="authenticated",
+                            options={"require": ["exp", "sub"]})
+        return {"id": claims["sub"], "email": claims.get("email", ""), "role": claims.get("role")}
+    except Exception as e:  # expired, bad signature, HS256 legacy project, JWKS unreachable…
+        if "expired" in str(e).lower():
+            return None
+        log.info(f"auth: local JWT verification unavailable ({type(e).__name__}) — falling back to GoTrue")
+        raise
+
+
 def get_user(access_token: str) -> dict | None:
     """Verified user for an access token (cached briefly). None if invalid/expired."""
     h = hashlib.sha256(access_token.encode()).hexdigest()
@@ -147,11 +170,16 @@ def get_user(access_token: str) -> dict | None:
     if hit and hit[0] > now:
         return hit[1]
     try:
-        u = _call("GET", "/auth/v1/user", token=access_token)
-    except AuthError as e:
-        if e.status in (401, 403):
+        u = _verify_locally(access_token)
+        if u is None:
             return None
-        raise
+    except Exception:
+        try:
+            u = _call("GET", "/auth/v1/user", token=access_token)
+        except AuthError as e:
+            if e.status in (401, 403):
+                return None
+            raise
     _cache[h] = (now + _CACHE_TTL, u)
     if len(_cache) > 5000:
         for k in [k for k, v in _cache.items() if v[0] <= now][:2500]:

@@ -281,12 +281,16 @@ def account_subscription_change(req: PlanChangeRequest, request: Request):
     current = paddle_billing.api("GET", f"/subscriptions/{sub_id}")
     if current.get("scheduled_change"):
         paddle_billing.api("PATCH", f"/subscriptions/{sub_id}", {"scheduled_change": None})
-    mode = "do_not_bill" if current.get("status") == "trialing" else "prorated_immediately"
-    paddle_billing.api("PATCH", f"/subscriptions/{sub_id}", {
-        "items": [{"price_id": price_id, "quantity": 1}],
-        "proration_billing_mode": mode,
-    })
-    log.info(f"billing: {sub_id} -> {req.plan}/{req.interval} ({mode})")
+    if current.get("status") == "trialing":
+        # no-trial policy: switching plans means paying — end the legacy trial now
+        paddle_billing.api("POST", f"/subscriptions/{sub_id}/activate", {})
+    current_price = ((current.get("items") or [{}])[0].get("price") or {}).get("id")
+    if current_price != price_id:
+        paddle_billing.api("PATCH", f"/subscriptions/{sub_id}", {
+            "items": [{"price_id": price_id, "quantity": 1}],
+            "proration_billing_mode": "prorated_immediately",
+        })
+    log.info(f"billing: {sub_id} -> {req.plan}/{req.interval} (billed immediately)")
     return {"ok": True}
 
 

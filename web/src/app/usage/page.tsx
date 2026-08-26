@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { endpoints, type Account } from "@/lib/api";
 import { getPaddle } from "@/lib/paddle";
-import { TIERS } from "@/lib/tiers";
+import { PACK_PRICE_IDS, TIERS } from "@/lib/tiers";
 import { useConfirm } from "@/components/confirm-dialog";
 import { localeOf, useLang, useT, type Key } from "@/lib/i18n";
 import { AppHeader } from "@/components/app-header";
@@ -39,10 +39,8 @@ export default function UsagePage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-  async function subscribeNow(planKey: string) {
+  async function openCheckout(priceId: string | undefined) {
     try {
-      const tier = TIERS.find((x) => x.key === planKey);
-      const priceId = tier?.priceId?.[cycle];
       if (!priceId) { toast.error(t("pricing_not_configured")); return; }
       const paddle = await getPaddle();
       if (!paddle) throw new Error("checkout failed to load");
@@ -54,6 +52,8 @@ export default function UsagePage() {
       });
     } catch (e) { toast.error((e as Error).message); }
   }
+  const subscribeNow = (planKey: string) => openCheckout(TIERS.find((x) => x.key === planKey)?.priceId?.[cycle]);
+  const buyPack = (credits: number) => openCheckout(PACK_PRICE_IDS[credits]);
   const prefs = useMutation({
     mutationFn: (v: boolean) => endpoints.accountPrefs(v),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["account"] }),
@@ -140,11 +140,12 @@ export default function UsagePage() {
                         <b className="tabular-nums">{n(p.credits)}</b> <span className="text-xs text-muted-foreground">{t("credits_word")}</span>
                         <div className="text-xs text-muted-foreground">€{(p.price_eur / p.credits * 1000).toFixed(1)}/1000</div>
                       </div>
-                      <Button size="sm" variant="outline" disabled title={t("payments_soon")}>€{p.price_eur}</Button>
+                      <Button size="sm" variant="outline" disabled={a.role !== "owner" && a.role !== "admin"}
+                        onClick={() => buyPack(p.credits)}>€{p.price_eur}</Button>
                     </div>
                   ))}
                 </div>
-                <div className="mt-2 text-[11px] text-muted-foreground">{t("payments_soon")}</div>
+                <div className="mt-2 text-[11px] text-muted-foreground">{t("packs_note")}</div>
               </div>
             </Card>
 

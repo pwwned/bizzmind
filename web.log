@@ -266,3 +266,18 @@ https://react.dev/link/hydration-mismatch
  GET /billing 200 in 20ms (next.js: 4ms, proxy.ts: 2ms, application-code: 14ms)
  GET /billing 200 in 11ms (next.js: 3ms, proxy.ts: 0.9ms, application-code: 7ms)
 ✓ Compiled in 21ms
+ GET /billing 200 in 44ms (next.js: 3ms, proxy.ts: 3ms, application-code: 37ms)
+✓ Compiled in 28ms
+ GET /billing 200 in 21ms (next.js: 11ms, proxy.ts: 3ms, application-code: 8ms)
+ GET /login 200 in 17ms (next.js: 4ms, proxy.ts: 1.5ms, application-code: 12ms)
+ GET /login?next=%2Fapp 200 in 17ms (next.js: 1.5ms, proxy.ts: 1.4ms, application-code: 14ms)
+ GET /app 200 in 13ms (next.js: 5ms, proxy.ts: 1.3ms, application-code: 7ms)
+ GET /app 200 in 12ms (next.js: 1.5ms, proxy.ts: 1.9ms, application-code: 8ms)
+ GET /usage 200 in 27ms (next.js: 4ms, proxy.ts: 2ms, application-code: 21ms)
+ GET /login 200 in 18ms (next.js: 3ms, proxy.ts: 0.9ms, application-code: 14ms)
+ GET /login?next=%2Fapp 200 in 16ms (next.js: 0.8ms, proxy.ts: 0.7ms, application-code: 14ms)
+ GET /app 200 in 16ms (next.js: 4ms, proxy.ts: 3ms, application-code: 9ms)
+ GET /app 200 in 13ms (next.js: 2ms, proxy.ts: 2ms, application-code: 8ms)
+ GET /usage 200 in 27ms (next.js: 3ms, proxy.ts: 1.4ms, application-code: 23ms)
+ GET /welcome 200 in 40ms (next.js: 11ms, proxy.ts: 4ms, application-code: 25ms)
+ GET /billing 200 in 88ms (next.js: 25ms, proxy.ts: 11ms, application-code: 52ms)

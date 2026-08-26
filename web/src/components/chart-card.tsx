@@ -8,7 +8,7 @@ import { useTheme } from "@/lib/theme";
 import { Card } from "@/components/ui/card";
 
 /* Chart palette from the design tokens (palette A). */
-const PALETTES = {
+export const PALETTES = {
   dark: { SERIES: ["#b5d33d", "#7f9c3a", "#c9e356", "#56703a", "#9aa69c", "#e9f08e", "#3d5236", "#dfe86a"], INK: "#eef2ea", MUTED: "#9aa69c", GRID: "rgba(255,255,255,0.08)", CARD: "#203027", TIP: "#1a271f" },
   light: { SERIES: ["#6f8f1f", "#b5d33d", "#56703a", "#93ad35", "#9aa69c", "#3d5236", "#c9e356", "#7f9c3a"], INK: "#141e18", MUTED: "#66706a", GRID: "rgba(0,0,0,0.07)", CARD: "#ffffff", TIP: "#ffffff" },
 };

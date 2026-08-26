@@ -13,7 +13,7 @@ import { DataTab } from "@/components/data-tab";
 import { ChatPanel } from "@/components/chat-panel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Presentation } from "lucide-react";
+import { PresentationDialog } from "@/components/presentation-dialog";
 
 type Tab = "dash" | "files" | "data";
 
@@ -87,7 +87,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <>
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                   <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)} selections={selections} onChange={setSelections} i18n={i18n} />
-                  <Button variant="outline" size="sm" className="ml-auto"><Presentation className="size-4" />{t("presentation")}</Button>
+                  <PresentationDialog pid={pid} name={state.data.name} charts={state.data.charts} i18n={i18n} brandPrimary={state.data.brand_theme?.primary ?? ""} />
                 </div>
                 <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
                   {charts.map((c) => <ChartCard key={c.id} chart={c} i18n={i18n} onPick={crossFilter} wide={c.chart_type === "table"} />)}

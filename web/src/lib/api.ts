@@ -143,6 +143,7 @@ export const endpoints = {
   addNote: (pid: string, note: string) => post<{ notes: string[] }>(p(pid, "/notes"), { note }),
   deleteFile: (pid: string, filename: string) => del<{ ok: boolean }>(p(pid, `/files/${encodeURIComponent(filename)}`)),
   reset: (pid: string) => post<{ ok: boolean }>(p(pid, "/reset")),
+  deck: (pid: string) => post<{ job_id: string } | { spec: unknown }>(p(pid, "/deck")),
 };
 
 /* Run a background job: POST → {job_id} → poll until done. Inline results

@@ -15,7 +15,7 @@ import urllib.request
 from fastapi import HTTPException, Request
 
 from bizzmind.config import log
-from bizzmind.plans import PLANS
+from bizzmind.plans import PLANS, TRIAL_CREDITS
 from db import pool
 
 
@@ -150,11 +150,12 @@ def apply_event(event: dict) -> str:
                              if ((i.get("price") or {}).get("custom_data") or {}).get("plan")), None)
             if status in ("active", "trialing") and plan_key in PLANS:
                 p = PLANS[plan_key]
+                quota = min(p["credits"], TRIAL_CREDITS) if status == "trialing" else p["credits"]
                 con.execute(
                     "UPDATE public.organizations SET plan = %s, credits_quota = %s, credits_used = 0, "
                     "credits_renewed_at = now(), paddle_customer_id = %s, paddle_subscription_id = %s "
                     "WHERE id = %s",
-                    (plan_key, p["credits"], data.get("customer_id"), data.get("id"), org))
+                    (plan_key, quota, data.get("customer_id"), data.get("id"), org))
                 log.info(f"paddle: org {org} -> {plan_key} ({status})")
                 return f"plan:{plan_key}"
             if status in ("canceled", "paused", "past_due"):

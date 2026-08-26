@@ -28,6 +28,10 @@ MODELS = {
     "max":      {"label": "Max",      "model_id": "claude-opus-5",   "min_plan": "pro"},
 }
 
+# During a free trial the plan's features apply but credits are capped: the
+# full quota arrives with the first real payment (prevents trial-switch abuse).
+TRIAL_CREDITS = 2000
+
 COSTS = {
     "analysis":     {"standard": 500, "max": 1200},
     "chat":         {"standard": 40,  "max": 100},

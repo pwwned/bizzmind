@@ -8,7 +8,7 @@
 
 Create my product catalog in my Paddle sandbox account.
 
-Subscription plans (base currency EUR), each with a 7-day free trial:
+Subscription plans (base currency EUR), no free trial (the Free plan is the trial):
 - Pro — EUR 25.00/month ("2500"), EUR 250.00/year ("25000") — the annual price includes ~17% discount (2 months free vs 12×25)
 - Ultra — EUR 99.00/month ("9900"), EUR 990.00/year ("99000") — same ~17% annual discount
 
@@ -24,5 +24,6 @@ Country price overrides (base is EUR, so Ireland needs no override):
 Notes:
 - Paddle amounts are in the lowest denomination as strings — EUR 25.00 is "2500", not "25" or "25.00".
 - Create one product per plan (Pro, Ultra) with its monthly and annual prices attached, and one product per credit pack with its one-time price.
+- Do NOT set trial_period on any price.
 - On every price, set custom_data so my backend can map webhooks to plans: {"plan":"pro"} / {"plan":"ultra"} on subscription prices, {"credits":1000|4000|10000} on pack prices.
 - When done, list every product and price you created with its Paddle ID, so I have the mapping.

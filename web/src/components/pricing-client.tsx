@@ -156,7 +156,6 @@ export function PricingClient({ country }: { country?: string }) {
           );
         })}
       </div>
-      <div className="mt-6 text-[12px] text-muted-foreground">{t("trial_note")}</div>
     </main>
   );
 }

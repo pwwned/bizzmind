@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/confirm-dialog";
 import { api, ApiError, endpoints, p, type ProjectState } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
@@ -35,6 +36,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
 }) {
   const t = useT();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const input = useRef<HTMLInputElement>(null);
   const brandInput = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState("");
@@ -64,6 +66,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
         r = await api(p(pid, "/upload"), { method: "POST", body: fd });
       }
       await qc.invalidateQueries({ queryKey: ["state", pid] });
+      toast.success(t("upload_done", { n: r.loaded.length }));
       onUploaded(r.loaded.map((l) => l.table));
     } catch (e) { toast.error((e as Error).message); }
     finally { setUploading(false); if (input.current) input.current.value = ""; }
@@ -77,7 +80,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
       qc.invalidateQueries({ queryKey: ["state", pid] });
     } catch (e) { toast.error((e as Error).message); }
   }
-  const delFile = useMutation({ mutationFn: (f: string) => endpoints.deleteFile(pid, f), onSuccess: () => qc.invalidateQueries({ queryKey: ["state", pid] }) });
+  const delFile = useMutation({ mutationFn: (f: string) => endpoints.deleteFile(pid, f), onSuccess: () => { qc.invalidateQueries({ queryKey: ["state", pid] }); toast.success(t("file_deleted")); }, onError: (e: Error) => toast.error(e.message) });
   const delBrand = useMutation({ mutationFn: (f: string) => api(p(pid, `/brand/${encodeURIComponent(f)}`), { method: "DELETE" }), onSuccess: () => qc.invalidateQueries({ queryKey: ["state", pid] }) });
   const addNote = useMutation({ mutationFn: (n: string) => endpoints.addNote(pid, n), onSuccess: () => { setNote(""); qc.invalidateQueries({ queryKey: ["state", pid] }); } });
   const delNote = useMutation({ mutationFn: (i: number) => api(p(pid, `/notes/${i}`), { method: "DELETE" }), onSuccess: () => qc.invalidateQueries({ queryKey: ["state", pid] }) });
@@ -101,7 +104,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
               <span className="flex-1 truncate" title={f.filename}>{f.filename}</span>
               <span className="text-xs text-muted-foreground">{f.tables.length} {t("tables")}</span>
               <button type="button" className="rounded p-1 text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
-                onClick={() => { if (confirm(`${f.filename}?`)) delFile.mutate(f.filename); }}><Trash2 className="size-3.5" /></button>
+                onClick={async () => { if (await confirm({ title: t("delete_file"), description: t("confirm_delete_file", { name: f.filename, n: f.tables.length }), actionLabel: t("delete"), destructive: true })) delFile.mutate(f.filename); }}><Trash2 className="size-3.5" /></button>
             </li>
           ))}
         </ul>

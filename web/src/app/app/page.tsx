@@ -12,11 +12,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Mark } from "@/components/logo";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export default function ProjectsPage() {
   const t = useT();
   const qc = useQueryClient();
   const router = useRouter();
+  const confirm = useConfirm();
   const projects = useQuery({
     queryKey: ["projects"],
     queryFn: async () => { const d = await endpoints.projects(); cacheSet("projects", d); return d; },
@@ -32,7 +34,7 @@ export default function ProjectsPage() {
   });
   const remove = useMutation({
     mutationFn: (pid: string) => endpoints.deleteProject(pid),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["projects"] }); toast.success(t("project_deleted")); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -88,9 +90,9 @@ export default function ProjectsPage() {
                 type="button"
                 title={t("delete_project")}
                 className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault(); e.stopPropagation();
-                  if (confirm(t("confirm_delete_project", { name: p.name }))) remove.mutate(p.id);
+                  if (await confirm({ title: t("delete_project"), description: t("confirm_delete_project", { name: p.name }), actionLabel: t("delete"), destructive: true })) remove.mutate(p.id);
                 }}
               >
                 <Trash2 className="size-4" />

@@ -62,11 +62,6 @@ class Project:
         storage.sync_down(pid, "brand", self.dir / "brand")
         self._uploads_synced = False
 
-    def ensure_uploads(self):
-        if not self._uploads_synced:
-            storage.sync_down(self.id, "uploads", self.uploads_dir)
-            self._uploads_synced = True
-
         self.messages: list = []          # API-backend conversation (in-memory)
         self.sub_client = None            # Agent SDK session
         self.new_charts: list = []        # charts created during current turn
@@ -76,6 +71,11 @@ class Project:
         self.lang = "bg"                  # UI language of the request driving this turn
         self.job_id: str | None = None    # set by the worker while a job runs
         self.sub_lang: str | None = None  # language the SDK session's prompt was built for
+
+    def ensure_uploads(self):
+        if not self._uploads_synced:
+            storage.sync_down(self.id, "uploads", self.uploads_dir)
+            self._uploads_synced = True
 
     # ---- persistence (public.projects)
     def _import_legacy_files(self, pid: str) -> dict:

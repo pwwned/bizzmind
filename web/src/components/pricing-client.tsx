@@ -27,6 +27,7 @@ export function PricingClient({ country }: { country?: string }) {
   const [totals, setTotals] = useState<Record<string, string>>({});   // priceId -> formatted total
   const [error, setError] = useState("");
   const [email, setEmail] = useState<string | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
 
   const plans = useQuery({
     queryKey: ["public-plans"],
@@ -37,7 +38,10 @@ export function PricingClient({ country }: { country?: string }) {
   useEffect(() => {   // prefill checkout email when signed in; anonymous must NOT trigger the 401 redirect
     fetch("/api/auth/me", { credentials: "same-origin" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((m: { email?: string } | null) => { if (m?.email) setEmail(m.email); })
+      .then((m: { email?: string; orgs?: string[] } | null) => {
+        if (m?.email) setEmail(m.email);
+        if (m?.orgs?.length) setOrgId(m.orgs[0]);
+      })
       .catch(() => {});
   }, []);
 
@@ -74,6 +78,7 @@ export function PricingClient({ country }: { country?: string }) {
       paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
         ...(email ? { customer: { email } } : {}),
+        ...(orgId ? { customData: { org_id: orgId } } : {}),
         settings: {
           displayMode: "overlay",
           variant: "one-page",

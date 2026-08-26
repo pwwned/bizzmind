@@ -1,4 +1,4 @@
-"""Export routes: PDF report and Gamma presentation generation."""
+"""Export routes: PDF report, presentation generation, Paddle webhooks."""
 
 from fastapi import APIRouter, Request
 
@@ -43,3 +43,15 @@ def gamma_generate(pid: str, req: gamma.GammaRequest, request: Request):
 @router.get("/api/gamma/status/{gid}")      # legacy path (old UI)
 def gamma_status(gid: str):
     return gamma.gamma_status(gid)
+
+
+@router.post("/api/webhooks/paddle")
+async def paddle_webhook(request: Request):
+    from bizzmind import paddle_billing
+    paddle_billing.check_source_ip(request)
+    raw = await request.body()
+    paddle_billing.check_signature(raw, request.headers.get("paddle-signature"))
+    import json as _json
+    event = _json.loads(raw)
+    outcome = paddle_billing.apply_event(event)
+    return {"ok": True, "outcome": outcome}

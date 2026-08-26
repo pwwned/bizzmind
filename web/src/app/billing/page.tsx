@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Link from "next/link";
 import { api, endpoints } from "@/lib/api";
 import { useT, type Key } from "@/lib/i18n";
 import { AppHeader } from "@/components/app-header";
@@ -11,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, FileText } from "lucide-react";
+import { CreditCard, ExternalLink, FileText } from "lucide-react";
 
 type Billing = {
   company: string; eik: string; vat_id: string; mol: string;
@@ -44,6 +45,11 @@ export default function BillingPage() {
   });
   const a = acc.data;
   const admin = a && (a.role === "owner" || a.role === "admin");
+  const portal = useMutation({
+    mutationFn: () => api<{ url: string }>("/api/account/portal", { method: "POST" }),
+    onSuccess: (d) => { if (d.url) window.open(d.url, "_blank", "noopener"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <>
@@ -56,9 +62,22 @@ export default function BillingPage() {
                 <CreditCard className="size-4 text-olive" />
                 <h2 className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{t("payment_method")}</h2>
               </div>
-              <div className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-                {t("payment_box")}
-              </div>
+              {a.subscription ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-olive/30 bg-olive/5 p-4">
+                  <div>
+                    <div className="font-bold">{a.plans[a.subscription.plan]?.label ?? a.subscription.plan}</div>
+                    <div className="text-xs text-muted-foreground">{t("sub_active_line")}</div>
+                  </div>
+                  <Button variant="outline" disabled={!admin || portal.isPending} onClick={() => portal.mutate()}>
+                    <ExternalLink className="size-4" />{t("manage_subscription")}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+                  {t("no_subscription")}
+                  <Button variant="outline" nativeButton={false} render={<Link href="/pricing" />}>{t("see_pricing")}</Button>
+                </div>
+              )}
             </Card>
 
             <Card className="p-6">

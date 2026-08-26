@@ -141,6 +141,7 @@ export interface Account {
   projects_used: number;
   usage: { kind: string; count: number; credits: number }[];
   billing?: Record<string, string>;
+  subscription?: { customer_id: string; subscription_id: string; plan: string } | null;
 }
 
 /* ---------------------------------------------------------------- endpoints */

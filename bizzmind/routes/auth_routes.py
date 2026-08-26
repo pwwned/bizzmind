@@ -194,7 +194,48 @@ def account(request: Request):
         "projects_used": plans.project_count(org) if org else 0,
         "usage": plans.usage_breakdown(org) if org else [],
         "billing": _org_billing(org),
+        "subscription": _org_subscription(org),
     }
+
+
+def _org_subscription(org) -> dict | None:
+    if org is None:
+        return None
+    with plans.pool().connection() as con:
+        row = con.execute("SELECT paddle_customer_id, paddle_subscription_id, plan "
+                          "FROM public.organizations WHERE id = %s", (org,)).fetchone()
+    if not row or not row[1]:
+        return None
+    return {"customer_id": row[0], "subscription_id": row[1], "plan": row[2]}
+
+
+@router.post("/api/account/portal")
+def account_portal(request: Request):
+    """Paddle customer portal session — manage subscription / payment method."""
+    import json as _json
+    import os
+    import urllib.request
+    u, org = _me_org()
+    if org is None or not u.can_admin(org):
+        raise HTTPException(403, T(req_lang(request), "forbidden"))
+    with plans.pool().connection() as con:
+        row = con.execute("SELECT paddle_customer_id FROM public.organizations WHERE id = %s",
+                          (org,)).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(404, "no billing customer")
+    key = os.environ.get("PADDLE_API_KEY", "")
+    base = "https://sandbox-api.paddle.com" if key.startswith("pdl_sdbx_") else "https://api.paddle.com"
+    req = urllib.request.Request(f"{base}/customers/{row[0]}/portal-sessions", method="POST",
+        data=b"{}", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            d = _json.loads(r.read())["data"]
+    except Exception as e:
+        log.info(f"paddle portal failed: {e}")
+        raise HTTPException(502, "portal unavailable")
+    urls = d.get("urls") or {}
+    general = (urls.get("general") or {}).get("overview")
+    return {"url": general}
 
 
 def _org_billing(org) -> dict:

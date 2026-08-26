@@ -89,6 +89,8 @@ export const dict = {
     see_pricing: "Виж цените",
     welcome_title: "Добре дошъл!", welcome_text: "Абонаментът е активен. Кредитите и лимитите на плана ти са вече отключени.",
     welcome_cta: "Към проектите",
+    sub_active_line: "Активен абонамент през платежната система.",
+    manage_subscription: "Управлявай абонамента", no_subscription: "Нямаш активен абонамент.",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -174,6 +176,8 @@ export const dict = {
     see_pricing: "See pricing",
     welcome_title: "Welcome!", welcome_text: "Your subscription is active. Your plan's credits and limits are unlocked.",
     welcome_cta: "Go to projects",
+    sub_active_line: "Active subscription via the payment system.",
+    manage_subscription: "Manage subscription", no_subscription: "You have no active subscription.",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

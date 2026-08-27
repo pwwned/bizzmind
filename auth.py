@@ -237,6 +237,11 @@ def invalidate_memberships(user_id: str | None = None) -> None:
         _member_cache.clear()
 
 
+def _free_credits() -> int:
+    from bizzmind.plans import PLANS
+    return PLANS["free"]["credits"]
+
+
 def load_memberships(db, user_id: str, email: str) -> User:
     """User + org memberships (cached 60 s per process); first login creates a
     personal organisation or adopts the orphan one holding pre-Auth projects."""
@@ -260,8 +265,8 @@ def _load_memberships(db, user_id: str, email: str) -> User:
                 "AND EXISTS (SELECT 1 FROM public.projects p WHERE p.org_id = o.id) ORDER BY o.created_at LIMIT 1"
             ).fetchone()
             org = orphan[0] if orphan else con.execute(
-                "INSERT INTO public.organizations (name) VALUES (%s) RETURNING id",
-                (email.split("@")[-1] or email,)).fetchone()[0]
+                "INSERT INTO public.organizations (name, credits_quota) VALUES (%s, %s) RETURNING id",
+                (email.split("@")[-1] or email, _free_credits())).fetchone()[0]
             con.execute("INSERT INTO public.memberships (org_id, user_id, role) VALUES (%s, %s, 'owner')",
                         (org, user_id))
             con.commit()

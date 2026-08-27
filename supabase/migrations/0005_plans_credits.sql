@@ -1,7 +1,7 @@
 -- Plans + unified credit pool per organization. One currency, different
 -- action prices (analysis / chat / presentation); breakdown kept in events.
 alter table public.organizations add column if not exists plan          text    not null default 'free';
-alter table public.organizations add column if not exists credits_quota integer not null default 50;   -- plan allowance (reset with billing cycle later)
+alter table public.organizations add column if not exists credits_quota integer not null default 1000; -- Free plan allowance (must track plans.PLANS['free']['credits'])
 alter table public.organizations add column if not exists credits_extra integer not null default 0;    -- purchased top-ups
 alter table public.organizations add column if not exists credits_used  integer not null default 0;
 alter table public.organizations add column if not exists auto_recharge boolean not null default false;

@@ -420,3 +420,32 @@ https://react.dev/link/hydration-mismatch
  GET /p/raport-demo 200 in 57ms (next.js: 12ms, proxy.ts: 6ms, application-code: 39ms)
  GET /p/raport-demo 200 in 20ms (next.js: 6ms, proxy.ts: 1.8ms, application-code: 12ms)
 ✓ Compiled in 277ms
+ GET /p/raport-demo 200 in 59ms (next.js: 12ms, proxy.ts: 5ms, application-code: 42ms)
+Failed to proxy http://127.0.0.1:8000/api/p/raport-demo/upload/ingest Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /p/raport-demo 200 in 73ms (next.js: 16ms, proxy.ts: 22ms, application-code: 35ms)
+Failed to proxy http://127.0.0.1:8000/api/p/raport-demo/upload/ingest Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /p/raport-demo 200 in 75ms (next.js: 16ms, proxy.ts: 12ms, application-code: 47ms)
+Failed to proxy http://127.0.0.1:8000/api/p/raport-demo/upload/ingest Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /p/raport-demo 200 in 29ms (next.js: 10ms, proxy.ts: 2ms, application-code: 17ms)
+✓ Compiled in 242ms

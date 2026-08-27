@@ -4,7 +4,7 @@ import { Mark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 
-export function DashboardEmpty({ onStart }: { onStart: () => void }) {
+export function DashboardEmpty({ onStart, hasTables = false }: { onStart: () => void; hasTables?: boolean }) {
   const t = useT();
   const steps = [t("step_upload"), t("step_interview"), t("step_dashboard")];
   return (
@@ -21,8 +21,9 @@ export function DashboardEmpty({ onStart }: { onStart: () => void }) {
         ))}
       </ol>
       <Button onClick={onStart} className="grad-olive font-bold text-primary-foreground hover:opacity-90">
-        <Upload className="size-4" />{t("start_upload")}
+        <Upload className="size-4" />{hasTables ? t("start_analysis") : t("start_upload")}
       </Button>
+      {hasTables && <div className="text-[12px] text-muted-foreground">{t("start_analysis_hint")}</div>}
     </div>
   );
 }

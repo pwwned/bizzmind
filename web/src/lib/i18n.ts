@@ -117,6 +117,7 @@ export const dict = {
     switch_annual: "Мини на годишен план", switch_annual_save: "Мини на годишен — 2 месеца подарък",
     switch_annual_desc: "Ще преминеш към годишно плащане на същия план (10 месеца цена за 12). Разликата се изчислява пропорционално.",
     paddle_note: "Плащанията и фактурите се обработват сигурно от Paddle — нашият платежен партньор.",
+    start_analysis: "Пусни AI анализа", start_analysis_hint: "Данните са качени — AI-ят ще ги проучи, ще зададе въпроси и ще построи дашборда (≈500 кр).",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -230,6 +231,7 @@ export const dict = {
     switch_annual: "Switch to annual", switch_annual_save: "Switch to annual — 2 months free",
     switch_annual_desc: "You will move to annual billing of the same plan (10 months' price for 12), prorated automatically.",
     paddle_note: "Payments and invoices are processed securely by Paddle — our payment partner.",
+    start_analysis: "Start the AI analysis", start_analysis_hint: "Your data is in — the AI will explore it, ask questions and build the dashboard (≈500 cr).",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

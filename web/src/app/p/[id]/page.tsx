@@ -83,7 +83,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <DashboardLoading />
           ) : tab === "dash" ? (
             charts.length === 0 && !hasSel ? (
-              <DashboardEmpty onStart={() => { setTab("files"); setTimeout(() => uploadRef.current?.(), 250); }} />
+              <DashboardEmpty
+                hasTables={state.data.tables.length > 0}
+                onStart={() => {
+                  if (state.data && state.data.tables.length > 0) {
+                    setPendingReview({ tables: state.data.tables.map((x) => x.table) });
+                    setChatOpen(true);
+                  } else {
+                    setTab("files");
+                    setTimeout(() => uploadRef.current?.(), 250);
+                  }
+                }}
+              />
             ) : (
               <>
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

@@ -84,7 +84,10 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
           <MessageCircle className="size-6" />
         </button>
       )}
-      <aside className={`fixed bottom-0 right-0 top-[57px] z-30 flex w-[420px] max-w-full flex-col border-l border-border bg-popover/95 backdrop-blur-xl transition-transform ${open ? "translate-x-0" : "translate-x-full"}`}>
+      <aside
+        className={`fixed bottom-4 right-4 top-[73px] z-40 flex w-[420px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-popover/95 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-300 ${open ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[110%] opacity-0"}`}
+        aria-hidden={!open}
+      >
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <MessageCircle className="size-4 text-olive" />
           <span className="text-sm font-bold">{t("chat")}</span>

@@ -622,3 +622,10 @@ Error: socket hang up
 }
  GET /p/demo-eb7d7d 200 in 28ms (next.js: 11ms, proxy.ts: 3ms, application-code: 14ms)
 ✓ Compiled in 40ms
+ GET /p/demo-eb7d7d 200 in 65ms (next.js: 13ms, proxy.ts: 9ms, application-code: 43ms)
+ GET /p/demo-eb7d7d 200 in 20ms (next.js: 5ms, proxy.ts: 2ms, application-code: 13ms)
+✓ Compiled in 207ms
+ GET /login?force=1 200 in 43ms (next.js: 7ms, proxy.ts: 6ms, application-code: 30ms)
+ GET /app 200 in 25ms (next.js: 6ms, proxy.ts: 4ms, application-code: 14ms)
+ GET /app 200 in 16ms (next.js: 3ms, proxy.ts: 2ms, application-code: 11ms)
+ GET /p/poli-demo 200 in 31ms (next.js: 9ms, proxy.ts: 3ms, application-code: 19ms)

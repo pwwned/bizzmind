@@ -1,10 +1,14 @@
 "use client";
 import { useT } from "@/lib/i18n";
 import { Mark } from "@/components/logo";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Wallet } from "lucide-react";
 
-export function DashboardEmpty({ onStart, hasTables = false }: { onStart: () => void; hasTables?: boolean }) {
+export function DashboardEmpty({ onStart, hasTables = false, quote }: {
+  onStart: () => void; hasTables?: boolean;
+  quote?: { credits: number; remaining: number; affordable: boolean };
+}) {
   const t = useT();
   const steps = [t("step_upload"), t("step_interview"), t("step_dashboard")];
   return (
@@ -20,10 +24,24 @@ export function DashboardEmpty({ onStart, hasTables = false }: { onStart: () => 
           </li>
         ))}
       </ol>
-      <Button onClick={onStart} className="grad-olive font-bold text-primary-foreground hover:opacity-90">
+      <Button onClick={onStart} disabled={hasTables && quote?.affordable === false}
+        className="grad-olive font-bold text-primary-foreground hover:opacity-90">
         <Upload className="size-4" />{hasTables ? t("start_analysis") : t("start_upload")}
+        {hasTables && quote && <span className="ml-1 text-[11px] opacity-80">{t("approx_cr", { n: quote.credits })}</span>}
       </Button>
-      {hasTables && <div className="text-[12px] text-muted-foreground">{t("start_analysis_hint")}</div>}
+      {hasTables && quote?.affordable === false ? (
+        <div className="flex flex-col items-center gap-3">
+          <div className="text-[12.5px] font-semibold text-destructive">
+            {t("quote_short", { n: quote.credits, left: quote.remaining })}
+          </div>
+          <Button size="sm" className="grad-olive font-bold text-primary-foreground hover:opacity-90"
+            nativeButton={false} render={<Link href="/pricing" />}>
+            <Wallet className="size-4" />{t("buy_credits")}
+          </Button>
+        </div>
+      ) : hasTables ? (
+        <div className="text-[12px] text-muted-foreground">{t("start_analysis_hint")}</div>
+      ) : null}
     </div>
   );
 }

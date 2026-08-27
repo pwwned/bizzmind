@@ -9,7 +9,8 @@ import { localeOf, useLang, useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Blocks, Plus, RefreshCcw, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Blocks, Plus, RefreshCcw, Sparkles, Wallet } from "lucide-react";
 
 interface Field { column: string; label: string; type?: string; required?: boolean; options_sql?: string }
 interface View {
@@ -208,8 +209,19 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
           {quote.data && <span className="ml-1 text-[11px] opacity-80">{t("approx_cr", { n: quote.data.credits })}</span>}
         </Button>
         {quote.data?.affordable === false && (
-          <div className="text-[12px] font-semibold text-destructive">
-            {t("quote_short", { n: quote.data.credits, left: quote.data.remaining })}
+          <div className="flex flex-col items-center gap-3">
+            <div className="text-[12.5px] font-semibold text-destructive">
+              {t("quote_short", { n: quote.data.credits, left: quote.data.remaining })}
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button size="sm" className="grad-olive font-bold text-primary-foreground hover:opacity-90"
+                nativeButton={false} render={<Link href="/pricing" />}>
+                <Wallet className="size-4" />{t("buy_credits")}
+              </Button>
+              <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/pricing" />}>
+                {t("see_pricing")}
+              </Button>
+            </div>
           </div>
         )}
         {!hasTables && <div className="text-[12px] text-muted-foreground">{t("app_needs_data")}</div>}

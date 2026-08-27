@@ -29,6 +29,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [pendingReview, setPendingReview] = useState<{ tables: string[] } | null>(null);
   const uploadRef = useRef<(() => void) | null>(null);
   const chromeHidden = useChromeHidden();
+  const quote = useQuery({
+    queryKey: ["quote", pid, "standard"],
+    queryFn: () => endpoints.quote(pid, "analysis", "standard"),
+    enabled: !!pid,
+    staleTime: 30_000,
+  });
 
   const { lang } = useLang();
   const hydrated = useCachedPlaceholder();
@@ -109,6 +115,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           ) : tab === "dash" ? (
             charts.length === 0 && !hasSel ? (
               <DashboardEmpty
+                quote={quote.data}
                 hasTables={state.data.tables.length > 0}
                 onStart={() => {
                   if (state.data && state.data.tables.length > 0) {

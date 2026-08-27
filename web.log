@@ -778,3 +778,53 @@ Error: connect ECONNREFUSED 127.0.0.1:8000
  GET /app 200 in 30ms (next.js: 15ms, proxy.ts: 3ms, application-code: 12ms)
  GET /app 200 in 14ms (next.js: 3ms, proxy.ts: 2ms, application-code: 10ms)
  GET /p/poli-demo 200 in 35ms (next.js: 17ms, proxy.ts: 4ms, application-code: 14ms)
+ GET /login?next=%2Fapp 307 in 13ms (proxy.ts: 3ms)
+ GET /login?next=%2Fapp 200 in 30ms (next.js: 3ms, proxy.ts: 3ms, application-code: 24ms)
+ GET /app 307 in 18ms (proxy.ts: 5ms)
+ GET /app 200 in 22ms (next.js: 4ms, proxy.ts: 3ms, application-code: 14ms)
+ GET /p/demo-eb7d7d 200 in 55ms (next.js: 21ms, proxy.ts: 5ms, application-code: 29ms)
+ GET /p/demo-eb7d7d 200 in 30ms (next.js: 9ms, proxy.ts: 3ms, application-code: 18ms)
+✓ Compiled in 119ms
+ GET /login?force=1 200 in 50ms (next.js: 9ms, proxy.ts: 9ms, application-code: 32ms)
+ GET /p/demo-eb7d7d 200 in 72ms (next.js: 14ms, proxy.ts: 9ms, application-code: 49ms)
+ GET /app 200 in 63ms (next.js: 16ms, proxy.ts: 18ms, application-code: 29ms)
+ GET /app 200 in 56ms (next.js: 27ms, proxy.ts: 11ms, application-code: 19ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/p/demo-eb..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="bg" className="manrope_a4..." suppressHydrationWarning={true}>
+                          <body
+                            className="min-h-full flex flex-col"
+-                           data-new-gr-c-s-check-loaded="14.1324.0"
+-                           data-gr-ext-installed=""
+                          >
+                  ...
+ 
+ GET /p/sidaya-pharma 200 in 36ms (next.js: 16ms, proxy.ts: 4ms, application-code: 16ms)
+ GET /pricing 200 in 41ms (next.js: 21ms, proxy.ts: 5ms, application-code: 14ms)

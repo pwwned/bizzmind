@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/index.py": {
-      "maxDuration": 300,
+      "maxDuration": 800,
       "memory": 1024
     }
   },
@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/api/cron/jobs",
-      "schedule": "0 3 * * *"
+      "schedule": "* * * * *"
     }
   ],
   "regions": [

@@ -151,6 +151,9 @@ export const dict = {
     demo_cta_small: "Опитай с твоя ексел",
     demo_cta_h: "Същото, но с вашите данни", demo_cta_p: "Първият проект е безплатен — качвате един файл и виждате своя отчет след минути.",
     demo_cta_btn: "Започни безплатно",
+    buy_needed: "За тази стъпка трябват {need} кредита, а имаш {left}. Избери пакет — оставаш на същия екран.",
+    buy_have: "Имаш {left} кредита. Пакетите не изтичат.", covers_action: "стига за тази стъпка",
+    buy_for: "Купи за €{price}",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -298,6 +301,9 @@ export const dict = {
     demo_cta_small: "Try your own spreadsheet",
     demo_cta_h: "The same, with your data", demo_cta_p: "The first project is free — upload one file and see your own report in minutes.",
     demo_cta_btn: "Start free",
+    buy_needed: "This step needs {need} credits and you have {left}. Pick a pack — you stay on this screen.",
+    buy_have: "You have {left} credits. Packs never expire.", covers_action: "covers this step",
+    buy_for: "Buy for €{price}",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

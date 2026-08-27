@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { endpoints, getModelPref, runJob, setModelPref, type AgentResult, type ChatMessage, type JobEvent, type Question } from "@/lib/api";
-import Link from "next/link";
 import { useT, type Key } from "@/lib/i18n";
+import { useBuyCredits } from "@/components/buy-credits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, Send, X } from "lucide-react";
@@ -19,6 +19,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
   const [items, setItems] = useState<Item[]>(initial);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const buyCredits = useBuyCredits();
   const [model, setModel] = useState(() => getModelPref(pid));
   const credits = useQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid), staleTime: 60_000 });
   const maxLocked = credits.data ? !["pro", "ultra"].includes(credits.data.plan) : false;
@@ -185,7 +186,8 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
               <Button size="sm" className="grad-olive font-bold text-primary-foreground" disabled={!canAfford}
                 onClick={() => startReview(brief.tables, ctx.trim(), goal.trim())}>{t("brief_start")}</Button>
               {!canAfford && (
-                <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/pricing" />}>{t("buy_credits")}</Button>
+                <Button size="sm" className="grad-olive font-bold text-primary-foreground"
+                  onClick={() => buyCredits(quote.data?.credits)}>{t("buy_credits")}</Button>
               )}
             </div>
           </div>

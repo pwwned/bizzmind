@@ -1,15 +1,16 @@
 "use client";
 import { useT } from "@/lib/i18n";
 import { Mark } from "@/components/logo";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Upload, Wallet } from "lucide-react";
+import { useBuyCredits } from "@/components/buy-credits";
 
 export function DashboardEmpty({ onStart, hasTables = false, quote }: {
   onStart: () => void; hasTables?: boolean;
   quote?: { credits: number; remaining: number; affordable: boolean };
 }) {
   const t = useT();
+  const buyCredits = useBuyCredits();
   const steps = [t("step_upload"), t("step_interview"), t("step_dashboard")];
   return (
     <div className="flex min-h-[55vh] flex-col items-center justify-center gap-5 text-center">
@@ -35,7 +36,7 @@ export function DashboardEmpty({ onStart, hasTables = false, quote }: {
             {t("quote_short", { n: quote.credits, left: quote.remaining })}
           </div>
           <Button size="sm" className="grad-olive font-bold text-primary-foreground hover:opacity-90"
-            nativeButton={false} render={<Link href="/pricing" />}>
+            onClick={() => buyCredits(quote?.credits)}>
             <Wallet className="size-4" />{t("buy_credits")}
           </Button>
         </div>

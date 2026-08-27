@@ -5,6 +5,7 @@ import { LangContext, readLang, writeLang, type Lang } from "@/lib/i18n";
 import { ThemeContext, readTheme, writeTheme, type Theme } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmProvider } from "@/components/confirm-dialog";
+import { BuyCreditsProvider } from "@/components/buy-credits";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => new QueryClient({
@@ -36,7 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeContext.Provider value={{ theme, setTheme }}>
       <LangContext.Provider value={{ lang, setLang }}>
         <QueryClientProvider client={client}>
-          <ConfirmProvider>{children}</ConfirmProvider>
+          <ConfirmProvider><BuyCreditsProvider>{children}</BuyCreditsProvider></ConfirmProvider>
           <Toaster richColors position="bottom-right" theme={theme} />
         </QueryClientProvider>
       </LangContext.Provider>

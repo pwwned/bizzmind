@@ -9,8 +9,8 @@ import { localeOf, useLang, useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
 import { Blocks, Plus, RefreshCcw, Sparkles, Wallet } from "lucide-react";
+import { useBuyCredits } from "@/components/buy-credits";
 
 interface Field { column: string; label: string; type?: string; required?: boolean; options_sql?: string }
 interface View {
@@ -160,6 +160,7 @@ function TableView({ pid, view }: { pid: string; view: View }) {
 export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) {
   const t = useT();
   const qc = useQueryClient();
+  const buyCredits = useBuyCredits();
   const [building, setBuilding] = useState(false);
   const [step, setStep] = useState("");
   const app = useQuery({
@@ -213,15 +214,10 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
             <div className="text-[12.5px] font-semibold text-destructive">
               {t("quote_short", { n: quote.data.credits, left: quote.data.remaining })}
             </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button size="sm" className="grad-olive font-bold text-primary-foreground hover:opacity-90"
-                nativeButton={false} render={<Link href="/pricing" />}>
-                <Wallet className="size-4" />{t("buy_credits")}
-              </Button>
-              <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/pricing" />}>
-                {t("see_pricing")}
-              </Button>
-            </div>
+            <Button size="sm" className="grad-olive font-bold text-primary-foreground hover:opacity-90"
+              onClick={() => buyCredits(quote.data?.credits)}>
+              <Wallet className="size-4" />{t("buy_credits")}
+            </Button>
           </div>
         )}
         {!hasTables && <div className="text-[12px] text-muted-foreground">{t("app_needs_data")}</div>}

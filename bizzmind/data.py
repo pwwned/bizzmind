@@ -107,12 +107,16 @@ def frame_from_raw(df_raw: pd.DataFrame) -> pd.DataFrame:
 
 def clean_frame(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(how="all").dropna(axis=1, how="all")
-    seen: dict = {}
+    used: set = set()
     cols = []
     for c in df.columns:
-        base = sanitize_identifier(c)
-        seen[base] = seen.get(base, 0) + 1
-        cols.append(base if seen[base] == 1 else f"{base}_{seen[base]}")
+        base = sanitize_identifier(c) or "col"
+        name, k = base, 1
+        while name in used:          # collision-proof: literal "x_2" + generated "x_2" etc.
+            k += 1
+            name = f"{base}_{k}"
+        used.add(name)
+        cols.append(name)
     df.columns = cols
     return df
 

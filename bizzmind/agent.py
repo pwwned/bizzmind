@@ -765,6 +765,31 @@ pass unused fields as '' / []. present_questions takes
     )
 
 
+def _record_usage(proj: Project, message) -> None:
+    """API-equivalent cost accounting: tokens (incl. cache) + the SDK's own
+    cost estimate, accumulated on the current job row."""
+    try:
+        u = getattr(message, "usage", None) or {}
+        if not isinstance(u, dict):
+            u = getattr(u, "__dict__", {}) or {}
+        fresh = u.get("input_tokens") or 0
+        cw = u.get("cache_creation_input_tokens") or 0
+        cr = u.get("cache_read_input_tokens") or 0
+        tout = u.get("output_tokens") or 0
+        cost = getattr(message, "total_cost_usd", None) or 0
+        log.info(f"[{proj.id}] usage: in={fresh}+cache_w{cw}+cache_r{cr}, out={tout}, api_cost=${cost:.4f}")
+        if proj.job_id:
+            from db import pool
+            with pool().connection() as con:
+                con.execute(
+                    "UPDATE public.jobs SET tokens_in = COALESCE(tokens_in,0) + %s, "
+                    "tokens_out = COALESCE(tokens_out,0) + %s, "
+                    "cost_usd = COALESCE(cost_usd,0) + %s WHERE id = %s",
+                    (fresh + cw + cr, tout, cost, proj.job_id))
+    except Exception as e:
+        log.info(f"[{proj.id}] usage record failed — {e}")
+
+
 async def run_agent_subscription(proj: Project, user_content: str):
     if not SDK_AVAILABLE:
         raise RuntimeError("Claude Agent SDK is not installed — set AI_BACKEND=api with ANTHROPIC_API_KEY")
@@ -813,6 +838,7 @@ async def run_agent_subscription(proj: Project, user_content: str):
                         if text.strip():
                             reply = text  # keep the last non-empty assistant text
                     elif isinstance(message, ResultMessage):
+                        _record_usage(proj, message)
                         if message.is_error and not reply:
                             raise HTTPException(502, T(proj.lang, "err_ai_sub_failed",
                                                        detail=message.result))

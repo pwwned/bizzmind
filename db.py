@@ -322,7 +322,7 @@ def load_frame(pid: str, table: str, df: pd.DataFrame, replace: bool = True) -> 
     """Create (or replace) a table from a DataFrame and bulk-load it with COPY."""
     ensure_project(pid)
     cols = [str(c) for c in df.columns]
-    types = [_pg_type(df[c]) for c in df.columns]
+    types = [_pg_type(df.iloc[:, i]) for i in range(df.shape[1])]
     with connect(pid, readonly=False) as con:
         if replace:
             con.execute(sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(_ident(table)))

@@ -103,8 +103,13 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
               <FileSpreadsheet className="size-4 text-olive" />
               <span className="flex-1 truncate" title={f.filename}>{f.filename}</span>
               <span className="text-xs text-muted-foreground">{f.tables.length} {t("tables")}</span>
-              <button type="button" className="rounded p-1 text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
-                onClick={async () => { if (await confirm({ title: t("delete_file"), description: t("confirm_delete_file", { name: f.filename, n: f.tables.length }), actionLabel: t("delete"), destructive: true })) delFile.mutate(f.filename); }}><Trash2 className="size-3.5" /></button>
+              {delFile.isPending && delFile.variables === f.filename ? (
+                <span className="size-3.5 animate-spin rounded-full border-2 border-border border-t-olive" />
+              ) : (
+                <button type="button" className="rounded p-1 text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                  disabled={delFile.isPending}
+                  onClick={async () => { if (await confirm({ title: t("delete_file"), description: t("confirm_delete_file", { name: f.filename, n: f.tables.length }), actionLabel: t("delete"), destructive: true })) delFile.mutate(f.filename); }}><Trash2 className="size-3.5" /></button>
+              )}
             </li>
           ))}
         </ul>

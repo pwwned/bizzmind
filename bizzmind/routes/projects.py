@@ -28,7 +28,7 @@ from bizzmind.data import (invalidate, apply_filters_to_sql, describe_schema, fi
 from bizzmind.brand import brand_colors, brand_dir, brand_files, brand_logo_path, brand_theme
 from bizzmind.localization import (_h, _has_letters, _load_i18n, content_lang, localize_charts,
                                    localized_content, translatable_items)
-from bizzmind.agent import dispatch_agent, run_app, run_deck, run_review, run_translate
+from bizzmind.agent import dispatch_agent, run_app, run_app_proposal, run_deck, run_review, run_translate
 
 router = APIRouter()
 
@@ -59,7 +59,7 @@ def _settle_job(pid: str, job_id: str, kind: str, payload: dict) -> None:
 async def _execute_claimed(job: dict) -> dict:
     """Run a claimed job in-process (same code path as worker.py)."""
     import time as _time
-    from bizzmind.agent import dispatch_agent, run_app, run_review, run_deck, run_translate
+    from bizzmind.agent import dispatch_agent, run_app, run_app_proposal, run_review, run_deck, run_translate
     from bizzmind.project import PROJECTS
     t0 = _time.monotonic()
     proj = get_project(job["project_id"])
@@ -75,7 +75,9 @@ async def _execute_claimed(job: dict) -> dict:
         elif kind == "review":
             result = await run_review(proj, pl.get("tables") or [], pl.get("context", ""), pl.get("goal", ""))
         elif kind == "app":
-            result = await run_app(proj)
+            result = await run_app(proj, pl.get("brief") or "")
+        elif kind == "app_plan":
+            result = await run_app_proposal(proj)
         elif kind == "ingest":
             result = await run_ingest(proj, pl.get("filenames") or [])
         elif kind == "deck":
@@ -621,6 +623,10 @@ async def review(pid: str, req: ReviewRequest, request: Request):
     return {"job_id": jid}
 
 
+class AppBuild(BaseModel):
+    brief: str = ""
+
+
 @router.get("/api/p/{pid}/app")
 def get_app(pid: str):
     proj = get_project(pid)
@@ -628,7 +634,7 @@ def get_app(pid: str):
 
 
 @router.post("/api/p/{pid}/app/build")
-async def build_app(pid: str, request: Request):
+async def build_app(pid: str, req: AppBuild, request: Request):
     """(Re)design the project's mini-app — one AI turn, charged as an analysis."""
     lang = req_lang(request)
     log.info(f"[{pid}] app: build requested")
@@ -636,9 +642,10 @@ async def build_app(pid: str, request: Request):
     est = plans.reserve(pid, "analysis", lang, tables=len(describe_schema(proj)))
     proj.lang = lang
     if INLINE_JOBS:
-        return await run_app(proj)
+        return await run_app(proj, req.brief)
     u = sb_auth.current_user()
-    return {"job_id": jobs.enqueue(pid, "app", {"estimate": est}, lang, u.id if u else None)}
+    return {"job_id": jobs.enqueue(pid, "app", {"estimate": est, "brief": req.brief},
+                                   lang, u.id if u else None)}
 
 
 @router.get("/api/p/{pid}/quote")
@@ -651,6 +658,20 @@ def quote(pid: str, kind: str = "analysis", model: str = "standard", request: Re
     need = plans.cost_of(kind, model, tables if kind == "analysis" else 0)
     return {"kind": kind, "model": model, "tables": tables, "credits": need,
             "remaining": st["remaining"], "affordable": st["remaining"] >= need}
+
+
+@router.post("/api/p/{pid}/app/propose")
+async def propose_app(pid: str, request: Request):
+    """Cheap first pass: read the data and propose apps worth building."""
+    lang = req_lang(request)
+    proj = get_project(pid)
+    proj.lang = lang
+    est = plans.reserve(pid, "chat", lang)          # a proposal costs like a question
+    log.info(f"[{pid}] app: proposal requested (estimate {est} cr)")
+    if INLINE_JOBS:
+        return await run_app_proposal(proj)
+    u = sb_auth.current_user()
+    return {"job_id": jobs.enqueue(pid, "app_plan", {"estimate": est}, lang, u.id if u else None)}
 
 
 class AppQuery(BaseModel):

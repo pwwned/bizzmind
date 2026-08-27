@@ -1141,7 +1141,9 @@ Return ONE json object, no prose, no markdown fences:
   "views": [
     {"type": "kpi", "title": "...", "items": [
         {"label": "...", "sql": "SELECT ... single value ...", "unit": "лв|бр|%|"}]},
-    {"type": "entry", "title": "...", "table": "<table to insert into>",
+    {"type": "entry", "title": "...",
+     "table": "<single table>",            // use ONE of table / tables
+     "tables": [{"table": "<table>", "label": "<site name in __LANGUAGE__>"}],
      "hint": "...", "fields": [
         {"column": "<real column>", "label": "<human label>",
          "type": "text|number|date|select", "required": true,
@@ -1156,6 +1158,11 @@ Return ONE json object, no prose, no markdown fences:
 Rules:
 - 3 to 6 views. Always include at least one "entry" view (the app must be
   usable for daily input) and one "kpi" row.
+- CRITICAL — many tables of the same shape (one sheet per site/store/month) are
+  ONE entry view with the "tables" list: every table becomes a picker option
+  with its human label, and the fields are shared. NEVER build the app around a
+  single site while the rest of the business is left out, and never emit one
+  entry view per table.
 - SQL must be plain read-only SELECT for Postgres, referencing the real tables
   and columns from the schema, quoted with double quotes when non-ASCII.
 - KPI sql returns exactly one row, one column.
@@ -1168,17 +1175,41 @@ Rules:
 """
 
 
-async def run_app(proj: Project):
+def _compact_schema(proj: Project) -> list:
+    """Tables sharing a column signature are described once — a 47-sheet
+    workbook otherwise burns the whole context on repetition."""
+    schema = describe_schema(proj)
+    groups: dict = {}
+    for t in schema:
+        key = tuple(c["name"] for c in t.get("columns", []))
+        groups.setdefault(key, []).append(t)
+    out = []
+    for _key, tabs in groups.items():
+        head = dict(tabs[0])
+        if len(tabs) > 1:
+            head["same_shape_tables"] = [x["table"] for x in tabs]
+            head["note"] = (f"{len(tabs)} tables share this exact structure — one per site. "
+                            "Build ONE entry view listing them all in \"tables\".")
+        out.append(head)
+    log.info(f"[{proj.id}] app: schema {len(schema)} tables -> {len(out)} shape group(s)")
+    return out
+
+
+async def run_app(proj: Project, brief: str = ""):
     """Design the project's mini-app from its data (one AI turn, no tools)."""
     lang = proj.lang
     pid = proj.id
     t0 = time.monotonic()
     log.info(f"[{pid}] app: designing…")
     proj.log_activity("info", T(lang, "act_app_designing"))
+    compact = _compact_schema(proj)
     prompt = (APP_PROMPT
               .replace("__LANGUAGE__", LANG_NAMES[lang])
-              .replace("__SCHEMA__", json.dumps(describe_schema(proj), ensure_ascii=False, default=str))
+              .replace("__SCHEMA__", json.dumps(compact, ensure_ascii=False, default=str))
               .replace("__FACTS__", json.dumps(proj.notes, ensure_ascii=False)))
+    if brief:
+        prompt += f"\n\n<what_the_user_asked_for>\n{brief}\n</what_the_user_asked_for>\n" \
+                  "Build exactly this, using the rules above."
     result = (await run_agent_subscription(proj, prompt)
               if AI_BACKEND == "subscription"
               else await run_in_threadpool(run_agent_api, proj, prompt))
@@ -1194,3 +1225,62 @@ async def run_app(proj: Project):
              f"{len(spec.get('views', []))} view(s): {[v.get('type') for v in spec.get('views', [])]}")
     proj.log_activity("info", T(lang, "act_app_ready"))
     return {"app": spec}
+
+
+APP_PROPOSE_PROMPT = """You are a product person looking at a company's spreadsheets.
+
+Study the schema and known facts below and propose 2-3 DIFFERENT internal apps
+that would take this работа out of Excel — each one a concrete working surface
+this business would use daily, not a generic dashboard.
+
+Return ONE json object, no prose, no fences:
+
+{
+  "reading": "<2-3 sentences in __LANGUAGE__: what this data actually is and how
+              the team most likely works with it today>",
+  "proposals": [
+    {"id": "a",
+     "title": "<short app name in __LANGUAGE__>",
+     "pitch": "<one sentence: what it replaces and why it is better>",
+     "does": ["<3-5 concrete things it lets a person do>"],
+     "for_whom": "<who uses it daily>",
+     "effort": "small|medium|large"}
+  ],
+  "questions": [
+    {"question": "<what you must know to build the right app, in __LANGUAGE__>",
+     "options": ["<2-4 concrete answers>"]}
+  ]
+}
+
+Rules:
+- Proposals must differ in PURPOSE (e.g. daily entry vs. weekly review vs.
+  problem-hunting), not in colour.
+- Ground every proposal in the real columns and tables you see; name the actual
+  entities (sites, products, people) where it helps.
+- 2-3 questions maximum, the ones that would change what you build.
+- Everything user-facing in __LANGUAGE__, business words only.
+
+<schema>__SCHEMA__</schema>
+<known_facts>__FACTS__</known_facts>
+"""
+
+
+async def run_app_proposal(proj: Project):
+    """Read the data and propose apps worth building (cheap, no tools)."""
+    lang, pid = proj.lang, proj.id
+    t0 = time.monotonic()
+    proj.log_activity("info", T(lang, "act_app_thinking"))
+    prompt = (APP_PROPOSE_PROMPT
+              .replace("__LANGUAGE__", LANG_NAMES[lang])
+              .replace("__SCHEMA__", json.dumps(_compact_schema(proj), ensure_ascii=False, default=str))
+              .replace("__FACTS__", json.dumps(proj.notes, ensure_ascii=False)))
+    result = (await run_agent_subscription(proj, prompt)
+              if AI_BACKEND == "subscription"
+              else await run_in_threadpool(run_agent_api, proj, prompt))
+    raw = re.sub(r"^```(?:json)?|```$", "", result["reply"].strip(), flags=re.MULTILINE).strip()
+    m = re.search(r"\{.*\}", raw, re.DOTALL)
+    if not m:
+        raise RuntimeError(T(lang, "err_app_invalid"))
+    plan = json.loads(m.group(0))
+    log.info(f"[{pid}] app proposal: {len(plan.get('proposals', []))} option(s) in {time.monotonic() - t0:.1f}s")
+    return {"plan": plan}

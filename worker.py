@@ -51,7 +51,10 @@ async def run_job(job: dict) -> dict:
             return await core.run_review(proj, p.get("tables") or [], p.get("context", ""), p.get("goal", ""))
         if kind == "app":
             from bizzmind.agent import run_app
-            return await run_app(proj)
+            return await run_app(proj, p.get("brief") or "")
+        if kind == "app_plan":
+            from bizzmind.agent import run_app_proposal
+            return await run_app_proposal(proj)
         if kind == "ingest":
             from bizzmind.routes.projects import run_ingest
             return await run_ingest(proj, p.get("filenames") or [])

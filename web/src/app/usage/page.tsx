@@ -116,22 +116,6 @@ export default function UsagePage() {
               </div>
 
               <div className="mt-5 border-t border-border pt-4">
-                <div className="mb-2 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{t("price_list")}</div>
-                <div className="mb-2 grid gap-2 text-[13px] sm:grid-cols-3">
-                  {(["analysis", "chat", "presentation"] as const).map((k) => (
-                    <div key={k} className="flex items-center justify-between rounded-xl border border-border px-4 py-2.5">
-                      <span>{t(KIND_META[k]?.key ?? ("kind_chat" as Key))}</span>
-                      <b className="tabular-nums">
-                        {a.costs[k]?.standard === a.costs[k]?.max ? a.costs[k]?.standard : `${a.costs[k]?.standard} / ${a.costs[k]?.max}`}
-                        <span className="ml-1 text-[10px] font-semibold text-muted-foreground">{t("credits_word")}</span>
-                      </b>
-                    </div>
-                  ))}
-                </div>
-                <div className="mb-4 text-[11px] leading-relaxed text-muted-foreground">
-                  <b>{t("model_standard")}:</b> {t("model_standard_desc")}<br />
-                  <b>{t("model_max")}:</b> {t("model_max_desc")}
-                </div>
                 <div className="mb-2 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{t("buy_credits")}</div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {a.packs.map((p) => (

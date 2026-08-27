@@ -318,3 +318,6 @@ https://react.dev/link/hydration-mismatch
  GET /p/poli-demo 200 in 241ms (next.js: 23ms, proxy.ts: 12ms, application-code: 206ms)
  GET /account 200 in 29ms (next.js: 9ms, proxy.ts: 5ms, application-code: 15ms)
  GET /usage 200 in 24ms (next.js: 5ms, proxy.ts: 4ms, application-code: 14ms)
+ GET /billing 200 in 73ms (next.js: 22ms, proxy.ts: 19ms, application-code: 33ms)
+ GET /pricing 200 in 33ms (next.js: 17ms, proxy.ts: 5ms, application-code: 10ms)
+ GET /pricing 200 in 9ms (next.js: 0.9ms, proxy.ts: 1.0ms, application-code: 7ms)

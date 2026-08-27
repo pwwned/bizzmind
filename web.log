@@ -869,3 +869,19 @@ Error: socket hang up
  GET /app 200 in 29ms (next.js: 11ms, proxy.ts: 4ms, application-code: 15ms)
  GET /app 200 in 16ms (next.js: 3ms, proxy.ts: 3ms, application-code: 10ms)
  GET /p/demo-public 200 in 35ms (next.js: 5ms, proxy.ts: 1.7ms, application-code: 29ms)
+Failed to proxy http://127.0.0.1:8000/api/jobs/d5fb3bdc-4d65-4834-bac4-fd8944a5027b/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Failed to proxy http://127.0.0.1:8000/api/jobs/d0d0a9bf-c4ec-46ff-836e-72c927aa169c/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}

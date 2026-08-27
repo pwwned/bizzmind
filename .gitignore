@@ -18,3 +18,8 @@ web-dev.log
 /*.csv
 web/shot.tmp.mjs
 .vercel
+
+# local run logs
+web.log
+server.log
+worker.log

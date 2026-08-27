@@ -526,3 +526,52 @@ Error: socket hang up
  GET /app 200 in 27ms (next.js: 6ms, proxy.ts: 4ms, application-code: 16ms)
  GET /app 200 in 14ms (next.js: 1.7ms, proxy.ts: 3ms, application-code: 10ms)
  GET /p/ingest-job-test 200 in 28ms (next.js: 11ms, proxy.ts: 2ms, application-code: 14ms)
+ GET /p/demo-2f1a9b 200 in 64ms (next.js: 15ms, proxy.ts: 12ms, application-code: 37ms)
+Failed to proxy http://127.0.0.1:8000/api/jobs/63d2beb6-1891-4a2a-9333-f5f227f00ad5/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Failed to proxy http://127.0.0.1:8000/api/jobs/eecc325f-778c-4fad-83a1-8d23aa22f7d3/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /p/demo-2f1a9b 200 in 19ms (next.js: 7ms, proxy.ts: 1.2ms, application-code: 11ms)
+✓ Compiled in 64ms
+ GET /p/demo-2f1a9b 200 in 14ms (next.js: 4ms, proxy.ts: 1.5ms, application-code: 9ms)
+✓ Compiled in 34ms
+ GET /p/demo-2f1a9b 200 in 12ms (next.js: 3ms, proxy.ts: 1.1ms, application-code: 8ms)
+✓ Compiled in 88ms
+ GET /p/demo-2f1a9b 200 in 14ms (next.js: 3ms, proxy.ts: 1.3ms, application-code: 9ms)
+✓ Compiled in 38ms
+ GET /p/demo-2f1a9b 200 in 65ms (next.js: 15ms, proxy.ts: 8ms, application-code: 42ms)
+ GET /p/demo-2f1a9b 200 in 57ms (next.js: 9ms, proxy.ts: 5ms, application-code: 42ms)
+ GET /p/demo-2f1a9b 200 in 14ms (next.js: 4ms, proxy.ts: 1.0ms, application-code: 9ms)
+✓ Compiled in 249ms
+ GET /login?force=1 200 in 43ms (next.js: 10ms, proxy.ts: 8ms, application-code: 25ms)
+ GET /app 200 in 32ms (next.js: 11ms, proxy.ts: 5ms, application-code: 16ms)
+ GET /app 200 in 15ms (next.js: 2ms, proxy.ts: 1.8ms, application-code: 10ms)
+ GET /p/app-test 200 in 28ms (next.js: 10ms, proxy.ts: 3ms, application-code: 15ms)
+ GET /login?force=1 200 in 40ms (next.js: 5ms, proxy.ts: 3ms, application-code: 32ms)
+ GET /app 200 in 25ms (next.js: 6ms, proxy.ts: 6ms, application-code: 12ms)
+ GET /app 200 in 15ms (next.js: 2ms, proxy.ts: 3ms, application-code: 10ms)
+ GET /p/app-test 200 in 42ms (next.js: 5ms, proxy.ts: 1.6ms, application-code: 35ms)
+Failed to proxy http://127.0.0.1:8000/api/jobs/16925029-f46a-4cd5-8246-c495ad6ced3c/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /login?force=1 200 in 75ms (next.js: 13ms, proxy.ts: 34ms, application-code: 29ms)
+ GET /app 200 in 24ms (next.js: 7ms, proxy.ts: 3ms, application-code: 14ms)
+ GET /app 200 in 15ms (next.js: 2.0ms, proxy.ts: 1.7ms, application-code: 11ms)
+ GET /p/app-test 200 in 41ms (next.js: 6ms, proxy.ts: 2ms, application-code: 33ms)

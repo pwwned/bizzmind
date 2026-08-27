@@ -1114,3 +1114,74 @@ async def run_deck(proj: Project):
         log.info(f"[{pid}] deck: brief — аудитория: {_short(g.get('audience'), 80)} | тон: {_short(g.get('tone'), 60)}")
     proj.add_chat("ai", T(lang, "chat_deck_ready"))
     return {"spec": spec}
+
+
+# ------------------------------------------------------------------ app builder
+
+APP_PROMPT = """You turn a spreadsheet-backed project into a small internal APP.
+
+The user's data already lives in Postgres tables (schema below). Instead of a
+dashboard, design the day-to-day WORKING SURFACE that replaces the spreadsheet:
+where they enter new records, watch the current state and spot problems.
+
+Return ONE json object, no prose, no markdown fences:
+
+{
+  "title": "<app name in __LANGUAGE__>",
+  "subtitle": "<one line: what this app is for>",
+  "views": [
+    {"type": "kpi", "title": "...", "items": [
+        {"label": "...", "sql": "SELECT ... single value ...", "unit": "лв|бр|%|"}]},
+    {"type": "entry", "title": "...", "table": "<table to insert into>",
+     "hint": "...", "fields": [
+        {"column": "<real column>", "label": "<human label>",
+         "type": "text|number|date|select", "required": true,
+         "options_sql": "SELECT DISTINCT col FROM t ORDER BY 1"   // select only
+        }]},
+    {"type": "table", "title": "...", "sql": "SELECT ... ORDER BY ... LIMIT 50",
+     "hint": "...", "editable_table": "<table>"   // omit if read-only
+    }
+  ]
+}
+
+Rules:
+- 3 to 6 views. Always include at least one "entry" view (the app must be
+  usable for daily input) and one "kpi" row.
+- SQL must be plain read-only SELECT for Postgres, referencing the real tables
+  and columns from the schema, quoted with double quotes when non-ASCII.
+- KPI sql returns exactly one row, one column.
+- "entry" fields: only columns a human would actually type; skip computed ones.
+- Labels and titles in __LANGUAGE__, business language, no technical jargon.
+- Think about what this business needs daily — not what is easy to query.
+
+<schema>__SCHEMA__</schema>
+<known_facts>__FACTS__</known_facts>
+"""
+
+
+async def run_app(proj: Project):
+    """Design the project's mini-app from its data (one AI turn, no tools)."""
+    lang = proj.lang
+    pid = proj.id
+    t0 = time.monotonic()
+    log.info(f"[{pid}] app: designing…")
+    proj.log_activity("info", T(lang, "act_app_designing"))
+    prompt = (APP_PROMPT
+              .replace("__LANGUAGE__", LANG_NAMES[lang])
+              .replace("__SCHEMA__", json.dumps(describe_schema(proj), ensure_ascii=False, default=str))
+              .replace("__FACTS__", json.dumps(proj.notes, ensure_ascii=False)))
+    result = (await run_agent_subscription(proj, prompt)
+              if AI_BACKEND == "subscription"
+              else await run_in_threadpool(run_agent_api, proj, prompt))
+    raw = re.sub(r"^```(?:json)?|```$", "", result["reply"].strip(), flags=re.MULTILINE).strip()
+    m = re.search(r"\{.*\}", raw, re.DOTALL)
+    if not m:
+        raise RuntimeError(T(lang, "err_app_invalid"))
+    spec = json.loads(m.group(0))
+    spec["generated_at"] = time.strftime("%Y-%m-%d %H:%M")
+    proj.app = spec
+    proj.save_app()
+    log.info(f"[{pid}] app: done in {time.monotonic() - t0:.1f}s — "
+             f"{len(spec.get('views', []))} view(s): {[v.get('type') for v in spec.get('views', [])]}")
+    proj.log_activity("info", T(lang, "act_app_ready"))
+    return {"app": spec}

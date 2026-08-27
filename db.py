@@ -374,17 +374,17 @@ def _coerce(v, t: str):
 # connection; RLS guards direct client access.
 from psycopg.types.json import Jsonb  # noqa: E402
 
-PROJECT_COLS = ("meta", "dashboard", "filters", "notes", "chat", "i18n", "progress")
+PROJECT_COLS = ("meta", "dashboard", "filters", "notes", "chat", "i18n", "progress", "app")
 
 
 def project_load(pid: str) -> dict | None:
     with pool().connection() as con:
         row = con.execute(
-            "SELECT id, org_id, name, created_at, meta, dashboard, filters, notes, chat, i18n, progress "
+            "SELECT id, org_id, name, created_at, meta, dashboard, filters, notes, chat, i18n, progress, app "
             "FROM public.projects WHERE id = %s", (pid,)).fetchone()
     if not row:
         return None
-    keys = ("id", "org_id", "name", "created_at", "meta", "dashboard", "filters", "notes", "chat", "i18n", "progress")
+    keys = ("id", "org_id", "name", "created_at", "meta", "dashboard", "filters", "notes", "chat", "i18n", "progress", "app")
     return dict(zip(keys, row))
 
 

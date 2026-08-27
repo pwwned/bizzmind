@@ -10,13 +10,14 @@ import { FiltersBar, type Selections } from "@/components/filters-bar";
 import { DashboardEmpty, DashboardLoading } from "@/components/dashboard-empty";
 import { FilesTab } from "@/components/files-tab";
 import { DataTab } from "@/components/data-tab";
+import { AppTab } from "@/components/app-tab";
 import { ChatPanel } from "@/components/chat-panel";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PresentationDialog } from "@/components/presentation-dialog";
 
-type Tab = "dash" | "files" | "data";
+type Tab = "dash" | "app" | "files" | "data";
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: pid } = use(params);
@@ -69,10 +70,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         <div className="flex items-center gap-4 border-b border-border px-6">
           <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
             <TabsList className="h-11 bg-transparent p-0">
-              {(["dash", "files", "data"] as Tab[]).map((k) => (
+              {(["dash", "app", "files", "data"] as Tab[]).map((k) => (
                 <TabsTrigger key={k} value={k}
                   className="rounded-none border-b-2 border-transparent px-4 text-[13.5px] font-semibold text-muted-foreground data-[state=active]:border-olive data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none">
-                  {t(k === "dash" ? "tab_dash" : k === "files" ? "tab_files" : "tab_data")}
+                  {t(k === "dash" ? "tab_dash" : k === "app" ? "tab_app" : k === "files" ? "tab_files" : "tab_data")}
+                  {k === "app" && <span className="ml-1.5 rounded bg-olive/20 px-1 text-[9px] font-extrabold text-olive">BETA</span>}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -114,6 +116,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </div>
               </>
             )
+          ) : tab === "app" ? (
+            <AppTab pid={pid} hasTables={state.data.tables.length > 0} />
           ) : tab === "files" ? (
             <FilesTab pid={pid} state={state.data as ProjectState} uploadRef={uploadRef}
               onUploaded={(tables) => { setPendingReview({ tables }); }} />

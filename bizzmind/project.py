@@ -55,6 +55,7 @@ class Project:
         self.notes = row.get("notes") or []
         self.filters = row.get("filters") or []
         self.dashboard = row.get("dashboard") or []
+        self.app = row.get("app") or {}
         self.i18n = row.get("i18n") or {}
         self.chart_seq = max((c["id"] for c in self.dashboard), default=0)
         # local dirs are a cache of Supabase Storage. Brand assets are needed by
@@ -126,6 +127,9 @@ class Project:
         if self.job_id:
             jobs.log_event(self.job_id, kind, text)
 
+    def save_app(self):
+        db.project_save(self.id, app=self.app)
+
     def reload(self):
         """Refresh structured state from public.projects (another process — the
         worker — may have changed it)."""
@@ -137,6 +141,7 @@ class Project:
         self.notes = row.get("notes") or []
         self.filters = row.get("filters") or []
         self.dashboard = row.get("dashboard") or []
+        self.app = row.get("app") or {}
         self.i18n = row.get("i18n") or {}
         self.chart_seq = max((c["id"] for c in self.dashboard), default=0)
 PROJECTS: dict = {}

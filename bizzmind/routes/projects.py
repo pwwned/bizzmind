@@ -28,7 +28,7 @@ from bizzmind.data import (invalidate, apply_filters_to_sql, describe_schema, fi
 from bizzmind.brand import brand_colors, brand_dir, brand_files, brand_logo_path, brand_theme
 from bizzmind.localization import (_h, _has_letters, _load_i18n, content_lang, localize_charts,
                                    localized_content, translatable_items)
-from bizzmind.agent import dispatch_agent, run_deck, run_review, run_translate
+from bizzmind.agent import dispatch_agent, run_app, run_deck, run_review, run_translate
 
 router = APIRouter()
 
@@ -47,7 +47,7 @@ def job_status(job_id: str, since: int = 0):
 async def _execute_claimed(job: dict) -> dict:
     """Run a claimed job in-process (same code path as worker.py)."""
     import time as _time
-    from bizzmind.agent import dispatch_agent, run_review, run_deck, run_translate
+    from bizzmind.agent import dispatch_agent, run_app, run_review, run_deck, run_translate
     from bizzmind.project import PROJECTS
     t0 = _time.monotonic()
     proj = get_project(job["project_id"])
@@ -62,6 +62,8 @@ async def _execute_claimed(job: dict) -> dict:
             result = await dispatch_agent(proj, pl["message"])
         elif kind == "review":
             result = await run_review(proj, pl.get("tables") or [], pl.get("context", ""), pl.get("goal", ""))
+        elif kind == "app":
+            result = await run_app(proj)
         elif kind == "ingest":
             result = await run_ingest(proj, pl.get("filenames") or [])
         elif kind == "deck":
@@ -604,6 +606,59 @@ async def review(pid: str, req: ReviewRequest, request: Request):
                        lang, u.id if u else None)
     log.info(f"[{pid}] review: job {jid} enqueued")
     return {"job_id": jid}
+
+
+@router.get("/api/p/{pid}/app")
+def get_app(pid: str):
+    proj = get_project(pid)
+    return {"app": proj.app or {}}
+
+
+@router.post("/api/p/{pid}/app/build")
+async def build_app(pid: str, request: Request):
+    """(Re)design the project's mini-app — one AI turn, charged as an analysis."""
+    lang = req_lang(request)
+    log.info(f"[{pid}] app: build requested")
+    plans.charge(pid, "analysis", lang)
+    proj = get_project(pid)
+    proj.lang = lang
+    if INLINE_JOBS:
+        return await run_app(proj)
+    u = sb_auth.current_user()
+    return {"job_id": jobs.enqueue(pid, "app", {}, lang, u.id if u else None)}
+
+
+class AppQuery(BaseModel):
+    sql: str
+
+
+@router.post("/api/p/{pid}/app/query")
+def app_query(pid: str, req: AppQuery):
+    """Run one read-only SELECT from the app spec (same guard as the agent)."""
+    proj = get_project(pid)
+    df = run_readonly_sql(proj, req.sql, limit=200)
+    return {"columns": list(df.columns), "rows": frame_to_records(df)}
+
+
+class AppRow(BaseModel):
+    table: str
+    values: dict
+
+
+@router.post("/api/p/{pid}/app/row")
+def app_insert_row(pid: str, req: AppRow):
+    """Insert one record from an app entry form."""
+    proj = get_project(pid)
+    cols = {c for c, _t in db.columns(pid, req.table)}
+    vals = {k: v for k, v in req.values.items() if k in cols and v not in (None, "")}
+    if not vals:
+        raise HTTPException(400, "no values")
+    ident = ", ".join(f'"{k}"' for k in vals)
+    ph = ", ".join(["%s"] * len(vals))
+    db.execute(pid, f'INSERT INTO "{req.table}" ({ident}) VALUES ({ph})', tuple(vals.values()))
+    invalidate(pid)
+    log.info(f"[{pid}] app: row inserted into {req.table} ({len(vals)} field(s))")
+    return {"ok": True}
 
 
 @router.post("/api/p/{pid}/reset")

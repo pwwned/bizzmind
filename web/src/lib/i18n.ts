@@ -134,6 +134,8 @@ export const dict = {
     clear_project_hint: "Трие файловете, таблиците, дашборда, знанието и приложението — за да започнеш проекта на чисто. Самият проект се трие от списъка с проекти.",
     clear_project_confirm: "Това ще изтрие безвъзвратно всички данни в проекта — файлове, таблици, дашборд, знание и приложението. Проектът остава и можеш да качиш нови файлове.",
     type_project_name: "Напиши „{name}“, за да потвърдиш:",
+    quote_line: "≈{n} кредита за {tables} таблици · оставащи {left}",
+    quote_short: "Нужни са {n} кредита, имаш {left}.",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -264,6 +266,8 @@ export const dict = {
     clear_project_hint: "Deletes the files, tables, dashboard, knowledge and the app so you can start this project fresh. The project itself is deleted from the projects list.",
     clear_project_confirm: "This permanently deletes all data in the project — files, tables, dashboard, knowledge and the app. The project stays and you can upload new files.",
     type_project_name: "Type \"{name}\" to confirm:",
+    quote_line: "≈{n} credits for {tables} tables · {left} left",
+    quote_short: "Needs {n} credits, you have {left}.",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

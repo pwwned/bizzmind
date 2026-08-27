@@ -39,11 +39,31 @@ COSTS = {
 }
 
 
+# Analysis price scales with how much data the AI has to read: a 45-sheet
+# workbook costs us ~3x a 3-sheet one, so it costs the user more too.
+ANALYSIS_TIERS = [(10, 1.0), (30, 1.6), (10**9, 2.4)]   # (max tables, multiplier)
+
+
+def analysis_multiplier(tables: int) -> float:
+    for limit, mult in ANALYSIS_TIERS:
+        if tables <= limit:
+            return mult
+    return ANALYSIS_TIERS[-1][1]
+
+
+def analysis_cost(tables: int, model: str | None = None) -> int:
+    """Credits for analysing `tables` tables — rounded to a friendly 10."""
+    base = COSTS["analysis"][norm_model(model)]
+    return int(round(base * analysis_multiplier(tables) / 10.0) * 10)
+
+
 def norm_model(model: str | None) -> str:
     return model if model in MODELS else "standard"
 
 
-def cost_of(kind: str, model: str | None = None) -> int:
+def cost_of(kind: str, model: str | None = None, tables: int = 0) -> int:
+    if kind == "analysis" and tables:
+        return analysis_cost(tables, model)
     return COSTS[kind][norm_model(model)]
 
 
@@ -124,7 +144,7 @@ def project_count(org_id) -> int:
                            (org_id,)).fetchone()[0]
 
 
-def ensure_can_afford(pid: str, kind: str, lang: str, model: str | None = None) -> None:
+def ensure_can_afford(pid: str, kind: str, lang: str, model: str | None = None, tables: int = 0) -> None:
     """Pre-flight check (no deduction) — used before spending on the engine."""
     org = org_of_project(pid)
     if org is None:
@@ -132,32 +152,34 @@ def ensure_can_afford(pid: str, kind: str, lang: str, model: str | None = None) 
     st = org_state(org)
     if not model_allowed(st["plan"], model):
         raise HTTPException(403, T(lang, "model_not_in_plan"))
-    if st["remaining"] < cost_of(kind, model):
-        raise HTTPException(402, T(lang, "no_credits"))
+    need = cost_of(kind, model, tables)
+    if st["remaining"] < need:
+        raise HTTPException(402, T(lang, "no_credits_need", need=need, have=st["remaining"]))
 
 
-def charge(pid: str, kind: str, lang: str, model: str | None = None) -> None:
+def charge(pid: str, kind: str, lang: str, model: str | None = None, tables: int = 0) -> None:
     """Deduct the action's price atomically; 402 when the pool can't cover it."""
     org = org_of_project(pid)
     if org is None:
         return
     if not model_allowed(org_state(org)["plan"], model):
         raise HTTPException(403, T(lang, "model_not_in_plan"))
-    cost = cost_of(kind, model)
+    cost = cost_of(kind, model, tables)
     with pool().connection() as con:
         row = con.execute(
             "UPDATE public.organizations SET credits_used = credits_used + %s "
             "WHERE id = %s AND credits_used + %s <= credits_quota + credits_extra "
             "RETURNING 1", (cost, org, cost)).fetchone()
         if not row:
-            raise HTTPException(402, T(lang, "no_credits"))
+            st = org_state(org)
+            raise HTTPException(402, T(lang, "no_credits_need", need=cost, have=st["remaining"]))
         con.execute("INSERT INTO public.credit_events (org_id, project_id, kind, credits) "
                     "VALUES (%s, %s, %s, %s)", (org, pid, kind, cost))
 
 
-def refund(pid: str, kind: str, model: str | None = None) -> None:
+def refund(pid: str, kind: str, model: str | None = None, tables: int = 0) -> None:
     """Reverse one charge (job failed — the user must not pay for nothing)."""
-    cost = cost_of(kind, model)
+    cost = cost_of(kind, model, tables)
     org = org_of_project(pid)
     if org is None:
         return

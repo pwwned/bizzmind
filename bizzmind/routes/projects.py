@@ -77,7 +77,8 @@ async def _execute_claimed(job: dict) -> dict:
         return {"status": "done"}
     except Exception as e:
         if kind in ("chat", "review"):
-            plans.refund(proj.id, "analysis" if kind == "review" else "chat", pl.get("model"))
+            plans.refund(proj.id, "analysis" if kind == "review" else "chat", pl.get("model"),
+                         tables=len(pl.get("tables") or []))
             log.info(f"[{proj.id}] job {job['id']} failed — credits refunded")
         jobs.fail(job["id"], str(e))
         log.info(f"[{proj.id}] job {job['id']} FAILED inline — {_short(e, 200)}")
@@ -592,7 +593,7 @@ async def chat(pid: str, req: ChatRequest, request: Request):
 @router.post("/api/p/{pid}/review")
 async def review(pid: str, req: ReviewRequest, request: Request):
     log.info(f"[{pid}] review: requested — {len(req.tables)} tables, model={req.model}")
-    plans.charge(pid, "analysis", req_lang(request), req.model)
+    plans.charge(pid, "analysis", req_lang(request), req.model, tables=len(req.tables))
     log.info(f"[{pid}] review: charged, dispatching (inline={INLINE_JOBS})")
     proj = get_project(pid)
     lang = req_lang(request)
@@ -619,13 +620,25 @@ async def build_app(pid: str, request: Request):
     """(Re)design the project's mini-app — one AI turn, charged as an analysis."""
     lang = req_lang(request)
     log.info(f"[{pid}] app: build requested")
-    plans.charge(pid, "analysis", lang)
     proj = get_project(pid)
+    plans.charge(pid, "analysis", lang, tables=len(describe_schema(proj)))
     proj.lang = lang
     if INLINE_JOBS:
         return await run_app(proj)
     u = sb_auth.current_user()
     return {"job_id": jobs.enqueue(pid, "app", {}, lang, u.id if u else None)}
+
+
+@router.get("/api/p/{pid}/quote")
+def quote(pid: str, kind: str = "analysis", model: str = "standard", request: Request = None):
+    """What an action will cost on this project, before the user commits to it."""
+    proj = get_project(pid)
+    tables = len(describe_schema(proj))
+    org = plans.org_of_project(pid)
+    st = plans.org_state(org) if org else {"remaining": 0}
+    need = plans.cost_of(kind, model, tables if kind == "analysis" else 0)
+    return {"kind": kind, "model": model, "tables": tables, "credits": need,
+            "remaining": st["remaining"], "affordable": st["remaining"] >= need}
 
 
 class AppQuery(BaseModel):

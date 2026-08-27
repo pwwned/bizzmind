@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { endpoints, getModelPref, runJob, setModelPref, type AgentResult, type ChatMessage, type JobEvent, type Question } from "@/lib/api";
+import Link from "next/link";
 import { useT, type Key } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +23,13 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
   const credits = useQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid), staleTime: 60_000 });
   const maxLocked = credits.data ? !["pro", "ultra"].includes(credits.data.plan) : false;
   const costChat = credits.data?.costs?.chat?.[model];
-  const costAnalysis = credits.data?.costs?.analysis?.[model];
+  const quote = useQuery({
+    queryKey: ["quote", pid, model],
+    queryFn: () => endpoints.quote(pid, "analysis", model),
+    staleTime: 30_000,
+  });
+  const costAnalysis = quote.data?.credits ?? credits.data?.costs?.analysis?.[model];
+  const canAfford = quote.data?.affordable !== false;
   function pickModel(m: string) { setModel(m); setModelPref(pid, m); }
   const logRef = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(0);
@@ -109,7 +116,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
             </div>
             {costAnalysis != null && (
               <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">
-                {t("cost_hint", { q: costChat ?? 0, a: costAnalysis })}
+                {t("cost_hint", { q: costChat ?? 0, a: costAnalysis ?? 0 })}
               </span>
             )}
           </div>
@@ -158,10 +165,20 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
             <label className="text-[11px] font-semibold text-muted-foreground">{t("brief_goal")}
               <Textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} placeholder={t("brief_goal_ph")} className="mt-1 max-h-40 overflow-auto text-[13px]" />
             </label>
-            <div className="sticky bottom-0 -mx-3 -mb-3 flex justify-end gap-2 rounded-b-xl border-t border-olive/20 bg-popover/95 px-3 py-2 backdrop-blur">
-              <Button size="sm" variant="ghost" onClick={() => startReview(brief.tables, "", "")}>{t("brief_skip")}</Button>
-              <Button size="sm" className="grad-olive font-bold text-primary-foreground"
+            <div className="sticky bottom-0 -mx-3 -mb-3 flex flex-wrap items-center justify-end gap-2 rounded-b-xl border-t border-olive/20 bg-popover/95 px-3 py-2 backdrop-blur">
+              {quote.data && (
+                <span className={`mr-auto text-[11.5px] ${canAfford ? "text-muted-foreground" : "font-semibold text-destructive"}`}>
+                  {canAfford
+                    ? t("quote_line", { n: quote.data.credits, tables: quote.data.tables, left: quote.data.remaining })
+                    : t("quote_short", { n: quote.data.credits, left: quote.data.remaining })}
+                </span>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => startReview(brief.tables, "", "")} disabled={!canAfford}>{t("brief_skip")}</Button>
+              <Button size="sm" className="grad-olive font-bold text-primary-foreground" disabled={!canAfford}
                 onClick={() => startReview(brief.tables, ctx.trim(), goal.trim())}>{t("brief_start")}</Button>
+              {!canAfford && (
+                <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/pricing" />}>{t("buy_credits")}</Button>
+              )}
             </div>
           </div>
           )}

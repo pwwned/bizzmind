@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api, p as apiPath, runJob } from "@/lib/api";
+import { api, endpoints, p as apiPath, runJob } from "@/lib/api";
 import { localeOf, useLang, useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -165,6 +165,11 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
     queryKey: ["app", pid],
     queryFn: () => api<{ app: AppSpec }>(apiPath(pid, "/app")),
   });
+  const quote = useQuery({
+    queryKey: ["quote", pid, "app"],
+    queryFn: () => endpoints.quote(pid, "analysis", "standard"),
+    staleTime: 30_000,
+  });
 
   async function build() {
     setBuilding(true);
@@ -197,10 +202,16 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
         <Blocks className="size-10 text-olive" />
         <h2 className="text-xl font-extrabold">{t("app_empty_title")}</h2>
         <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">{t("app_empty_text")}</p>
-        <Button disabled={!hasTables} onClick={build} className="grad-olive font-bold text-primary-foreground hover:opacity-90">
+        <Button disabled={!hasTables || quote.data?.affordable === false} onClick={build}
+          className="grad-olive font-bold text-primary-foreground hover:opacity-90">
           <Sparkles className="size-4" />{t("app_build")}
-          <span className="ml-1 text-[11px] opacity-80">{t("approx_cr", { n: 500 })}</span>
+          {quote.data && <span className="ml-1 text-[11px] opacity-80">{t("approx_cr", { n: quote.data.credits })}</span>}
         </Button>
+        {quote.data?.affordable === false && (
+          <div className="text-[12px] font-semibold text-destructive">
+            {t("quote_short", { n: quote.data.credits, left: quote.data.remaining })}
+          </div>
+        )}
         {!hasTables && <div className="text-[12px] text-muted-foreground">{t("app_needs_data")}</div>}
       </div>
     );

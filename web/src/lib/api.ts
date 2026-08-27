@@ -182,6 +182,9 @@ export const endpoints = {
   deck: (pid: string) => post<{ job_id: string } | { spec: unknown }>(p(pid, "/deck")),
   account: () => api<Account>("/api/account"),
   credits: (pid: string) => api<OrgCredits>(p(pid, "/pres/credits")),
+  quote: (pid: string, kind = "analysis", model = "standard") =>
+    api<{ kind: string; model: string; tables: number; credits: number; remaining: number; affordable: boolean }>(
+      p(pid, `/quote?kind=${kind}&model=${encodeURIComponent(model)}`)),
   changePassword: (password: string) => post<{ ok: boolean }>("/api/account/password", { password }),
   accountPrefs: (auto_recharge: boolean) => post<{ ok: boolean }>("/api/account/prefs", { auto_recharge }),
   subscription: () => api<SubscriptionInfo>("/api/account/subscription"),

@@ -863,3 +863,9 @@ Error: socket hang up
  GET /app 200 in 29ms (next.js: 11ms, proxy.ts: 4ms, application-code: 15ms)
  GET /app 200 in 13ms (next.js: 1.6ms, proxy.ts: 2ms, application-code: 9ms)
  GET /p/demo-public 200 in 47ms (next.js: 6ms, proxy.ts: 1.8ms, application-code: 39ms)
+ GET /p/demo-eb7d7d 200 in 26ms (next.js: 10ms, proxy.ts: 4ms, application-code: 11ms)
+✓ Compiled in 59ms
+ GET /login?force=1 200 in 59ms (next.js: 18ms, proxy.ts: 11ms, application-code: 30ms)
+ GET /app 200 in 29ms (next.js: 11ms, proxy.ts: 4ms, application-code: 15ms)
+ GET /app 200 in 16ms (next.js: 3ms, proxy.ts: 3ms, application-code: 10ms)
+ GET /p/demo-public 200 in 35ms (next.js: 5ms, proxy.ts: 1.7ms, application-code: 29ms)

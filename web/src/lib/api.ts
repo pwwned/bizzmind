@@ -179,6 +179,7 @@ export const endpoints = {
   addNote: (pid: string, note: string) => post<{ notes: string[] }>(p(pid, "/notes"), { note }),
   deleteFile: (pid: string, filename: string) => del<{ ok: boolean }>(p(pid, `/files/${encodeURIComponent(filename)}`)),
   reset: (pid: string) => post<{ ok: boolean }>(p(pid, "/reset")),
+  deleteApp: (pid: string) => del<{ ok: boolean }>(p(pid, "/app")),
   deck: (pid: string) => post<{ job_id: string } | { spec: unknown }>(p(pid, "/deck")),
   account: () => api<Account>("/api/account"),
   credits: (pid: string) => api<OrgCredits>(p(pid, "/pres/credits")),

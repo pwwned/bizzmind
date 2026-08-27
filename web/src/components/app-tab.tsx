@@ -9,8 +9,9 @@ import { localeOf, useLang, useT, type Key } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Blocks, Check, Plus, RefreshCcw, Sparkles, Wallet } from "lucide-react";
+import { Blocks, Check, Plus, RefreshCcw, Sparkles, Trash2, Wallet } from "lucide-react";
 import { useBuyCredits } from "@/components/buy-credits";
+import { useConfirm } from "@/components/confirm-dialog";
 
 interface Field { column: string; label: string; type?: string; required?: boolean; options_sql?: string }
 interface View {
@@ -180,6 +181,7 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
   const t = useT();
   const qc = useQueryClient();
   const buyCredits = useBuyCredits();
+  const confirm = useConfirm();
   const [building, setBuilding] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [step, setStep] = useState("");
@@ -190,6 +192,11 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
   const app = useQuery({
     queryKey: ["app", pid],
     queryFn: () => api<{ app: AppSpec }>(apiPath(pid, "/app")),
+  });
+  const removeApp = useMutation({
+    mutationFn: () => endpoints.deleteApp(pid),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["app", pid] }); setPlan(null); toast.success(t("app_deleted")); },
+    onError: (e: Error) => toast.error(e.message),
   });
   const quote = useQuery({
     queryKey: ["quote", pid, "app"],
@@ -347,9 +354,21 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
           <h2 className="text-xl font-extrabold">{spec?.title}</h2>
           {spec?.subtitle && <div className="text-[13px] text-muted-foreground">{spec.subtitle}</div>}
         </div>
-        <Button variant="outline" size="sm" onClick={propose}>
-          <RefreshCcw className="size-4" />{t("app_rebuild")}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={propose}>
+            <RefreshCcw className="size-4" />{t("app_rebuild")}
+          </Button>
+          <Button variant="ghost" size="sm" disabled={removeApp.isPending}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={async () => {
+              if (await confirm({
+                title: t("app_delete"), description: t("app_delete_confirm"),
+                actionLabel: t("app_delete"), destructive: true,
+              })) removeApp.mutate();
+            }}>
+            <Trash2 className="size-4" />{t("app_delete")}
+          </Button>
+        </div>
       </div>
       {views.map((v, i) => (
         v.type === "kpi" ? <KpiView key={i} pid={pid} view={v} />

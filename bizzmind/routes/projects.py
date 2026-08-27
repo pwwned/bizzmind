@@ -660,6 +660,16 @@ def quote(pid: str, kind: str = "analysis", model: str = "standard", request: Re
             "remaining": st["remaining"], "affordable": st["remaining"] >= need}
 
 
+@router.delete("/api/p/{pid}/app")
+def delete_app(pid: str):
+    """Drop the generated app; the data and dashboard stay untouched."""
+    proj = get_project(pid)
+    proj.app = {}
+    proj.save_app()
+    log.info(f"[{pid}] app: deleted")
+    return {"ok": True}
+
+
 @router.post("/api/p/{pid}/app/propose")
 async def propose_app(pid: str, request: Request):
     """Cheap first pass: read the data and propose apps worth building."""

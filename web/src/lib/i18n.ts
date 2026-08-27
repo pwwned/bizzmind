@@ -161,6 +161,8 @@ export const dict = {
     app_your_input: "А ти от какво имаш нужда?",
     app_your_input_hint: "Ако нищо от горните не е точно това — опиши го със свои думи и ще построя него.",
     app_your_input_ph: "напр. искам всяка сутрин да въвеждам вчерашния ден и да виждам кой обект е под план…",
+    app_delete: "Изтрий приложението", app_deleted: "Приложението е изтрито.",
+    app_delete_confirm: "Приложението ще бъде премахнато. Данните, дашбордът и въведените записи остават — можеш да построиш ново по всяко време.",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -318,6 +320,8 @@ export const dict = {
     app_your_input: "What do you actually need?",
     app_your_input_hint: "If none of these is quite it — describe it in your words and I will build that.",
     app_your_input_ph: "e.g. every morning I want to enter yesterday and see which site is behind plan…",
+    app_delete: "Delete the app", app_deleted: "The app was deleted.",
+    app_delete_confirm: "The app will be removed. Your data, dashboard and entered records stay — you can build a new one anytime.",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

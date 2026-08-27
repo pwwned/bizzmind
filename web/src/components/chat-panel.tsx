@@ -48,6 +48,14 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
       });
       setItems((it) => [...it.filter((m) => m.procId !== procId), { role: "ai", text: res.reply || t("done"), questions: res.questions }]);
       qc.invalidateQueries({ queryKey: ["state", pid] });
+      // the charge is settled from real usage once the job ends — refresh and report it
+      const before = credits.data?.remaining;
+      const fresh = await qc.fetchQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid) });
+      qc.invalidateQueries({ queryKey: ["account"] });
+      qc.invalidateQueries({ queryKey: ["quote", pid] });
+      if (before != null && fresh?.remaining != null && before > fresh.remaining) {
+        setItems((it) => [...it, { role: "event", text: t("charged_line", { n: before - fresh.remaining }) }]);
+      }
     } catch (e) {
       setItems((it) => [...it.filter((m) => m.procId !== procId), { role: "ai", text: t("problem", { msg: (e as Error).message }) }]);
     } finally { setBusy(false); }

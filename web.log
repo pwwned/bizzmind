@@ -631,3 +631,5 @@ Error: socket hang up
  GET /p/poli-demo 200 in 31ms (next.js: 9ms, proxy.ts: 3ms, application-code: 19ms)
 ✓ Compiled in 126ms
  GET /p/demo-eb7d7d 200 in 32ms (next.js: 13ms, proxy.ts: 5ms, application-code: 14ms)
+ GET /p/demo-eb7d7d 200 in 19ms (next.js: 5ms, proxy.ts: 1.0ms, application-code: 12ms)
+✓ Compiled in 38ms

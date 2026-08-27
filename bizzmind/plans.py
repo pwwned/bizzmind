@@ -39,7 +39,13 @@ COSTS = {
 }
 
 
-# Analysis price scales with how much data the AI has to read: a 45-sheet
+# Credits are settled from what an action ACTUALLY costs us in AI spend.
+# 1 credit sells for ~EUR 0.005; CREDITS_PER_USD keeps a healthy margin over
+# the API price while staying a round, explainable number.
+CREDITS_PER_USD = 500
+
+# The estimate shown BEFORE the run (and the ceiling for the final charge):
+# analysis price scales with how much data the AI has to read: a 45-sheet
 # workbook costs us ~3x a 3-sheet one, so it costs the user more too.
 ANALYSIS_TIERS = [(10, 1.0), (30, 1.6), (10**9, 2.4)]   # (max tables, multiplier)
 
@@ -59,6 +65,16 @@ def analysis_cost(tables: int, model: str | None = None) -> int:
 
 def norm_model(model: str | None) -> str:
     return model if model in MODELS else "standard"
+
+
+def credits_from_usd(cost_usd: float) -> int:
+    """Actual spend -> credits, rounded up to a friendly 10."""
+    import math
+    return max(10, int(math.ceil(cost_usd * CREDITS_PER_USD / 10.0) * 10))
+
+
+# how much over the estimate a settlement may go (protects the user from surprises)
+OVERRUN_CAP = 1.25
 
 
 def cost_of(kind: str, model: str | None = None, tables: int = 0) -> int:
@@ -155,6 +171,30 @@ def ensure_can_afford(pid: str, kind: str, lang: str, model: str | None = None, 
     need = cost_of(kind, model, tables)
     if st["remaining"] < need:
         raise HTTPException(402, T(lang, "no_credits_need", need=need, have=st["remaining"]))
+
+
+def reserve(pid: str, kind: str, lang: str, model: str | None = None, tables: int = 0) -> int:
+    """Pre-flight: refuse the action when the ESTIMATE does not fit the balance.
+    Nothing is deducted here — the real charge happens on settle()."""
+    est = cost_of(kind, model, tables)
+    ensure_can_afford(pid, kind, lang, model, tables)
+    return est
+
+
+def settle(pid: str, kind: str, cost_usd: float, estimate: int, model: str | None = None) -> int:
+    """Charge what the action really cost, never more than the quoted estimate
+    plus a small buffer. Returns the credits actually taken."""
+    credits = credits_from_usd(cost_usd or 0)
+    capped = min(credits, int(estimate * OVERRUN_CAP)) if estimate else credits
+    org = org_of_project(pid)
+    if org is None or capped <= 0:
+        return 0
+    with pool().connection() as con:
+        con.execute("UPDATE public.organizations SET credits_used = credits_used + %s WHERE id = %s",
+                    (capped, org))
+        con.execute("INSERT INTO public.credit_events (org_id, project_id, kind, credits) "
+                    "VALUES (%s, %s, %s, %s)", (org, pid, kind, capped))
+    return capped
 
 
 def charge(pid: str, kind: str, lang: str, model: str | None = None, tables: int = 0) -> None:

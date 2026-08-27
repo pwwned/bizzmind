@@ -44,6 +44,18 @@ def job_status(job_id: str, since: int = 0):
             "events": jobs.events(job_id, since)}
 
 
+def _settle_job(pid: str, job_id: str, kind: str, payload: dict) -> None:
+    """Charge the real AI spend of a finished job (nothing was taken up front)."""
+    if kind not in ("chat", "review", "app", "deck"):
+        return
+    with db.pool().connection() as con:
+        row = con.execute("SELECT cost_usd FROM public.jobs WHERE id = %s", (job_id,)).fetchone()
+    cost = float(row[0]) if row and row[0] else 0.0
+    took = plans.settle(pid, "analysis" if kind in ("review", "app") else kind, cost,
+                        int(payload.get("estimate") or 0), payload.get("model"))
+    log.info(f"[{pid}] settled {kind}: ${cost:.4f} -> {took} credits")
+
+
 async def _execute_claimed(job: dict) -> dict:
     """Run a claimed job in-process (same code path as worker.py)."""
     import time as _time
@@ -73,13 +85,11 @@ async def _execute_claimed(job: dict) -> dict:
         else:
             raise ValueError(f"unknown job kind '{kind}'")
         jobs.finish(job["id"], result)
+        _settle_job(proj.id, job["id"], kind, pl)
         log.info(f"[{proj.id}] job {job['id']} done inline in {_time.monotonic() - t0:.1f}s")
         return {"status": "done"}
     except Exception as e:
-        if kind in ("chat", "review"):
-            plans.refund(proj.id, "analysis" if kind == "review" else "chat", pl.get("model"),
-                         tables=len(pl.get("tables") or []))
-            log.info(f"[{proj.id}] job {job['id']} failed — credits refunded")
+        log.info(f"[{proj.id}] job {job['id']} failed — nothing charged")
         jobs.fail(job["id"], str(e))
         log.info(f"[{proj.id}] job {job['id']} FAILED inline — {_short(e, 200)}")
         return {"status": "failed", "error": str(e)}
@@ -577,7 +587,8 @@ async def refresh_dashboard(pid: str, req: RefreshRequest, request: Request):
 @router.post("/api/p/{pid}/chat")
 async def chat(pid: str, req: ChatRequest, request: Request):
     log.info(f"[{pid}] chat: message received, model={req.model}")
-    plans.charge(pid, "chat", req_lang(request), req.model)
+    n_tables = len(describe_schema(get_project(pid)))
+    est = plans.reserve(pid, "chat", req_lang(request), req.model, tables=n_tables)
     proj = get_project(pid)
     lang = req_lang(request)
     proj.ai_model_id = plans.MODELS[plans.norm_model(req.model)]["model_id"]
@@ -586,15 +597,15 @@ async def chat(pid: str, req: ChatRequest, request: Request):
         proj.add_chat("user", req.message)
         return await dispatch_agent(proj, req.message)
     u = sb_auth.current_user()
-    return {"job_id": jobs.enqueue(pid, "chat", {"message": req.message, "model": req.model},
-                                   lang, u.id if u else None)}
+    return {"job_id": jobs.enqueue(pid, "chat", {"message": req.message, "model": req.model,
+                                                "estimate": est}, lang, u.id if u else None)}
 
 
 @router.post("/api/p/{pid}/review")
 async def review(pid: str, req: ReviewRequest, request: Request):
     log.info(f"[{pid}] review: requested — {len(req.tables)} tables, model={req.model}")
-    plans.charge(pid, "analysis", req_lang(request), req.model, tables=len(req.tables))
-    log.info(f"[{pid}] review: charged, dispatching (inline={INLINE_JOBS})")
+    est = plans.reserve(pid, "analysis", req_lang(request), req.model, tables=len(req.tables))
+    log.info(f"[{pid}] review: estimate {est} cr, dispatching (inline={INLINE_JOBS})")
     proj = get_project(pid)
     lang = req_lang(request)
     proj.ai_model_id = plans.MODELS[plans.norm_model(req.model)]["model_id"]
@@ -603,7 +614,7 @@ async def review(pid: str, req: ReviewRequest, request: Request):
         return await run_review(proj, req.tables, req.context, req.goal)
     u = sb_auth.current_user()
     jid = jobs.enqueue(pid, "review", {"tables": req.tables, "context": req.context,
-                                       "goal": req.goal, "model": req.model},
+                                       "goal": req.goal, "model": req.model, "estimate": est},
                        lang, u.id if u else None)
     log.info(f"[{pid}] review: job {jid} enqueued")
     return {"job_id": jid}
@@ -621,12 +632,12 @@ async def build_app(pid: str, request: Request):
     lang = req_lang(request)
     log.info(f"[{pid}] app: build requested")
     proj = get_project(pid)
-    plans.charge(pid, "analysis", lang, tables=len(describe_schema(proj)))
+    est = plans.reserve(pid, "analysis", lang, tables=len(describe_schema(proj)))
     proj.lang = lang
     if INLINE_JOBS:
         return await run_app(proj)
     u = sb_auth.current_user()
-    return {"job_id": jobs.enqueue(pid, "app", {}, lang, u.id if u else None)}
+    return {"job_id": jobs.enqueue(pid, "app", {"estimate": est}, lang, u.id if u else None)}
 
 
 @router.get("/api/p/{pid}/quote")

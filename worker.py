@@ -96,15 +96,13 @@ async def main(once: bool = False):
         try:
             result = await run_job(job)
             jobs.finish(job["id"], result)
+            from bizzmind.routes.projects import _settle_job
+            _settle_job(job["project_id"], job["id"], job["kind"], job["payload"] or {})
             log.info(f"[{job['project_id']}] job {job['id']} done in {time.monotonic() - t0:.1f}s")
         except Exception as e:
             log.info(f"[{job['project_id']}] job {job['id']} FAILED — {core._short(e, 200)}\n{traceback.format_exc()[-800:]}")
             jobs.fail(job["id"], str(e))
-            if job["kind"] in ("chat", "review"):
-                from bizzmind import plans
-                p = job["payload"] or {}
-                plans.refund(job["project_id"], "analysis" if job["kind"] == "review" else "chat", p.get("model"))
-                log.info(f"[{job['project_id']}] credits refunded for failed {job['kind']}")
+            log.info(f"[{job['project_id']}] failed {job['kind']} — nothing charged")
         if once:
             return
 

@@ -134,8 +134,9 @@ export const dict = {
     clear_project_hint: "Трие файловете, таблиците, дашборда, знанието и приложението — за да започнеш проекта на чисто. Самият проект се трие от списъка с проекти.",
     clear_project_confirm: "Това ще изтрие безвъзвратно всички данни в проекта — файлове, таблици, дашборд, знание и приложението. Проектът остава и можеш да качиш нови файлове.",
     type_project_name: "Напиши „{name}“, за да потвърдиш:",
-    quote_line: "≈{n} кредита за {tables} таблици · оставащи {left}",
-    quote_short: "Нужни са {n} кредита, имаш {left}.",
+    quote_line: "Прогноза ≈{n} кредита за {tables} таблици · плащаш реално изхарченото · оставащи {left}",
+    quote_short: "Прогнозата е {n} кредита, а имаш {left}.",
+    charged_line: "Изразходвани {n} кредита за тази стъпка.",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -266,8 +267,9 @@ export const dict = {
     clear_project_hint: "Deletes the files, tables, dashboard, knowledge and the app so you can start this project fresh. The project itself is deleted from the projects list.",
     clear_project_confirm: "This permanently deletes all data in the project — files, tables, dashboard, knowledge and the app. The project stays and you can upload new files.",
     type_project_name: "Type \"{name}\" to confirm:",
-    quote_line: "≈{n} credits for {tables} tables · {left} left",
-    quote_short: "Needs {n} credits, you have {left}.",
+    quote_line: "Estimate ≈{n} credits for {tables} tables · you pay actual usage · {left} left",
+    quote_short: "The estimate is {n} credits and you have {left}.",
+    charged_line: "{n} credits used for this step.",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

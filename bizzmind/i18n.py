@@ -21,6 +21,7 @@ MSG: dict = {
         "plan_projects_limit": "Планът {plan} позволява до {n} проект(а). Премини на по-висок план за повече.",
         "plan_files_limit": "Планът {plan} позволява до {n} файла на проект.",
         "plan_file_too_big": "„{name}“ е {mb} MB — планът {plan} позволява до {max} MB на файл.",
+        "act_sql_purpose": "🔍 {what}",
         "act_app_designing": "🧩 Проектирам приложението от данните…",
         "act_app_ready": "🧩 Приложението е готово",
         "err_app_invalid": "AI-ят не върна валидна спецификация за приложението.",

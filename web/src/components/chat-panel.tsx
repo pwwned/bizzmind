@@ -118,16 +118,17 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
           {items.map((m, i) => (
             <div key={i}>
               {m.role === "process" ? (
-                <div className="rounded-xl border border-olive/30 bg-olive/5 px-3 py-2 text-xs">
+                <div className="overflow-hidden rounded-xl border border-olive/30 bg-olive/5 px-3 py-2 text-xs">
                   <div className="mb-1 flex items-center gap-2 font-bold text-olive">
                     <span className="size-3 animate-spin rounded-full border-2 border-border border-t-olive" />
                     {m.text} · {Math.round((Date.now() - (m.started ?? Date.now())) / 1000)}s
                   </div>
                   <ul className="space-y-0.5 text-muted-foreground">
                     {m.live?.map((ev, li) => (
-                      <li key={ev.seq} className={li === (m.live!.length - 1) ? "text-foreground" : "truncate opacity-70"}>
-                        <span className="mr-1 text-olive">{ev.kind === "sql" ? "⌗" : ev.kind === "chart" ? "▤" : ev.kind === "note" ? "◆" : ev.kind === "error" ? "!" : "·"}</span>
-                        {ev.text}
+                      <li key={ev.seq}
+                        className={`flex min-w-0 gap-1 ${li === (m.live!.length - 1) ? "text-foreground" : "opacity-70"}`}>
+                        <span className="shrink-0 text-olive">{ev.kind === "sql" ? "⌗" : ev.kind === "chart" ? "▤" : ev.kind === "note" ? "◆" : ev.kind === "error" ? "!" : "·"}</span>
+                        <span className="min-w-0 flex-1 truncate">{ev.text}</span>
                       </li>
                     ))}
                   </ul>

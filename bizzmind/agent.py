@@ -81,13 +81,20 @@ TOOLS = [
         "description": (
             "Run a read-only PostgreSQL query against the user's uploaded data to "
             "explore it or verify results. Returns up to 50 rows. Use double quotes "
-            "around identifiers."
+            "around identifiers. ALWAYS fill `purpose`: a short, non-technical line "
+            "in the user's language saying what you are finding out — it is shown "
+            "live in the UI instead of the SQL (e.g. 'Сравнявам оборота по обекти', "
+            "'Проверявам кои дни имат липсващи данни')."
         ),
         "strict": True,
         "input_schema": {
             "type": "object",
-            "properties": {"sql": {"type": "string"}},
-            "required": ["sql"],
+            "properties": {
+                "sql": {"type": "string"},
+                "purpose": {"type": "string",
+                            "description": "Short human sentence in the user's language: what this query finds out."},
+            },
+            "required": ["sql", "purpose"],
             "additionalProperties": False,
         },
     },
@@ -314,7 +321,9 @@ def execute_tool(proj: Project, name: str, tool_input: dict) -> tuple:
     elif is_error:
         proj.log_activity("error", T(L, "act_tool_error", name=name, detail=_short(content, 90)))
     elif name == "run_sql_query":
-        proj.log_activity("sql", T(L, "act_sql_look", sql=_short(tool_input.get('sql', ''), 80)))
+        purpose = (tool_input.get("purpose") or "").strip()
+        proj.log_activity("sql", T(L, "act_sql_purpose", what=_short(purpose, 90)) if purpose
+                          else T(L, "act_sql_look", sql=_short(tool_input.get('sql', ''), 80)))
     elif name == "record_data_context":
         proj.log_activity("note", T(L, "act_note", note=_short(tool_input.get('note', ''), 80)))
     elif name == "define_filter":
@@ -649,7 +658,7 @@ def _mcp_result(content: str, is_error: bool) -> dict:
     return {"content": [{"type": "text", "text": prefix + content}]}
 
 
-@tool("run_sql_query", TOOL_DESC["run_sql_query"], {"sql": str})
+@tool("run_sql_query", TOOL_DESC["run_sql_query"], {"sql": str, "purpose": str})
 async def sdk_run_sql(args):
     return _mcp_result(*execute_tool(CURRENT_PROJECT, "run_sql_query", args))
 

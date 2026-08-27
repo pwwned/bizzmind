@@ -56,9 +56,9 @@
 /* Light theme (default for the :root; the app stamps .dark on <html>) */
 :root {
   --radius: 0.75rem;
-  --olive: #b5d33d;
-  --olive-deep: #6f8f1f;
-  --olive-light: #c9e356;
+  --olive: #6f8f1f;          /* on light ground the accent is the deep olive */
+  --olive-deep: #56703a;
+  --olive-light: #93ad35;
   --background: #f4f6ee;
   --foreground: #141e18;
   --card: #ffffff;
@@ -94,6 +94,9 @@
 
 /* Dark theme — the product's primary look */
 .dark {
+  --olive: #b5d33d;
+  --olive-deep: #6f8f1f;
+  --olive-light: #c9e356;
   --background: #141e18;
   --foreground: #eef2ea;
   --card: #203027;

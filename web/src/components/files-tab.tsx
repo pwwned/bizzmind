@@ -8,7 +8,7 @@ import { useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, FileSpreadsheet, Palette, Brain, Trash2, Plus } from "lucide-react";
+import { ChevronDown, FileSpreadsheet, Palette, Brain, Trash2, Plus, AlertTriangle } from "lucide-react";
 
 function Section({ icon, title, hint, count, children, defaultOpen = true }: {
   icon: React.ReactNode; title: string; hint?: string; count: number; children: React.ReactNode; defaultOpen?: boolean;
@@ -109,6 +109,15 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
   const delBrand = useMutation({ mutationFn: (f: string) => api(p(pid, `/brand/${encodeURIComponent(f)}`), { method: "DELETE" }), onSuccess: () => qc.invalidateQueries({ queryKey: ["state", pid] }) });
   const addNote = useMutation({ mutationFn: (n: string) => endpoints.addNote(pid, n), onSuccess: () => { setNote(""); qc.invalidateQueries({ queryKey: ["state", pid] }); } });
   const delNote = useMutation({ mutationFn: (i: number) => api(p(pid, `/notes/${i}`), { method: "DELETE" }), onSuccess: () => qc.invalidateQueries({ queryKey: ["state", pid] }) });
+  const clearProject = useMutation({
+    mutationFn: () => endpoints.reset(pid),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["state", pid] });
+      qc.invalidateQueries({ queryKey: ["app", pid] });
+      toast.success(t("project_cleared"));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
@@ -177,6 +186,31 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
           ))}
         </ul>
       </Section>
+      <Card className="border-destructive/30 p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="inline-flex size-9 items-center justify-center rounded-xl border border-destructive/30 bg-destructive/10 text-destructive">
+            <AlertTriangle className="size-4" />
+          </span>
+          <span className="flex-1">
+            <h3 className="text-[14.5px] font-bold">{t("clear_project")}</h3>
+            <div className="text-xs text-muted-foreground">{t("clear_project_hint")}</div>
+          </span>
+          <Button variant="outline" disabled={clearProject.isPending}
+            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={async () => {
+              if (await confirm({
+                title: t("clear_project"),
+                description: t("clear_project_confirm"),
+                actionLabel: t("clear_project"),
+                destructive: true,
+                confirmText: state.name,
+                confirmHint: t("type_project_name", { name: state.name }),
+              })) clearProject.mutate();
+            }}>
+            {clearProject.isPending ? t("uploading") : t("clear_project")}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

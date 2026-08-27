@@ -130,6 +130,10 @@ export const dict = {
     app_empty_text: "AI-ят ще проектира работен екран върху същите данни: форми за въвеждане вместо ръчно писане в клетки, живи показатели и списъци — начинът, по който екипът ти работи всеки ден.",
     app_needs_data: "Първо качи файлове в проекта.", app_add_record: "Добави запис", app_row_saved: "Записът е добавен.",
     app_generated: "Генерирано на {at}",
+    clear_project: "Изчисти проекта", project_cleared: "Проектът е изчистен.",
+    clear_project_hint: "Трие всички файлове, таблици, графики, знание и приложението. Проектът остава празен.",
+    clear_project_confirm: "Това ще изтрие безвъзвратно всички данни в проекта — файлове, таблици, дашборд, знание и приложението. Проектът остава, но празен.",
+    type_project_name: "Напиши „{name}“, за да потвърдиш:",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -256,6 +260,10 @@ export const dict = {
     app_empty_text: "The AI designs a working surface over the same data: entry forms instead of typing into cells, live metrics and lists — the way your team actually works every day.",
     app_needs_data: "Upload files to the project first.", app_add_record: "Add record", app_row_saved: "Record added.",
     app_generated: "Generated on {at}",
+    clear_project: "Clear the project", project_cleared: "The project was cleared.",
+    clear_project_hint: "Deletes all files, tables, charts, knowledge and the app. The project stays, empty.",
+    clear_project_confirm: "This permanently deletes everything in the project — files, tables, dashboard, knowledge and the app. The project itself stays, empty.",
+    type_project_name: "Type \"{name}\" to confirm:",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

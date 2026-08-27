@@ -3,7 +3,8 @@
    const confirm = useConfirm();
    if (await confirm({ title, description, actionLabel, destructive })) { … }
    Mount <ConfirmHost /> once (Providers does it). */
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -13,6 +14,9 @@ export interface ConfirmOptions {
   description?: string;
   actionLabel?: string;
   destructive?: boolean;
+  /** When set, the action unlocks only after the user types this exact text. */
+  confirmText?: string;
+  confirmHint?: string;
 }
 
 const ConfirmContext = createContext<(o: ConfirmOptions) => Promise<boolean>>(() => Promise.resolve(false));
@@ -24,6 +28,8 @@ export function useConfirm() {
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const t = useT();
   const [opts, setOpts] = useState<ConfirmOptions | null>(null);
+  const [typed, setTyped] = useState("");
+  useEffect(() => { if (opts) setTyped(""); }, [opts]);
   const resolver = useRef<(v: boolean) => void>(null);
 
   const confirm = useCallback((o: ConfirmOptions) => {
@@ -46,10 +52,17 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <DialogTitle>{opts?.title}</DialogTitle>
             {opts?.description && <DialogDescription>{opts.description}</DialogDescription>}
           </DialogHeader>
+          {opts?.confirmText && (
+            <div className="flex flex-col gap-1.5">
+              <div className="text-[12px] text-muted-foreground">{opts.confirmHint}</div>
+              <Input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={opts.confirmText} />
+            </div>
+          )}
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => close(false)}>{t("cancel")}</Button>
             <Button
               className={opts?.destructive ? "bg-destructive text-white hover:bg-destructive/90" : "grad-olive text-primary-foreground"}
+              disabled={!!opts?.confirmText && typed.trim().toLowerCase() !== opts.confirmText.trim().toLowerCase()}
               onClick={() => close(true)}
             >
               {opts?.actionLabel ?? "OK"}

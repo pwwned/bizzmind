@@ -682,6 +682,8 @@ async def reset(pid: str):
         proj.progress_p.unlink()
     proj.i18n = {}
     proj.save_i18n()
+    proj.app = {}
+    proj.save_app()
     db.project_save(pid, progress=None)
     proj.meta["views"] = {}
     proj.save_meta()
@@ -692,7 +694,10 @@ async def reset(pid: str):
         log.info(f"[{pid}] reset: schema drop failed — {_short(e)}")
     shutil.rmtree(proj.uploads_dir, ignore_errors=True)
     proj.uploads_dir.mkdir(exist_ok=True)
-    storage.sync_up(pid, "uploads", proj.uploads_dir)
+    try:                       # explicit remote wipe (sync_up never deletes on an empty cache)
+        storage.delete_prefix(pid)
+    except Exception as e:
+        log.info(f"[{pid}] reset: storage wipe failed — {_short(e)}")
     invalidate(pid)
     log.info(f"[{pid}] reset: all project state cleared")
     return {"ok": True}

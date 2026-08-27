@@ -19,7 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const lang = jar.get("lang")?.value === "en" ? "en" : "bg";
   return (
     <html lang={lang} className={`${manrope.variable} ${plex.variable} ${dark ? "dark" : ""} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

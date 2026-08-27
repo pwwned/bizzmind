@@ -828,3 +828,5 @@ https://react.dev/link/hydration-mismatch
  
  GET /p/sidaya-pharma 200 in 36ms (next.js: 16ms, proxy.ts: 4ms, application-code: 16ms)
  GET /pricing 200 in 41ms (next.js: 21ms, proxy.ts: 5ms, application-code: 14ms)
+ GET /p/demo-eb7d7d 200 in 64ms (next.js: 16ms, proxy.ts: 7ms, application-code: 40ms)
+ GET /p/demo-eb7d7d 200 in 18ms (next.js: 4ms, proxy.ts: 1.5ms, application-code: 12ms)

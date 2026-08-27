@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useLang } from "@/lib/i18n";
 import { Logo, Mark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChart3, Blocks, Brain, SlidersHorizontal, FileSpreadsheet, Lock } from "lucide-react";
+import { ArrowRight, BarChart3, Blocks, Brain, Check, SlidersHorizontal, FileSpreadsheet, Lock } from "lucide-react";
 import { ThemeToggle } from "@/lib/theme";
 
 const copy = {
@@ -17,11 +17,15 @@ const copy = {
     proof_lead: "Четем файловете такива, каквито са:",
     how_kicker: "Как работи", how_title: "От ексел до дашборд в три стъпки",
     s1_h: "Качваш файловете", s1_p: "Ексели и CSV-та в реалния им вид — със заглавни редове, слети клетки, кирилица. Системата сама намира таблиците и колоните.",
-    s1_pills: ["📄 продажби_2026.xlsx · 8 колони", "📄 цели_2026.xlsx · 3 колони", "📄 sell-out.csv · 4 колони"], s1_arrow: "↓ 12 таблици разпознати автоматично",
+    s1_chrome: "Файлове и знание", s1_drop: "Пуснете екселите тук",
+    s1_files: [["РАПОРТ 01.2024.xls", "45 листа"], ["продажби_2026.xlsx", "8 колони"], ["sell-out.csv", "4 колони"]],
+    s1_arrow: "45 таблици · 2 419 реда — разпознати автоматично",
     s2_h: "AI-ят те интервюира", s2_p: "Проучва данните сам и пита само необходимото — с готови предложения, които избираш с един клик, или пишеш свой отговор. Като разговор с истински аналитик.",
-    s2_q1: "В каква валута са оборотът и таргетът?", s2_o1: ["Евро (€)", "Лева (BGN)", "✎ Друг отговор"], s2_q2: "Кой показател е най-важен?", s2_o2: ["Оборот", "Изпълнение на таргета (%)"],
+    s2_chrome: "Разговор", s2_a: "Лева — и трите обекта",
+    s2_q1: "В каква валута са оборотът и таргетът?", s2_o1: ["Евро (€)", "Лева (BGN)", "✎ Друг"], s2_q2: "Кой показател е най-важен?", s2_o2: ["Оборот", "Изпълнение на таргета"],
     s3_h: "Получаваш жив дашборд", s3_p: "Графики с истински филтри — по месец, човек, продукт, канал. Всяка промяна се преизчислява от базата на проекта, не от статични картинки.",
-    s3_pills: ["Месец ▾", "Търговец ▾", "Продукт ▾", "€", "бройки"],
+    s3_chrome: "Дашборд", s3_pills: ["Месец ▾", "Обект ▾", "Продукт ▾", "лв", "бройки"],
+    s3_kpis: [["Оборот", "225 051 лв", "+6.8% спрямо декември"], ["Среден бон", "10.70 лв", "най-висок: Ямбол"]],
     why_kicker: "Защо Bizzmind", why_title: "Построен като истински аналитик, не като чатбот",
     b1_h: "Изводи, не само графики", b1_p: "AI-ят не спира до „ето ти графика“ — прави обобщение на целия анализ: наблюдение, число и конкретна препоръка на всеки ред, готово за отчета в понеделник.",
     b1_rows: [["Обща картина", "+6.8%", "ръстът идва изцяло от канала на едро — да се провери маржът"], ["Sell-out", "−3.7%", "трупат се запаси в канала — следи sell-in срещу sell-out"], ["Продукти", "топ 10 = 65%", "висока концентрация — разшири дистрибуцията на новите линии"]],
@@ -54,11 +58,15 @@ const copy = {
     proof_lead: "We read files exactly as they are:",
     how_kicker: "How it works", how_title: "From spreadsheet to dashboard in three steps",
     s1_h: "Upload your files", s1_p: "Excel and CSV files as they really are — title rows, merged cells, any alphabet. The system finds the tables and columns on its own.",
-    s1_pills: ["📄 sales_2026.xlsx · 8 columns", "📄 targets_2026.xlsx · 3 columns", "📄 sell-out.csv · 4 columns"], s1_arrow: "↓ 12 tables recognised automatically",
+    s1_chrome: "Files & knowledge", s1_drop: "Drop your spreadsheets here",
+    s1_files: [["REPORT 01.2024.xls", "45 sheets"], ["sales_2026.xlsx", "8 columns"], ["sell-out.csv", "4 columns"]],
+    s1_arrow: "45 tables · 2,419 rows — recognised automatically",
     s2_h: "The AI interviews you", s2_p: "It explores the data itself and asks only what it needs — with ready suggestions you pick with one click, or your own answer. Like talking to a real analyst.",
-    s2_q1: "Which currency are revenue and target in?", s2_o1: ["Euro (€)", "Lev (BGN)", "✎ Other"], s2_q2: "Which metric matters most?", s2_o2: ["Revenue", "Target achievement (%)"],
+    s2_chrome: "Conversation", s2_a: "Leva — for all three sites",
+    s2_q1: "Which currency are revenue and target in?", s2_o1: ["Euro (€)", "Lev (BGN)", "✎ Other"], s2_q2: "Which metric matters most?", s2_o2: ["Revenue", "Target achievement"],
     s3_h: "You get a live dashboard", s3_p: "Charts with real filters — by month, person, product, channel. Every change is recomputed from the project database, not from static pictures.",
-    s3_pills: ["Month ▾", "Rep ▾", "Product ▾", "€", "units"],
+    s3_chrome: "Dashboard", s3_pills: ["Month ▾", "Site ▾", "Product ▾", "BGN", "units"],
+    s3_kpis: [["Turnover", "225,051 lv", "+6.8% vs December"], ["Avg. receipt", "10.70 lv", "highest: Yambol"]],
     why_kicker: "Why Bizzmind", why_title: "Built like a real analyst, not a chatbot",
     b1_h: "Insights, not just charts", b1_p: "The AI doesn't stop at \"here's a chart\" — it summarises the whole analysis: an observation, a number and a concrete recommendation on every line, ready for Monday's report.",
     b1_rows: [["Big picture", "+6.8%", "growth comes entirely from the wholesale channel — check the margin"], ["Sell-out", "−3.7%", "stock is piling up in the channel — watch sell-in vs sell-out"], ["Products", "top 10 = 65%", "high concentration — widen distribution of the new lines"]],
@@ -135,26 +143,79 @@ export default function Landing() {
       <section id="how" className="mx-auto w-full max-w-6xl px-6 py-16">
         <div className="text-xs font-bold uppercase tracking-wider text-olive">{c.how_kicker}</div>
         <h2 className="mt-2 text-3xl font-extrabold">{c.how_title}</h2>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          <Step n={1} h={c.s1_h} p={c.s1_p}>
-            <div className="flex flex-col gap-1.5">
-              {c.s1_pills.map((x) => <span key={x} className="rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 text-xs">{x}</span>)}
-              <div className="mt-1 text-xs font-semibold text-olive">{c.s1_arrow}</div>
+
+        <div className="relative mt-12 grid gap-6 lg:grid-cols-3">
+          {/* the thread that ties the three steps together */}
+          <div className="pointer-events-none absolute left-0 right-0 top-[26px] hidden h-px bg-gradient-to-r from-transparent via-olive/30 to-transparent lg:block" />
+
+          <Step n={1} h={c.s1_h} p={c.s1_p} chrome={c.s1_chrome}>
+            <div className="rounded-lg border border-dashed border-olive/40 bg-olive/[0.04] px-3 py-4 text-center">
+              <FileSpreadsheet className="mx-auto size-5 text-olive/70" />
+              <div className="mt-1.5 text-[11px] text-muted-foreground">{c.s1_drop}</div>
+            </div>
+            <div className="mt-2.5 space-y-1.5">
+              {c.s1_files.map(([name, meta], i) => (
+                <div key={name} className="flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-2.5 py-1.5">
+                  <FileSpreadsheet className="size-3.5 shrink-0 text-olive" />
+                  <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium">{name}</span>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">{meta}</span>
+                  {i < 2 && <Check className="size-3 shrink-0 text-olive" />}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div className="grad-olive h-full w-[78%] rounded-full" />
+              </div>
+              <div className="mt-1.5 text-[10.5px] font-semibold text-olive">{c.s1_arrow}</div>
             </div>
           </Step>
-          <Step n={2} h={c.s2_h} p={c.s2_p}>
-            <div className="text-xs font-semibold">{c.s2_q1}</div>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">{c.s2_o1.map((o, i) => <Chip key={o} on={i === 0}>{o}</Chip>)}</div>
-            <div className="mt-3 text-xs font-semibold">{c.s2_q2}</div>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">{c.s2_o2.map((o, i) => <Chip key={o} on={i === 1}>{o}</Chip>)}</div>
+
+          <Step n={2} h={c.s2_h} p={c.s2_p} chrome={c.s2_chrome}>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-olive/40 bg-olive/10"><Mark size={11} /></span>
+                <div className="rounded-xl rounded-tl-sm bg-secondary/70 px-2.5 py-2 text-[11.5px] leading-snug">{c.s2_q1}</div>
+              </div>
+              <div className="ml-7 flex flex-wrap gap-1.5">{c.s2_o1.map((o, i) => <Chip key={o} on={i === 0}>{o}</Chip>)}</div>
+              <div className="flex justify-end">
+                <div className="grad-olive rounded-xl rounded-br-sm px-2.5 py-1.5 text-[11.5px] font-medium text-primary-foreground">{c.s2_a}</div>
+              </div>
+              <div className="flex gap-2">
+                <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-olive/40 bg-olive/10"><Mark size={11} /></span>
+                <div className="rounded-xl rounded-tl-sm bg-secondary/70 px-2.5 py-2 text-[11.5px] leading-snug">{c.s2_q2}</div>
+              </div>
+              <div className="ml-7 flex flex-wrap gap-1.5">{c.s2_o2.map((o, i) => <Chip key={o} on={i === 1}>{o}</Chip>)}</div>
+            </div>
           </Step>
-          <Step n={3} h={c.s3_h} p={c.s3_p}>
+
+          <Step n={3} h={c.s3_h} p={c.s3_p} chrome={c.s3_chrome}>
             <div className="flex flex-wrap gap-1.5">{c.s3_pills.map((o, i) => <Chip key={o} on={i === 3}>{o}</Chip>)}</div>
-            <svg viewBox="0 0 260 74" className="mt-3 w-full" aria-hidden="true">
-              <g fill="#7f9c3a">{[[6, 34, 36], [32, 24, 46], [58, 40, 30], [84, 16, 54], [110, 28, 42], [136, 10, 60]].map(([x, y, h]) => <rect key={x} x={x} y={y} width="16" height={h} rx="3" />)}</g>
-              <polyline points="170,52 192,38 214,44 236,20 254,26" fill="none" stroke="#c9e356" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <g fill="#c9e356">{[[170, 52], [192, 38], [214, 44], [236, 20], [254, 26]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="3.4" />)}</g>
-            </svg>
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
+              {c.s3_kpis.map(([label, value, delta]) => (
+                <div key={label} className="rounded-lg border border-border bg-secondary/40 px-2.5 py-2">
+                  <div className="text-[9.5px] uppercase tracking-wide text-muted-foreground">{label}</div>
+                  <div className="text-[15px] font-extrabold tabular-nums leading-tight">{value}</div>
+                  <div className="text-[9.5px] font-semibold text-olive">{delta}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 rounded-lg border border-border bg-secondary/30 p-2">
+              <svg viewBox="0 0 240 64" className="w-full" role="img" aria-hidden>
+                <defs>
+                  <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--olive)" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="var(--olive)" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {[0, 16, 32, 48].map((y) => <line key={y} x1="0" y1={y + 8} x2="240" y2={y + 8} stroke="currentColor" strokeOpacity="0.08" />)}
+                {[[10, 34], [40, 26], [70, 38], [100, 18], [130, 30], [160, 12], [190, 22], [214, 8]].map(([x, h]) => (
+                  <rect key={x} x={x} y={56 - h} width="14" height={h} rx="3" fill="var(--olive)" fillOpacity={x === 160 ? 1 : 0.55} />
+                ))}
+                <path d="M17 30 L47 22 L77 33 L107 15 L137 26 L167 9 L197 18 L221 6" fill="none" stroke="var(--olive-light)" strokeWidth="2" strokeLinecap="round" />
+                <path d="M17 30 L47 22 L77 33 L107 15 L137 26 L167 9 L197 18 L221 6 L221 56 L17 56 Z" fill="url(#lg)" />
+              </svg>
+            </div>
           </Step>
         </div>
       </section>
@@ -237,13 +298,24 @@ export default function Landing() {
   );
 }
 
-function Step({ n, h, p, children }: { n: number; h: string; p: string; children: React.ReactNode }) {
+function Step({ n, h, p, chrome, children }: {
+  n: number; h: string; p: string; chrome: string; children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6">
-      <div className="grad-olive inline-flex size-9 items-center justify-center rounded-xl text-sm font-extrabold text-primary-foreground">{n}</div>
-      <div className="rounded-xl border border-border bg-background/60 p-3">{children}</div>
-      <h3 className="text-lg font-bold">{h}</h3>
-      <p className="text-[13.5px] leading-relaxed text-muted-foreground">{p}</p>
+    <div className="group relative flex flex-col rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-olive/40 hover:shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+      <div className="grad-olive absolute -top-3.5 left-5 inline-flex size-7 items-center justify-center rounded-lg text-[12px] font-extrabold text-primary-foreground shadow-lg">{n}</div>
+      {/* a little product window, so the step looks like the app, not a diagram */}
+      <div className="mt-2 overflow-hidden rounded-xl border border-border bg-background/70 shadow-inner">
+        <div className="flex items-center gap-1.5 border-b border-border bg-secondary/40 px-3 py-1.5">
+          <span className="size-1.5 rounded-full bg-muted-foreground/30" />
+          <span className="size-1.5 rounded-full bg-muted-foreground/20" />
+          <span className="size-1.5 rounded-full bg-muted-foreground/20" />
+          <span className="ml-1 truncate text-[10px] font-semibold text-muted-foreground">{chrome}</span>
+        </div>
+        <div className="p-3">{children}</div>
+      </div>
+      <h3 className="mt-4 text-[17px] font-bold">{h}</h3>
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{p}</p>
     </div>
   );
 }

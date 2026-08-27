@@ -645,3 +645,11 @@ Error: socket hang up
 ✓ Compiled in 161ms
  GET / 200 in 70ms (next.js: 16ms, proxy.ts: 3ms, application-code: 51ms)
  GET / 200 in 19ms (next.js: 1.4ms, proxy.ts: 2ms, application-code: 16ms)
+ GET /p/demo-eb7d7d 200 in 51ms (next.js: 11ms, proxy.ts: 4ms, application-code: 36ms)
+ GET / 200 in 49ms (next.js: 6ms, proxy.ts: 4ms, application-code: 39ms)
+ GET /login?next=%2Fapp 307 in 19ms (proxy.ts: 3ms)
+ GET /login?next=%2Fapp 200 in 17ms (next.js: 2ms, proxy.ts: 1.2ms, application-code: 13ms)
+ GET / 200 in 18ms (next.js: 5ms, proxy.ts: 1.2ms, application-code: 12ms)
+✓ Compiled in 70ms
+ GET / 200 in 63ms (next.js: 5ms, proxy.ts: 4ms, application-code: 54ms)
+ GET / 200 in 44ms (next.js: 3ms, proxy.ts: 4ms, application-code: 37ms)

@@ -653,3 +653,7 @@ Error: socket hang up
 ✓ Compiled in 70ms
  GET / 200 in 63ms (next.js: 5ms, proxy.ts: 4ms, application-code: 54ms)
  GET / 200 in 44ms (next.js: 3ms, proxy.ts: 4ms, application-code: 37ms)
+ GET / 200 in 53ms (next.js: 7ms, proxy.ts: 5ms, application-code: 41ms)
+ GET / 200 in 25ms (next.js: 5ms, proxy.ts: 2ms, application-code: 18ms)
+✓ Compiled in 47ms
+ GET / 200 in 57ms (next.js: 4ms, proxy.ts: 6ms, application-code: 47ms)

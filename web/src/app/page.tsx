@@ -172,12 +172,12 @@ export default function Landing() {
           </Step>
 
           <Step n={2} h={c.s2_h} p={c.s2_p} chrome={c.s2_chrome}>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex gap-2">
                 <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-olive/40 bg-olive/10"><Mark size={11} /></span>
                 <div className="rounded-xl rounded-tl-sm bg-secondary/70 px-2.5 py-2 text-[11.5px] leading-snug">{c.s2_q1}</div>
               </div>
-              <div className="ml-7 flex flex-wrap gap-1.5">{c.s2_o1.map((o, i) => <Chip key={o} on={i === 0}>{o}</Chip>)}</div>
+              <div className="ml-7 flex flex-wrap gap-1.5">{c.s2_o1.map((o, i) => <Chip key={o} on={i === 1}>{o}</Chip>)}</div>
               <div className="flex justify-end">
                 <div className="grad-olive rounded-xl rounded-br-sm px-2.5 py-1.5 text-[11.5px] font-medium text-primary-foreground">{c.s2_a}</div>
               </div>
@@ -312,9 +312,9 @@ function Step({ n, h, p, chrome, children }: {
           <span className="size-1.5 rounded-full bg-muted-foreground/20" />
           <span className="ml-1 truncate text-[10px] font-semibold text-muted-foreground">{chrome}</span>
         </div>
-        <div className="p-3">{children}</div>
+        <div className="flex h-[248px] flex-col justify-center overflow-hidden p-3">{children}</div>
       </div>
-      <h3 className="mt-4 text-[17px] font-bold">{h}</h3>
+      <h3 className="mt-5 text-[17px] font-bold">{h}</h3>
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{p}</p>
     </div>
   );

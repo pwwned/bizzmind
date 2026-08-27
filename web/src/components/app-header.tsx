@@ -65,7 +65,7 @@ export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
           <DropdownMenuItem nativeButton={false} render={<Link href="/account" />}>
             <CircleUserRound className="size-4" />{t("account_settings")}
           </DropdownMenuItem>
-          <DropdownMenuItem nativeButton={false} render={<Link href="/usage" />}>
+          <DropdownMenuItem nativeButton={false} render={<Link href="/pricing" />}>
             <Wallet className="size-4" />{t("usage_billing")}
           </DropdownMenuItem>
           <DropdownMenuItem nativeButton={false} render={<Link href="/billing" />}>

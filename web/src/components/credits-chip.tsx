@@ -107,7 +107,7 @@ export function CreditsChip() {
               <b>{t("faq_what_uses")}</b> {t("faq_what_uses_a")}<br />
               <b>{t("faq_how_many")}</b> {t("faq_how_many_a", { n: n(plan?.credits ?? 0) })}
             </div>
-            <Link href="/usage" className="mt-2 inline-block text-[12px] font-semibold text-olive hover:underline">
+            <Link href="/pricing" className="mt-2 inline-block text-[12px] font-semibold text-olive hover:underline">
               {t("usage_billing")} →
             </Link>
           </DropdownMenuGroup>

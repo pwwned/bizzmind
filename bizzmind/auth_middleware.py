@@ -15,7 +15,7 @@ from bizzmind.i18n import T, req_lang
 
 
 PUBLIC_PATHS = ("/", "/login", "/api/auth/login", "/api/auth/logout", "/api/auth/register", "/api/cron/jobs", "/api/plans", "/api/webhooks/paddle")
-PUBLIC_PREFIXES = ("/static/", "/pub/")
+PUBLIC_PREFIXES = ("/static/", "/pub/", "/api/demo/")
 
 
 def _set_auth_cookies(resp, tokens: dict):

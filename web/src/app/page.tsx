@@ -12,7 +12,7 @@ const copy = {
     tag: "За малки и средни фирми, които още смятат в ексел",
     h1a: "Отчетът, който правите", h1b: "на ръка всеки месец —", h1em: "готов преди кафето", h1c: "",
     sub: "Качвате справките както излизат от ERP-то, касовия апарат или счетоводството. AI аналитик ги проучва, пита ви това, което истинският аналитик би питал, и връща таблото с изводите — на български, за минути.",
-    cta: "Опитай безплатно", how: "Виж как работи", note: "Данните ви остават в ЕС (Ирландия и Франкфурт) и не обучават AI модели.",
+    cta: "Опитай безплатно", how: "Виж как работи", demo_cta: "Виж живо демо", demo_nav: "Демо", note: "Данните ви остават в ЕС (Ирландия и Франкфурт) и не обучават AI модели.",
     proof: ["слети клетки", "двуредови хедъри", "кирилица", ".xls от 2003", "по един лист на обект", "45 таблици в един файл"],
     proof_lead: "Четем файловете такива, каквито са:",
     how_kicker: "Как работи", how_title: "От ексел до дашборд в три стъпки",
@@ -53,7 +53,7 @@ const copy = {
     tag: "For small and mid-sized companies still doing it in Excel",
     h1a: "The report you rebuild", h1b: "by hand every month —", h1em: "done before coffee", h1c: "",
     sub: "Upload the files exactly as they come out of your ERP, till system or accountant. An AI analyst explores them, asks what a real analyst would ask, and hands back the board with the conclusions — in minutes.",
-    cta: "Try it free", how: "See how it works", note: "Your data stays in the EU (Ireland and Frankfurt) and never trains AI models.",
+    cta: "Try it free", how: "See how it works", demo_cta: "See the live demo", demo_nav: "Demo", note: "Your data stays in the EU (Ireland and Frankfurt) and never trains AI models.",
     proof: ["merged cells", "two-row headers", "any alphabet", ".xls from 2003", "one sheet per location", "45 tables in one file"],
     proof_lead: "We read files exactly as they are:",
     how_kicker: "How it works", how_title: "From spreadsheet to dashboard in three steps",
@@ -106,6 +106,7 @@ export default function Landing() {
             ))}
           </div>
           <ThemeToggle />
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/demo" />} className="hidden sm:inline-flex">{c.demo_nav}</Button>
           <Button variant="ghost" size="sm" nativeButton={false} render={<a href="#pricing" />} className="hidden sm:inline-flex">{c.price_kicker}</Button>
           <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/login" />}>{c.sign_in}</Button>
           <Button size="sm" className="grad-olive font-bold text-primary-foreground" nativeButton={false} render={<Link href="/app" />}>{c.open_app}</Button>
@@ -129,14 +130,19 @@ export default function Landing() {
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="grad-olive font-bold text-primary-foreground hover:opacity-90" nativeButton={false} render={<Link href="/app" />}>{c.cta}<ArrowRight className="size-4" /></Button>
-              <Button size="lg" variant="outline" nativeButton={false} render={<a href="#how" />}>{c.how}</Button>
+              <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/demo" />}>{c.demo_cta}</Button>
             </div>
             <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><Lock className="size-3.5" />{c.note}</div>
           </div>
-          <div className="rounded-2xl border border-border bg-card p-2 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+          <Link href="/demo" className="group relative block rounded-2xl border border-border bg-card p-2 shadow-[0_30px_80px_rgba(0,0,0,0.45)] transition-transform hover:-translate-y-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/shots/dashboard_light_${lang}.png`} alt="" className="w-full rounded-xl" />
-          </div>
+            <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-background/60 opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100">
+              <span className="grad-olive inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg">
+                {c.demo_cta}<ArrowRight className="size-4" />
+              </span>
+            </span>
+          </Link>
         </div>
       </section>
 
@@ -289,7 +295,10 @@ export default function Landing() {
         <div className="grad-olive rounded-3xl p-10 text-center text-primary-foreground">
           <h2 className="text-3xl font-extrabold">{c.cta_h}</h2>
           <p className="mt-2 opacity-80">{c.cta_p}</p>
-          <Button size="lg" variant="secondary" className="mt-6 font-bold" nativeButton={false} render={<Link href="/app" />}>{c.cta_btn}<ArrowRight className="size-4" /></Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Button size="lg" variant="secondary" className="font-bold" nativeButton={false} render={<Link href="/app" />}>{c.cta_btn}<ArrowRight className="size-4" /></Button>
+            <Button size="lg" variant="outline" className="border-primary-foreground/40 bg-transparent font-bold text-primary-foreground hover:bg-primary-foreground/10" nativeButton={false} render={<Link href="/demo" />}>{c.demo_cta}</Button>
+          </div>
         </div>
       </section>
 

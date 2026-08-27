@@ -39,7 +39,7 @@ from bizzmind.agent import (  # noqa: F401
     run_agent_subscription, run_deck, run_review, run_translate,
 )
 from bizzmind.auth_middleware import auth_middleware
-from bizzmind.routes import auth_routes, brand_routes, export_routes, pages, projects
+from bizzmind.routes import auth_routes, brand_routes, demo_routes, export_routes, pages, projects
 
 app = FastAPI(title="Bizzmind")
 
@@ -53,5 +53,6 @@ app.include_router(pages.router)
 app.include_router(projects.router)
 app.include_router(brand_routes.router)
 app.include_router(export_routes.router)
+app.include_router(demo_routes.router)
 
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")

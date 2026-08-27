@@ -370,7 +370,8 @@ def upload_sign(pid: str, req: SignRequest, request: Request):
         fname = Path(name).name
         if Path(fname).suffix.lower() not in (".xlsx", ".xls", ".csv"):
             raise HTTPException(400, T(req_lang(request), "err_upload_type", name=fname) if "err_upload_type" in MSG["bg"] else f"Unsupported file type: {fname}")
-        out.append({"filename": fname, "url": storage.signed_upload_url(f"{proj.id}/uploads/{fname}")})
+        out.append({"filename": fname,
+                    "url": storage.signed_upload_url(f"{proj.id}/uploads/{storage.ascii_key(fname)}")})
     return {"files": out}
 
 
@@ -385,7 +386,7 @@ async def run_ingest(proj, filenames: list[str]) -> dict:
     try:
         for name in filenames[:20]:
             fname = Path(name).name
-            payload = await run_in_threadpool(storage.get, f"{pid}/uploads/{fname}")
+            payload = await run_in_threadpool(storage.get, f"{pid}/uploads/{storage.ascii_key(fname)}")
             _check_upload_limits(proj, [fname], proj.lang, {fname: len(payload)})
             await _ingest(proj, fname, payload, loaded)
     finally:

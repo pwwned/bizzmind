@@ -57,6 +57,28 @@ def _req(method: str, path: str, data: bytes | None = None, headers: dict | None
         raise StorageError(f"{method} {path} -> {e}")
 
 
+_CYR = {"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ж":"zh","з":"z","и":"i","й":"y",
+        "к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u",
+        "ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sht","ъ":"a","ь":"y","ю":"yu","я":"ya"}
+
+
+def ascii_key(name: str) -> str:
+    """Storage keys must be ASCII (Supabase rejects Cyrillic with InvalidKey).
+    Transliterate, keep the extension, and stay stable for the same input."""
+    import hashlib
+    import re as _re
+    stem, _, ext = name.rpartition(".")
+    stem = stem or name
+    out = []
+    for ch in stem.lower():
+        out.append(_CYR.get(ch, ch if (ch.isascii() and (ch.isalnum() or ch in "._- ")) else "_"))
+    safe = _re.sub(r"[\s_]+", "_", "".join(out)).strip("._-")[:70] or "file"
+    if safe != stem.lower():          # keep collisions apart for different originals
+        safe = f"{safe}-{hashlib.sha1(name.encode()).hexdigest()[:6]}"
+    ext = _re.sub(r"[^A-Za-z0-9]", "", ext)[:10]
+    return f"{safe}.{ext}" if ext else safe
+
+
 def _q(path: str) -> str:
     return "/".join(urllib.parse.quote(p, safe="") for p in path.split("/"))
 
@@ -175,11 +197,12 @@ def sync_up(pid: str, sub: str, local: Path) -> int:
     for f in sorted(local.iterdir()):
         if not f.is_file() or f.name.startswith("."):
             continue
-        local_names.add(f.name)
-        if remote.get(f.name) == f.stat().st_size:
+        local_names.add(ascii_key(f.name))
+        key = ascii_key(f.name)
+        if remote.get(key) == f.stat().st_size:
             continue
         try:
-            put(f"{pid}/{sub}/{f.name}", f.read_bytes())
+            put(f"{pid}/{sub}/{key}", f.read_bytes())
             n += 1
         except StorageError as e:
             log.info(f"[{pid}] storage: put {f.name} failed — {e}")

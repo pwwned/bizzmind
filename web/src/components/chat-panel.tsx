@@ -53,6 +53,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
     const key = pending.tables.join("|");
     if (key === lastPending.current) return;
     lastPending.current = key;
+    console.info("[review] starting for", pending.tables.length, "table(s), model:", model);
     onOpenChange(true);
     run(t("thinking"), endpoints.review(pid, pending.tables, "", "", model));
     // eslint-disable-next-line react-hooks/exhaustive-deps

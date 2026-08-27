@@ -51,14 +51,23 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
       let r: { loaded: { table: string; rows: number }[] };
       try {
         // 1) signed URLs → 2) browser PUTs straight to Supabase Storage (no API body limit) → 3) API ingests
+        console.info("[upload] sign:", list.map((f) => `${f.name} (${(f.size / 1048576).toFixed(1)}MB)`));
         const sign = await api<{ files: { filename: string; url: string }[] }>(p(pid, "/upload/sign"),
           { method: "POST", body: JSON.stringify({ filenames: list.map((f) => f.name) }) });
+        console.info("[upload] signed", sign.files.length, "url(s), starting PUTs");
         await Promise.all(sign.files.map(async (s) => {
           const f = list.find((x) => x.name === s.filename)!;
           const res = await fetch(s.url, { method: "PUT", body: f, headers: { "x-upsert": "true", "Content-Type": f.type || "application/octet-stream" } });
-          if (!res.ok) throw new Error(`upload ${s.filename}: HTTP ${res.status}`);
+          if (!res.ok) {
+            const body = (await res.text().catch(() => "")).slice(0, 200);
+            console.error("[upload] PUT failed:", s.filename, res.status, body);
+            throw new Error(`${s.filename}: storage HTTP ${res.status} ${body}`);
+          }
+          console.info("[upload] PUT ok:", s.filename);
         }));
+        console.info("[upload] ingest starting");
         r = await api(p(pid, "/upload/ingest"), { method: "POST", body: JSON.stringify({ filenames: sign.files.map((s) => s.filename) }) });
+        console.info("[upload] ingest done:", r.loaded.length, "table(s)");
       } catch (e) {
         if (e instanceof ApiError && e.status !== 503) throw e;
         const fd = new FormData();                 // storage not configured → direct upload

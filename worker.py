@@ -94,6 +94,11 @@ async def main(once: bool = False):
         except Exception as e:
             log.info(f"[{job['project_id']}] job {job['id']} FAILED — {core._short(e, 200)}\n{traceback.format_exc()[-800:]}")
             jobs.fail(job["id"], str(e))
+            if job["kind"] in ("chat", "review"):
+                from bizzmind import plans
+                p = job["payload"] or {}
+                plans.refund(job["project_id"], "analysis" if job["kind"] == "review" else "chat", p.get("model"))
+                log.info(f"[{job['project_id']}] credits refunded for failed {job['kind']}")
         if once:
             return
 

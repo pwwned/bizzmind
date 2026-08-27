@@ -155,6 +155,20 @@ def charge(pid: str, kind: str, lang: str, model: str | None = None) -> None:
                     "VALUES (%s, %s, %s, %s)", (org, pid, kind, cost))
 
 
+def refund(pid: str, kind: str, model: str | None = None) -> None:
+    """Reverse one charge (job failed — the user must not pay for nothing)."""
+    cost = cost_of(kind, model)
+    org = org_of_project(pid)
+    if org is None:
+        return
+    with pool().connection() as con:
+        con.execute("UPDATE public.organizations SET credits_used = GREATEST(0, credits_used - %s) "
+                    "WHERE id = %s", (cost, org))
+        con.execute("DELETE FROM public.credit_events WHERE id = ("
+                    "SELECT id FROM public.credit_events WHERE org_id = %s AND kind = %s "
+                    "ORDER BY id DESC LIMIT 1)", (org, kind))
+
+
 def usage_breakdown(org_id) -> list[dict]:
     with pool().connection() as con:
         rows = con.execute(

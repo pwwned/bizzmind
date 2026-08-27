@@ -72,6 +72,9 @@ async def _execute_claimed(job: dict) -> dict:
         log.info(f"[{proj.id}] job {job['id']} done inline in {_time.monotonic() - t0:.1f}s")
         return {"status": "done"}
     except Exception as e:
+        if kind in ("chat", "review"):
+            plans.refund(proj.id, "analysis" if kind == "review" else "chat", pl.get("model"))
+            log.info(f"[{proj.id}] job {job['id']} failed — credits refunded")
         jobs.fail(job["id"], str(e))
         log.info(f"[{proj.id}] job {job['id']} FAILED inline — {_short(e, 200)}")
         return {"status": "failed", "error": str(e)}
@@ -343,6 +346,7 @@ class SignRequest(BaseModel):
 def upload_sign(pid: str, req: SignRequest, request: Request):
     """Signed Storage URLs: the browser PUTs the files straight to Supabase."""
     proj = get_project(pid)
+    log.info(f"[{pid}] upload/sign: {req.filenames}")
     if not storage.enabled():
         raise HTTPException(503, "storage not configured")
     _check_upload_limits(proj, [Path(n).name for n in req.filenames[:20]], req_lang(request))
@@ -360,6 +364,7 @@ async def upload_ingest(pid: str, req: SignRequest, request: Request):
     """After the browser uploaded to Storage: pull the files and load them."""
     proj = get_project(pid)
     proj.lang = req_lang(request)
+    log.info(f"[{pid}] upload/ingest: start {req.filenames}")
     loaded = []
     db.ensure_project(pid)
     try:
@@ -551,6 +556,7 @@ async def refresh_dashboard(pid: str, req: RefreshRequest, request: Request):
 
 @router.post("/api/p/{pid}/chat")
 async def chat(pid: str, req: ChatRequest, request: Request):
+    log.info(f"[{pid}] chat: message received, model={req.model}")
     plans.charge(pid, "chat", req_lang(request), req.model)
     proj = get_project(pid)
     lang = req_lang(request)
@@ -566,7 +572,9 @@ async def chat(pid: str, req: ChatRequest, request: Request):
 
 @router.post("/api/p/{pid}/review")
 async def review(pid: str, req: ReviewRequest, request: Request):
+    log.info(f"[{pid}] review: requested — {len(req.tables)} tables, model={req.model}")
     plans.charge(pid, "analysis", req_lang(request), req.model)
+    log.info(f"[{pid}] review: charged, dispatching (inline={INLINE_JOBS})")
     proj = get_project(pid)
     lang = req_lang(request)
     proj.ai_model_id = plans.MODELS[plans.norm_model(req.model)]["model_id"]
@@ -574,9 +582,11 @@ async def review(pid: str, req: ReviewRequest, request: Request):
         proj.lang = lang
         return await run_review(proj, req.tables, req.context, req.goal)
     u = sb_auth.current_user()
-    return {"job_id": jobs.enqueue(pid, "review", {"tables": req.tables, "context": req.context,
-                                                    "goal": req.goal, "model": req.model},
-                                   lang, u.id if u else None)}
+    jid = jobs.enqueue(pid, "review", {"tables": req.tables, "context": req.context,
+                                       "goal": req.goal, "model": req.model},
+                       lang, u.id if u else None)
+    log.info(f"[{pid}] review: job {jid} enqueued")
+    return {"job_id": jid}
 
 
 @router.post("/api/p/{pid}/reset")

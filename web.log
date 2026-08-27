@@ -449,3 +449,22 @@ Error: socket hang up
 }
  GET /p/raport-demo 200 in 29ms (next.js: 10ms, proxy.ts: 2ms, application-code: 17ms)
 ✓ Compiled in 242ms
+ GET /p/raport-demo 200 in 60ms (next.js: 12ms, proxy.ts: 4ms, application-code: 44ms)
+Failed to proxy http://127.0.0.1:8000/api/p/raport-demo/upload/ingest Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /p/raport-demo 200 in 66ms (next.js: 15ms, proxy.ts: 10ms, application-code: 41ms)
+ GET /p/raport-demo 200 in 78ms (next.js: 20ms, proxy.ts: 16ms, application-code: 42ms)
+ GET /p/raport-demo 200 in 15ms (next.js: 5ms, proxy.ts: 1.2ms, application-code: 9ms)
+✓ Compiled in 45ms
+ GET /login?force=1 200 in 46ms (next.js: 11ms, proxy.ts: 5ms, application-code: 29ms)
+ GET /app 200 in 33ms (next.js: 12ms, proxy.ts: 5ms, application-code: 17ms)
+ GET /app 200 in 16ms (next.js: 2ms, proxy.ts: 3ms, application-code: 11ms)
+ GET /p/raport-demo 200 in 53ms (next.js: 11ms, proxy.ts: 5ms, application-code: 37ms)
+ GET /p/raport-demo 200 in 80ms (next.js: 21ms, proxy.ts: 16ms, application-code: 44ms)
+ GET /p/raport-demo 200 in 95ms (next.js: 23ms, proxy.ts: 12ms, application-code: 59ms)

@@ -736,3 +736,6 @@ Error: connect ECONNREFUSED 127.0.0.1:8000
  GET /demo 200 in 50ms (next.js: 6ms, proxy.ts: 10ms, application-code: 34ms)
  GET / 200 in 33ms (next.js: 9ms, proxy.ts: 5ms, application-code: 19ms)
  GET /demo 200 in 38ms (next.js: 7ms, proxy.ts: 7ms, application-code: 24ms)
+ GET /demo 200 in 55ms (next.js: 6ms, proxy.ts: 8ms, application-code: 41ms)
+ GET /demo 200 in 21ms (next.js: 6ms, proxy.ts: 3ms, application-code: 13ms)
+✓ Compiled in 61ms

@@ -174,28 +174,50 @@ def public_plans():
     return {"plans": plans.PLANS, "packs": plans.PACKS, "costs": plans.COSTS}
 
 
+def _account_snapshot(org):
+    """Everything the account view needs in ONE database round trip."""
+    if org is None:
+        return None
+    with plans.pool().connection() as con:
+        row = con.execute(
+            "SELECT o.plan, o.credits_quota, o.credits_extra, o.credits_used, o.auto_recharge, "
+            "       o.name, o.billing, o.paddle_customer_id, o.paddle_subscription_id, "
+            "       (SELECT count(*) FROM public.projects p WHERE p.org_id = o.id), "
+            "       (SELECT coalesce(jsonb_agg(jsonb_build_object('kind', k, 'count', n, 'credits', c)), '[]'::jsonb) "
+            "        FROM (SELECT kind k, count(*) n, sum(credits) c FROM public.credit_events "
+            "              WHERE org_id = o.id GROUP BY kind ORDER BY sum(credits) DESC) x) "
+            "FROM public.organizations o WHERE o.id = %s", (org,)).fetchone()
+    return row
+
+
 @router.get("/api/account")
 def account(request: Request):
     u, org = _me_org()
-    st = plans.org_state(org) if org else {"plan": "free", "quota": 0, "extra": 0,
-                                           "used": 0, "remaining": 0, "auto_recharge": False, "org_name": ""}
+    snap = _account_snapshot(org)
+    if not snap:
+        plan, quota, extra, used, auto, oname, billing, cust, sub, nproj, usage = (
+            "free", 0, 0, 0, False, "", {}, None, None, 0, [])
+    else:
+        plan, quota, extra, used, auto, oname, billing, cust, sub, nproj, usage = snap
+    if plan not in plans.PLANS:
+        plan = "free"
     return {
         "email": u.email,
         "org_id": str(org) if org else None,
-        "org_name": st["org_name"],
+        "org_name": oname,
         "role": u.roles.get(str(org), "member") if org else "member",
-        "plan": st["plan"],
+        "plan": plan,
         "plans": plans.PLANS,
         "costs": plans.COSTS,
         "models": {k: {"label": v["label"], "min_plan": v["min_plan"]} for k, v in plans.MODELS.items()},
         "packs": plans.PACKS,
-        "credits": {"quota": st["quota"], "extra": st["extra"], "used": st["used"],
-                    "remaining": st["remaining"]},
-        "auto_recharge": st["auto_recharge"],
-        "projects_used": plans.project_count(org) if org else 0,
-        "usage": plans.usage_breakdown(org) if org else [],
-        "billing": _org_billing(org),
-        "subscription": _org_subscription(org),
+        "credits": {"quota": quota, "extra": extra, "used": used,
+                    "remaining": max(0, quota + extra - used)},
+        "auto_recharge": auto,
+        "projects_used": nproj,
+        "usage": usage or [],
+        "billing": billing or {},
+        "subscription": ({"customer_id": cust, "subscription_id": sub, "plan": plan} if sub else None),
     }
 
 

@@ -6,7 +6,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api, endpoints } from "@/lib/api";
+import { api, cacheGet, cacheSet, endpoints, useCachedPlaceholder, type Account } from "@/lib/api";
 import { localeOf, useLang, useT } from "@/lib/i18n";
 import { getPaddle } from "@/lib/paddle";
 import { PACK_PRICE_IDS } from "@/lib/tiers";
@@ -22,7 +22,13 @@ export function CreditsChip() {
   const { lang } = useLang();
   const loc = localeOf(lang);
   const qc = useQueryClient();
-  const acc = useQuery({ queryKey: ["account"], queryFn: endpoints.account, staleTime: 60_000 });
+  const hydrated = useCachedPlaceholder();
+  const acc = useQuery({
+    queryKey: ["account"],
+    queryFn: async () => { const d = await endpoints.account(); cacheSet("account", d); return d; },
+    placeholderData: () => (hydrated ? cacheGet<Account>("account") : undefined),
+    staleTime: 60_000,
+  });
   const sub = useQuery({ queryKey: ["subscription"], queryFn: endpoints.subscription, staleTime: 60_000 });
   const [buyOpen, setBuyOpen] = useState(false);
   const [pack, setPack] = useState(4000);
@@ -35,7 +41,14 @@ export function CreditsChip() {
   });
 
   const a = acc.data;
-  if (!a) return null;
+  if (!a) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-extrabold text-muted-foreground">
+        <Sparkles className="size-3.5 opacity-50" />
+        <span className="inline-block h-3 w-8 animate-pulse rounded bg-muted" />
+      </span>
+    );
+  }
   const n = (x: number) => x.toLocaleString(loc);
   const admin = a.role === "owner" || a.role === "admin";
   const plan = a.plans[a.plan];

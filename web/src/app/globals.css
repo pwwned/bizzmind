@@ -137,9 +137,24 @@
   html.dark {
     color-scheme: dark;
   }
+  html {
+    background: var(--background);
+  }
   body {
     @apply bg-background text-foreground font-sans;
-    background-image: linear-gradient(180deg, var(--background) 0%, color-mix(in oklab, var(--background) 92%, black) 100%);
+    min-height: 100dvh;
+  }
+  /* Full-viewport gradient as a fixed layer: no hard cutoffs on short pages,
+     works on iOS too (background-attachment: fixed does not). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(90rem 40rem at 50% -10%, color-mix(in oklab, var(--olive) 7%, transparent), transparent 70%),
+      linear-gradient(180deg, var(--background) 0%, color-mix(in oklab, var(--background) 93%, black) 100%);
     min-height: 100%;
   }
   h1, h2, h3, .font-heading {

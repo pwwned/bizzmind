@@ -640,3 +640,8 @@ Error: socket hang up
  GET /app 200 in 25ms (next.js: 10ms, proxy.ts: 4ms, application-code: 12ms)
  GET /app 200 in 15ms (next.js: 3ms, proxy.ts: 3ms, application-code: 9ms)
  GET /app 200 in 43ms (next.js: 4ms, proxy.ts: 2ms, application-code: 37ms)
+ GET /p/demo-eb7d7d 200 in 19ms (next.js: 5ms, proxy.ts: 2ms, application-code: 11ms)
+ GET /p/demo-eb7d7d 200 in 12ms (next.js: 3ms, proxy.ts: 1.0ms, application-code: 9ms)
+✓ Compiled in 161ms
+ GET / 200 in 70ms (next.js: 16ms, proxy.ts: 3ms, application-code: 51ms)
+ GET / 200 in 19ms (next.js: 1.4ms, proxy.ts: 2ms, application-code: 16ms)

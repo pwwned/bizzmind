@@ -3,16 +3,18 @@ import Link from "next/link";
 import { useLang } from "@/lib/i18n";
 import { Logo, Mark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChart3, Brain, Eye, SlidersHorizontal, FileSpreadsheet, Lock } from "lucide-react";
+import { ArrowRight, BarChart3, Blocks, Brain, SlidersHorizontal, FileSpreadsheet, Lock } from "lucide-react";
 import { ThemeToggle } from "@/lib/theme";
 
 const copy = {
   bg: {
     open_app: "Отвори приложението", sign_in: "Вход",
-    tag: "AI аналитик за нетехнически екипи",
-    h1a: "Качи екселите.", h1b: "Получи ", h1em: "жив дашборд", h1c: "Без формули. Без BI.",
-    sub: "Bizzmind е личният аналитик на твоя търговски екип: качваш справките, AI-ят ги проучва, задава ти въпросите, които истински аналитик би задал — и строи табло с живи филтри, изводи и графики по твоите отговори.",
-    cta: "Създай първия си проект", how: "Как работи", note: "Данните ти остават в изолирана среда за всеки проект.",
+    tag: "За малки и средни фирми, които още смятат в ексел",
+    h1a: "Отчетът, който правите", h1b: "на ръка всеки месец —", h1em: "готов преди кафето", h1c: "",
+    sub: "Качвате справките както излизат от ERP-то, касовия апарат или счетоводството. AI аналитик ги проучва, пита ви това, което истинският аналитик би питал, и връща таблото с изводите — на български, за минути.",
+    cta: "Опитай безплатно", how: "Виж как работи", note: "Данните ви остават в ЕС (Ирландия и Франкфурт) и не обучават AI модели.",
+    proof: ["слети клетки", "двуредови хедъри", "кирилица", ".xls от 2003", "по един лист на обект", "45 таблици в един файл"],
+    proof_lead: "Четем файловете такива, каквито са:",
     how_kicker: "Как работи", how_title: "От ексел до дашборд в три стъпки",
     s1_h: "Качваш файловете", s1_p: "Ексели и CSV-та в реалния им вид — със заглавни редове, слети клетки, кирилица. Системата сама намира таблиците и колоните.",
     s1_pills: ["📄 продажби_2026.xlsx · 8 колони", "📄 цели_2026.xlsx · 3 колони", "📄 sell-out.csv · 4 колони"], s1_arrow: "↓ 12 таблици разпознати автоматично",
@@ -28,15 +30,28 @@ const copy = {
     b4_h: "Живи филтри", b4_p: "AI-ят сам решава кои филтри заслужава таблото ти. Всяка промяна се преизчислява от базата на момента.",
     b5_h: "Реални ексели", b5_p: "Заглавни редове, слети клетки, двуредови хедъри, кирилица, дублирани колони — четем файловете такива, каквито излизат от ERP-то.",
     b6_h: "Изолирани проекти", b6_p: "Всеки проект е отделна среда с файлове, база, знание и дашборд. Нищо не се смесва; продължаваш откъдето си спрял.",
-    cta_h: "Дай на екипа си личен аналитик", cta_p: "Първият дашборд е на минути разстояние — качи една справка и виж сам.", cta_btn: "Започни сега",
+    b7_h: "Екселът става приложение", b7_p: "Освен таблото, AI-ят построява работен екран върху същите данни: форми за въвеждане вместо писане в клетки, живи показатели и списък „дни за проверка“. Спирате да пълните ексела.",
+    b7_tags: ["Нов ден — Ямбол", "Оборот за деня", "Дни за проверка"],
+    price_kicker: "Цени", price_title: "Плащате колкото ползвате",
+    price_sub: "Кредитите се смятат от реално изхарченото, с прогноза преди всяко действие и таван, за да няма изненади. Без договор, спирате когато решите.",
+    price_free_h: "Free", price_free_p: "1 проект · 1000 кредита еднократно", price_free_note: "Стигат за пълен цикъл: анализ, дашборд и презентация.",
+    price_pro_h: "Pro", price_pro_p: "€25/мес · 10 проекта · 4000 кредита", price_pro_note: "Неизползваните се прехвърлят. Данните ви не обучават AI модели.",
+    price_ultra_h: "Ultra", price_ultra_p: "€99/мес · 50 проекта · 20 000 кредита", price_ultra_note: "Max модел за сложни данни, обработка само в ЕС, приоритет.",
+    price_cta: "Виж пълните цени",
+    not_kicker: "Честно казано", not_title: "За кого не е",
+    not_items: ["Имате data warehouse и BI екип — вече си решавате този проблем.", "Данните ви са в 200 таблици в SQL — още не сме за там.", "Търсите счетоводна програма или ERP — това не е нито едното."],
+    for_title: "За кого е", for_items: ["Справките ви живеят в ексели и всеки период някой ги сглобява на ръка.", "Имате няколко обекта, канала или продуктови линии и ги сравнявате между тях.", "Решенията се взимат от тези числа, а няма кой да ги подреди."],
+    cta_h: "Качете една справка и вижте", cta_p: "Първият дашборд е на минути разстояние. Безплатно, без карта.", cta_btn: "Започни безплатно",
     footer: "Bizzmind — decisions, not dashboards.",
   },
   en: {
     open_app: "Open the app", sign_in: "Sign in",
-    tag: "AI analyst for non-technical teams",
-    h1a: "Upload your spreadsheets.", h1b: "Get a ", h1em: "live dashboard", h1c: "No formulas. No BI.",
-    sub: "Bizzmind is the personal analyst of your sales team: you upload the reports, the AI explores them, asks the questions a real analyst would ask — and builds a board with live filters, insights and charts from your answers.",
-    cta: "Create your first project", how: "How it works", note: "Your data stays in an isolated environment per project.",
+    tag: "For small and mid-sized companies still doing it in Excel",
+    h1a: "The report you rebuild", h1b: "by hand every month —", h1em: "done before coffee", h1c: "",
+    sub: "Upload the files exactly as they come out of your ERP, till system or accountant. An AI analyst explores them, asks what a real analyst would ask, and hands back the board with the conclusions — in minutes.",
+    cta: "Try it free", how: "See how it works", note: "Your data stays in the EU (Ireland and Frankfurt) and never trains AI models.",
+    proof: ["merged cells", "two-row headers", "any alphabet", ".xls from 2003", "one sheet per location", "45 tables in one file"],
+    proof_lead: "We read files exactly as they are:",
     how_kicker: "How it works", how_title: "From spreadsheet to dashboard in three steps",
     s1_h: "Upload your files", s1_p: "Excel and CSV files as they really are — title rows, merged cells, any alphabet. The system finds the tables and columns on its own.",
     s1_pills: ["📄 sales_2026.xlsx · 8 columns", "📄 targets_2026.xlsx · 3 columns", "📄 sell-out.csv · 4 columns"], s1_arrow: "↓ 12 tables recognised automatically",
@@ -52,7 +67,18 @@ const copy = {
     b4_h: "Live filters", b4_p: "The AI decides which filters your board deserves. Every change is recomputed from the database on the spot.",
     b5_h: "Real spreadsheets", b5_p: "Title rows, merged cells, two-row headers, Cyrillic, duplicate columns — we read files the way they come out of the ERP.",
     b6_h: "Isolated projects", b6_p: "Every project is a separate environment with files, database, knowledge and dashboard. Nothing mixes; you continue where you left off.",
-    cta_h: "Give your team a personal analyst", cta_p: "The first dashboard is minutes away — upload one report and see for yourself.", cta_btn: "Start now",
+    b7_h: "Your spreadsheet becomes an app", b7_p: "Beyond the board, the AI builds a working surface over the same data: entry forms instead of typing into cells, live metrics and a \"days to check\" list. You stop feeding the spreadsheet.",
+    b7_tags: ["New day — Yambol", "Turnover today", "Days to check"],
+    price_kicker: "Pricing", price_title: "You pay for what you use",
+    price_sub: "Credits are settled from actual usage, with an estimate before every action and a cap so there are no surprises. No contract, stop whenever you like.",
+    price_free_h: "Free", price_free_p: "1 project · 1000 credits, one-off", price_free_note: "Enough for a full cycle: analysis, dashboard and a presentation.",
+    price_pro_h: "Pro", price_pro_p: "€25/mo · 10 projects · 4000 credits", price_pro_note: "Unused credits roll over. Your data never trains AI models.",
+    price_ultra_h: "Ultra", price_ultra_p: "€99/mo · 50 projects · 20,000 credits", price_ultra_note: "Max model for complex data, EU-only processing, priority support.",
+    price_cta: "See full pricing",
+    not_kicker: "Honestly", not_title: "Who it is not for",
+    not_items: ["You have a data warehouse and a BI team — you already solved this.", "Your data lives in 200 SQL tables — we are not there yet.", "You are looking for accounting software or an ERP — this is neither."],
+    for_title: "Who it is for", for_items: ["Your reports live in spreadsheets and someone rebuilds them by hand every period.", "You run several locations, channels or product lines and compare them.", "Decisions are made from these numbers and nobody has time to arrange them."],
+    cta_h: "Upload one report and see", cta_p: "The first dashboard is minutes away. Free, no card.", cta_btn: "Start free",
     footer: "Bizzmind — decisions, not dashboards.",
   },
 } as const;
@@ -72,6 +98,7 @@ export default function Landing() {
             ))}
           </div>
           <ThemeToggle />
+          <Button variant="ghost" size="sm" nativeButton={false} render={<a href="#pricing" />} className="hidden sm:inline-flex">{c.price_kicker}</Button>
           <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/login" />}>{c.sign_in}</Button>
           <Button size="sm" className="grad-olive font-bold text-primary-foreground" nativeButton={false} render={<Link href="/app" />}>{c.open_app}</Button>
         </div>
@@ -84,10 +111,14 @@ export default function Landing() {
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-olive/30 bg-olive/10 px-3 py-1 text-xs font-bold text-olive">
               <Mark size={16} />{c.tag}
             </div>
-            <h1 className="text-4xl font-extrabold leading-[1.1] sm:text-5xl lg:text-[56px]">
-              {c.h1a}<br />{c.h1b}<span className="text-grad-olive">{c.h1em}</span>.<br />{c.h1c}
+            <h1 className="text-4xl font-extrabold leading-[1.1] sm:text-5xl lg:text-[54px]">
+              {c.h1a}<br />{c.h1b}<br /><span className="text-grad-olive">{c.h1em}</span>.
             </h1>
             <p className="mt-6 max-w-xl text-[15.5px] leading-relaxed text-muted-foreground">{c.sub}</p>
+            <div className="mt-5 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="font-semibold text-foreground">{c.proof_lead}</span>
+              {c.proof.map((x) => <Chip key={x}>{x}</Chip>)}
+            </div>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="grad-olive font-bold text-primary-foreground hover:opacity-90" nativeButton={false} render={<Link href="/app" />}>{c.cta}<ArrowRight className="size-4" /></Button>
               <Button size="lg" variant="outline" nativeButton={false} render={<a href="#how" />}>{c.how}</Button>
@@ -144,8 +175,8 @@ export default function Landing() {
           <Bento icon={<Brain />} h={c.b2_h} p={c.b2_p}>
             <div className="mt-4 flex flex-wrap gap-1.5">{c.b2_tags.map((x) => <Chip key={x}>{x}</Chip>)}</div>
           </Bento>
-          <Bento icon={<Eye />} h={c.b3_h} p={c.b3_p}>
-            <ul className="mt-4 space-y-1 text-xs text-muted-foreground">{c.b3_feed.map((x) => <li key={x}>{x}</li>)}</ul>
+          <Bento icon={<Blocks />} h={c.b7_h} p={c.b7_p}>
+            <div className="mt-4 flex flex-wrap gap-1.5">{c.b7_tags.map((x) => <Chip key={x}>{x}</Chip>)}</div>
           </Bento>
           <Bento icon={<SlidersHorizontal />} h={c.b4_h} p={c.b4_p}>
             <div className="mt-4 flex flex-wrap gap-1.5">{c.s3_pills.map((x) => <Chip key={x}>{x}</Chip>)}</div>
@@ -155,7 +186,45 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 pb-20 pt-6">
+      <section id="pricing" className="mx-auto w-full max-w-6xl px-6 py-16">
+        <div className="text-xs font-bold uppercase tracking-wider text-olive">{c.price_kicker}</div>
+        <h2 className="mt-2 text-3xl font-extrabold">{c.price_title}</h2>
+        <p className="mt-2 max-w-2xl text-[14.5px] leading-relaxed text-muted-foreground">{c.price_sub}</p>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {[[c.price_free_h, c.price_free_p, c.price_free_note, false],
+            [c.price_pro_h, c.price_pro_p, c.price_pro_note, true],
+            [c.price_ultra_h, c.price_ultra_p, c.price_ultra_note, false]].map(([h, p, note, hot]) => (
+            <div key={h as string} className={`rounded-2xl border bg-card p-6 ${hot ? "border-olive/60 ring-1 ring-olive/30" : "border-border"}`}>
+              <h3 className="text-lg font-extrabold">{h as string}</h3>
+              <div className="mt-1 text-[15px] font-bold text-olive">{p as string}</div>
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{note as string}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5">
+          <Button variant="outline" nativeButton={false} render={<Link href="/pricing" />}>{c.price_cta}<ArrowRight className="size-4" /></Button>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-6 pb-4">
+        <div className="text-xs font-bold uppercase tracking-wider text-olive">{c.not_kicker}</div>
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <div className="rounded-2xl border border-olive/40 bg-olive/5 p-6">
+            <h3 className="text-lg font-bold">{c.for_title}</h3>
+            <ul className="mt-3 space-y-2 text-[13.5px] leading-relaxed">
+              {c.for_items.map((x) => <li key={x} className="flex gap-2"><span className="text-olive">✓</span>{x}</li>)}
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h3 className="text-lg font-bold">{c.not_title}</h3>
+            <ul className="mt-3 space-y-2 text-[13.5px] leading-relaxed text-muted-foreground">
+              {c.not_items.map((x) => <li key={x} className="flex gap-2"><span className="opacity-50">—</span>{x}</li>)}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-6 pb-20 pt-10">
         <div className="grad-olive rounded-3xl p-10 text-center text-primary-foreground">
           <h2 className="text-3xl font-extrabold">{c.cta_h}</h2>
           <p className="mt-2 opacity-80">{c.cta_p}</p>

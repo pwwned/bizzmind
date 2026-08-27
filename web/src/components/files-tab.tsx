@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/confirm-dialog";
-import { api, ApiError, endpoints, p, type ProjectState } from "@/lib/api";
+import { api, ApiError, endpoints, p, runJob, type ProjectState } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
   const brandInput = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
   if (uploadRef) uploadRef.current = () => input.current?.click();
 
   async function upload(files: FileList | null) {
@@ -65,8 +66,11 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
           }
           console.info("[upload] PUT ok:", s.filename);
         }));
-        console.info("[upload] ingest starting");
-        r = await api(p(pid, "/upload/ingest"), { method: "POST", body: JSON.stringify({ filenames: sign.files.map((s) => s.filename) }) });
+        console.info("[upload] ingest starting (background job)");
+        r = await runJob<{ loaded: { table: string; rows: number }[] }>(
+          api(p(pid, "/upload/ingest"), { method: "POST", body: JSON.stringify({ filenames: sign.files.map((s) => s.filename) }) }),
+          (ev) => setUploadMsg(ev.text),
+        );
         console.info("[upload] ingest done:", r.loaded.length, "table(s)");
       } catch (e) {
         // a dropped/timed-out ingest request does not mean a failed ingest:
@@ -90,7 +94,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
       toast.success(t("upload_done", { n: r.loaded.length }));
       onUploaded(r.loaded.map((l) => l.table));
     } catch (e) { toast.error((e as Error).message); }
-    finally { setUploading(false); if (input.current) input.current.value = ""; }
+    finally { setUploading(false); setUploadMsg(""); if (input.current) input.current.value = ""; }
   }
   async function uploadBrand(files: FileList | null) {
     if (!files?.length) return;
@@ -115,7 +119,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
           onDrop={(e) => { e.preventDefault(); upload(e.dataTransfer.files); }}
           className="cursor-pointer rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground transition-colors hover:border-olive hover:bg-olive/5"
         >
-          {uploading ? t("uploading") : t("drop_files")}
+          {uploading ? (uploadMsg || t("uploading")) : t("drop_files")}
           <input ref={input} type="file" multiple accept=".xlsx,.xls,.csv" hidden onChange={(e) => upload(e.target.files)} />
         </div>
         <ul className="flex max-h-80 flex-col gap-2 overflow-auto">

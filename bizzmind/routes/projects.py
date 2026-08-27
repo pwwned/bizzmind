@@ -62,6 +62,8 @@ async def _execute_claimed(job: dict) -> dict:
             result = await dispatch_agent(proj, pl["message"])
         elif kind == "review":
             result = await run_review(proj, pl.get("tables") or [], pl.get("context", ""), pl.get("goal", ""))
+        elif kind == "ingest":
+            result = await run_ingest(proj, pl.get("filenames") or [])
         elif kind == "deck":
             result = await run_deck(proj)
         elif kind == "translate":
@@ -359,25 +361,40 @@ def upload_sign(pid: str, req: SignRequest, request: Request):
     return {"files": out}
 
 
-@router.post("/api/p/{pid}/upload/ingest")
-async def upload_ingest(pid: str, req: SignRequest, request: Request):
-    """After the browser uploaded to Storage: pull the files and load them."""
-    proj = get_project(pid)
-    proj.lang = req_lang(request)
-    log.info(f"[{pid}] upload/ingest: start {req.filenames}")
+async def run_ingest(proj, filenames: list[str]) -> dict:
+    """Load uploaded Storage files into the project — runs as a background job
+    so 45-sheet workbooks can't kill an HTTP request. Per-table progress goes
+    to job events via log_activity."""
+    pid = proj.id
+    log.info(f"[{pid}] ingest job: start {filenames}")
     loaded = []
     db.ensure_project(pid)
     try:
-        for name in req.filenames[:20]:
+        for name in filenames[:20]:
             fname = Path(name).name
             payload = await run_in_threadpool(storage.get, f"{pid}/uploads/{fname}")
             _check_upload_limits(proj, [fname], proj.lang, {fname: len(payload)})
             await _ingest(proj, fname, payload, loaded)
     finally:
         proj.save_meta()
-    log.info(f"[{pid}] upload(storage): done — {len(loaded)} table(s), {sum(l['rows'] for l in loaded)} rows total")
+    log.info(f"[{pid}] ingest job: done — {len(loaded)} table(s)")
     write_progress(proj)
     return {"loaded": loaded, "tables": describe_schema(proj)}
+
+
+@router.post("/api/p/{pid}/upload/ingest")
+async def upload_ingest(pid: str, req: SignRequest, request: Request):
+    """After the browser uploaded to Storage: ingest as a background job."""
+    proj = get_project(pid)
+    proj.lang = req_lang(request)
+    log.info(f"[{pid}] upload/ingest: dispatch {req.filenames} (inline={INLINE_JOBS})")
+    if INLINE_JOBS:
+        return await run_ingest(proj, req.filenames)
+    u = sb_auth.current_user()
+    jid = jobs.enqueue(pid, "ingest", {"filenames": req.filenames}, proj.lang,
+                       u.id if u else None)
+    return {"job_id": jid}
+
 
 
 @router.delete("/api/p/{pid}/files/{filename}")

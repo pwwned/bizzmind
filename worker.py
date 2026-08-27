@@ -49,6 +49,9 @@ async def run_job(job: dict) -> dict:
             return await core.dispatch_agent(proj, p["message"])
         if kind == "review":
             return await core.run_review(proj, p.get("tables") or [], p.get("context", ""), p.get("goal", ""))
+        if kind == "ingest":
+            from bizzmind.routes.projects import run_ingest
+            return await run_ingest(proj, p.get("filenames") or [])
         if kind == "deck":
             return await core.run_deck(proj)
         if kind == "translate":

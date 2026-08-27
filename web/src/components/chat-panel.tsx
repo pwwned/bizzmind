@@ -144,24 +144,24 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
               )}
             </div>
           ))}
-        </div>
         {brief && (
-          <div className="mx-4 mb-3 flex flex-col gap-2 rounded-xl border border-olive/40 bg-olive/5 p-3">
+            <div className="flex flex-col gap-2 rounded-xl border border-olive/40 bg-olive/5 p-3">
             <div className="text-[13px] font-bold">{t("brief_title", { n: brief.tables.length })}</div>
             <div className="text-[11.5px] leading-snug text-muted-foreground">{t("brief_hint")}</div>
             <label className="text-[11px] font-semibold text-muted-foreground">{t("brief_context")}
-              <Textarea value={ctx} onChange={(e) => setCtx(e.target.value)} rows={2} placeholder={t("brief_context_ph")} className="mt-1 text-[13px]" />
+              <Textarea value={ctx} onChange={(e) => setCtx(e.target.value)} rows={3} placeholder={t("brief_context_ph")} className="mt-1 max-h-40 overflow-auto text-[13px]" />
             </label>
             <label className="text-[11px] font-semibold text-muted-foreground">{t("brief_goal")}
-              <Textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={2} placeholder={t("brief_goal_ph")} className="mt-1 text-[13px]" />
+              <Textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} placeholder={t("brief_goal_ph")} className="mt-1 max-h-40 overflow-auto text-[13px]" />
             </label>
-            <div className="flex justify-end gap-2">
+            <div className="sticky bottom-0 -mx-3 -mb-3 flex justify-end gap-2 rounded-b-xl border-t border-olive/20 bg-popover/95 px-3 py-2 backdrop-blur">
               <Button size="sm" variant="ghost" onClick={() => startReview(brief.tables, "", "")}>{t("brief_skip")}</Button>
               <Button size="sm" className="grad-olive font-bold text-primary-foreground"
                 onClick={() => startReview(brief.tables, ctx.trim(), goal.trim())}>{t("brief_start")}</Button>
             </div>
           </div>
-        )}
+          )}
+        </div>
         <form className="flex items-end gap-2 border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); send(text); }}>
           <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={t("chat_ph")} rows={2}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(text); } }}

@@ -67,9 +67,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   return (
     <>
-      <AppHeader crumb={state.data?.name ?? ""} back autoHide />
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className={`sticky top-[57px] z-30 flex items-center gap-4 border-b border-border bg-background px-6 transition-transform duration-300 ${chromeHidden ? "-translate-y-[101px]" : "translate-y-0"}`}>
+      <div className={`sticky top-0 z-40 transition-transform duration-300 ${chromeHidden ? "-translate-y-full" : "translate-y-0"}`}>
+        <AppHeader crumb={state.data?.name ?? ""} back plain />
+        <div className="flex items-center gap-4 border-b border-border bg-background px-6">
           <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
             <TabsList className="h-11 bg-transparent p-0">
               {(["dash", "app", "files", "data"] as Tab[]).map((k) => (
@@ -81,7 +81,20 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               ))}
             </TabsList>
           </Tabs>
+          <span className="flex-1" />
+          {tab === "dash" && state.data && charts.length > 0 && (
+            <div className="hidden py-2 lg:block">
+              <PresentationDialog pid={pid} name={state.data.name} charts={state.data.charts} i18n={i18n} brandPrimary={state.data.brand_theme?.primary ?? ""} />
+            </div>
+          )}
         </div>
+        {tab === "dash" && state.data && charts.length > 0 && (
+          <div className="border-b border-border bg-background px-6 py-2.5">
+            <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)} selections={selections} onChange={setSelections} i18n={i18n} />
+          </div>
+        )}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col">
 
         <main key={pid} className="page-enter flex min-h-0 flex-1 flex-col px-6 py-5">
           {!state.data ? (
@@ -109,10 +122,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               />
             ) : (
               <>
-                <div className={`sticky top-[101px] z-20 -mx-6 mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-border bg-background px-6 py-3 transition-transform duration-300 ${chromeHidden ? "-translate-y-[101px] opacity-0" : "translate-y-0 opacity-100"}`}>
-                  <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)} selections={selections} onChange={setSelections} i18n={i18n} />
-                  <PresentationDialog pid={pid} name={state.data.name} charts={state.data.charts} i18n={i18n} brandPrimary={state.data.brand_theme?.primary ?? ""} />
-                </div>
                 <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
                   {charts.map((c) => <ChartCard key={c.id} chart={c} i18n={i18n} onPick={crossFilter} wide={c.chart_type === "table"} />)}
                 </div>

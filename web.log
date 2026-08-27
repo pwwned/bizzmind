@@ -769,3 +769,12 @@ Error: connect ECONNREFUSED 127.0.0.1:8000
  GET /app 200 in 36ms (next.js: 15ms, proxy.ts: 4ms, application-code: 17ms)
  GET /app 200 in 20ms (next.js: 4ms, proxy.ts: 5ms, application-code: 12ms)
  GET /p/poli-demo 200 in 40ms (next.js: 14ms, proxy.ts: 3ms, application-code: 22ms)
+✓ Compiled in 118ms
+ GET /p/demo-eb7d7d 200 in 50ms (next.js: 20ms, proxy.ts: 9ms, application-code: 21ms)
+ GET / 200 in 114ms (next.js: 80ms, proxy.ts: 4ms, application-code: 30ms)
+ GET /demo 200 in 115ms (next.js: 104ms, proxy.ts: 5ms, application-code: 6ms)
+ GET /demo 200 in 12ms (next.js: 3ms, proxy.ts: 1.5ms, application-code: 7ms)
+ GET /login?force=1 200 in 40ms (next.js: 8ms, proxy.ts: 5ms, application-code: 27ms)
+ GET /app 200 in 30ms (next.js: 15ms, proxy.ts: 3ms, application-code: 12ms)
+ GET /app 200 in 14ms (next.js: 3ms, proxy.ts: 2ms, application-code: 10ms)
+ GET /p/poli-demo 200 in 35ms (next.js: 17ms, proxy.ts: 4ms, application-code: 14ms)

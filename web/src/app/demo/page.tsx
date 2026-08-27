@@ -80,7 +80,8 @@ export default function DemoPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className={`sticky top-0 z-40 border-b border-border bg-background transition-transform duration-300 ${chromeHidden && phase === "dashboard" ? "-translate-y-full" : "translate-y-0"}`}>
+      <div className={`sticky top-0 z-40 transition-transform duration-300 ${chromeHidden && phase === "dashboard" ? "-translate-y-full" : "translate-y-0"}`}>
+      <header className="border-b border-border bg-background">
         <div className={`mx-auto flex w-full items-center gap-4 px-6 py-3 ${phase === "dashboard" ? "max-w-[1800px]" : "max-w-6xl"}`}>
           <Link href="/"><Logo size={28} /></Link>
           <span className="rounded-full border border-olive/40 bg-olive/10 px-2.5 py-0.5 text-[11px] font-extrabold text-olive">{t("demo_badge")}</span>
@@ -95,6 +96,13 @@ export default function DemoPage() {
           <Button size="sm" className="grad-olive font-bold text-primary-foreground" nativeButton={false} render={<Link href="/app" />}>{t("demo_try")}</Button>
         </div>
       </header>
+      {phase === "dashboard" && state.data && (
+        <div className={`border-b border-border bg-background px-6 py-2.5 ${phase === "dashboard" ? "mx-auto w-full max-w-[1800px]" : ""}`}>
+          <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)}
+            selections={selections} onChange={setSelections} i18n={i18n} />
+        </div>
+      )}
+      </div>
 
       <main className={`mx-auto w-full flex-1 px-6 py-10 ${phase === "dashboard" ? "max-w-[1800px]" : "max-w-5xl"}`}>
         {phase === "intro" && (
@@ -173,12 +181,6 @@ export default function DemoPage() {
                 <Sparkles className="size-4" />{t("demo_cta_small")}
               </Button>
             </div>
-            {state.data && (
-              <div className={`sticky top-[57px] z-20 -mx-6 border-b border-border bg-background px-6 py-3 transition-transform duration-300 ${chromeHidden ? "-translate-y-[57px]" : "translate-y-0"}`}>
-                <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)}
-                  selections={selections} onChange={setSelections} i18n={i18n} />
-              </div>
-            )}
             <div className={`mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
               {charts.map((c) => <ChartCard key={c.id} chart={c} i18n={i18n} onPick={crossFilter} wide={c.chart_type === "table"} />)}
             </div>

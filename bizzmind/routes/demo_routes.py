@@ -85,10 +85,52 @@ async def demo_refresh(request: Request):
     return {"charts": charts, "filters": filters_with_options(proj)}
 
 
+_script_cache: dict = {"at": 0.0, "data": None}
+
+
 @router.get("/api/demo/script")
 def demo_script():
-    """The recorded session (ingest progress, interview, canned answers) that
-    the demo page replays — generated once, costs nothing to serve."""
-    if not SCRIPT_P.exists():
-        return {"steps": [], "questions": []}
-    return json.loads(SCRIPT_P.read_text())
+    """The replayed session (ingest progress + interview) built from the demo
+    project itself, so it always matches what visitors then see."""
+    import time
+
+    if _script_cache["data"] and time.time() - _script_cache["at"] < 3600:
+        return _script_cache["data"]
+    if SCRIPT_P.exists():                      # a hand-tuned script wins
+        data = json.loads(SCRIPT_P.read_text())
+        _script_cache.update(at=time.time(), data=data)
+        return data
+
+    proj = _demo()
+    tables = [t for tabs in (proj.meta.get("files") or {}).values() for t in tabs]
+    steps = [{"kind": "info", "text": "Отварям РАПОРТ ЯНУАРИ 2024.xlsx…", "at": 200},
+             {"kind": "info", "text": f"Намерени са {len(tables)} листа — разчитам заглавните редове…", "at": 900}]
+    at = 1500
+    schema = {t["table"]: t for t in describe_schema(proj)}
+    for t in tables:
+        info = schema.get(t, {})
+        pretty = t.replace("рапорт_януари_2024_", "").replace("_", " ").title()
+        steps.append({"kind": "table",
+                      "text": f"Заредена таблица „{pretty}“ — {info.get('rows', 31)} реда, "
+                              f"{len(info.get('columns') or []) or 14} колони", "at": at})
+        at += 420
+    n = sum(1 for s in steps if s["kind"] == "table")
+    rows = sum((schema.get(t, {}).get("rows") or 31) for t in tables)
+    steps.append({"kind": "info", "text": f"Готово: {n} таблици, {rows} реда — разпознати автоматично", "at": at + 500})
+
+    questions = []
+    for m in (proj.chat or []):
+        for q in (m.get("questions") or []):
+            opts = list(q.get("options") or [])[:4]
+            if opts:
+                questions.append({"q": q.get("question", ""), "options": opts, "picked": opts[0]})
+    if not questions:
+        questions = [
+            {"q": "Обектите са три вида — магазини, складове и производство. Да ги сравнявам ли заедно?",
+             "options": ["Не, отделно по вид", "Да, всички заедно"], "picked": "Не, отделно по вид"},
+            {"q": "Кой показател е най-важен за вас?",
+             "options": ["Печалба и марж", "Оборот", "Среден бон"], "picked": "Печалба и марж"},
+        ]
+    data = {"steps": steps, "questions": questions[:3]}
+    _script_cache.update(at=time.time(), data=data)
+    return data

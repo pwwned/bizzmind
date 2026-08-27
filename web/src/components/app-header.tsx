@@ -11,16 +11,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, CircleUserRound, CreditCard, LogOut, Wallet } from "lucide-react";
 import { ThemeToggle } from "@/lib/theme";
+import { useChromeHidden } from "@/lib/use-chrome-visibility";
 import { CreditsChip } from "@/components/credits-chip";
 
-export function AppHeader({ crumb, back }: { crumb?: string; back?: boolean }) {
+export function AppHeader({ crumb, back, autoHide = false }: { crumb?: string; back?: boolean; autoHide?: boolean }) {
+  const hidden = useChromeHidden() && autoHide;
   const t = useT();
   const { lang, setLang } = useLang();
   const me = useQuery({ queryKey: ["me"], queryFn: endpoints.me, staleTime: 5 * 60_000 });
   const initial = (me.data?.email?.[0] ?? "•").toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 flex items-center gap-4 border-b border-border bg-background/70 px-6 py-3 backdrop-blur-md">
+    <header className={`sticky top-0 z-40 flex items-center gap-4 border-b border-border bg-background px-6 py-3 transition-transform duration-300 ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
       <Link href="/app" className="shrink-0"><Logo size={28} /></Link>
       {crumb && (
         <span className="truncate text-sm text-muted-foreground">

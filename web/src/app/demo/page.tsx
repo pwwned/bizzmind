@@ -10,6 +10,7 @@ import { useLang, useT } from "@/lib/i18n";
 import { Logo, Mark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/lib/theme";
+import { useChromeHidden } from "@/lib/use-chrome-visibility";
 import { ChartCard, useLabelMaps } from "@/components/chart-card";
 import { FiltersBar, type Selections } from "@/components/filters-bar";
 import type { Chart, Filter, I18nInfo } from "@/lib/api";
@@ -29,6 +30,7 @@ export default function DemoPage() {
   const [qIdx, setQIdx] = useState(0);
   const [selections, setSelections] = useState<Selections>({});
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const chromeHidden = useChromeHidden();
 
   const script = useQuery({ queryKey: ["demo-script"], queryFn: () => api<DemoScript>("/api/demo/script") });
   const state = useQuery({ queryKey: ["demo-state", lang], queryFn: () => api<DemoState>("/api/demo/state") });
@@ -78,7 +80,7 @@ export default function DemoPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur-md">
+      <header className={`sticky top-0 z-40 border-b border-border bg-background transition-transform duration-300 ${chromeHidden && phase === "dashboard" ? "-translate-y-full" : "translate-y-0"}`}>
         <div className={`mx-auto flex w-full items-center gap-4 px-6 py-3 ${phase === "dashboard" ? "max-w-[1800px]" : "max-w-6xl"}`}>
           <Link href="/"><Logo size={28} /></Link>
           <span className="rounded-full border border-olive/40 bg-olive/10 px-2.5 py-0.5 text-[11px] font-extrabold text-olive">{t("demo_badge")}</span>
@@ -172,7 +174,7 @@ export default function DemoPage() {
               </Button>
             </div>
             {state.data && (
-              <div className="sticky top-[57px] z-20 -mx-6 border-b border-border/60 bg-background/85 px-6 py-3 backdrop-blur-md">
+              <div className={`sticky top-[57px] z-20 -mx-6 border-b border-border bg-background px-6 py-3 transition-transform duration-300 ${chromeHidden ? "-translate-y-[57px]" : "translate-y-0"}`}>
                 <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)}
                   selections={selections} onChange={setSelections} i18n={i18n} />
               </div>

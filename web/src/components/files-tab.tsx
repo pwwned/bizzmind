@@ -69,10 +69,22 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
         r = await api(p(pid, "/upload/ingest"), { method: "POST", body: JSON.stringify({ filenames: sign.files.map((s) => s.filename) }) });
         console.info("[upload] ingest done:", r.loaded.length, "table(s)");
       } catch (e) {
-        if (e instanceof ApiError && e.status !== 503) throw e;
-        const fd = new FormData();                 // storage not configured → direct upload
-        for (const f of list) fd.append("files", f);
-        r = await api(p(pid, "/upload"), { method: "POST", body: fd });
+        // a dropped/timed-out ingest request does not mean a failed ingest:
+        // the server may have finished — check the project state before失 failing
+        console.warn("[upload] request failed, verifying server state:", (e as Error).message);
+        await new Promise((res) => setTimeout(res, 3000));
+        const st = await api<ProjectState>(p(pid, "/state")).catch(() => null);
+        const landed = st?.files?.find((x) => list.some((f) => f.name === x.filename));
+        if (landed) {
+          console.info("[upload] server finished despite the dropped request — continuing");
+          r = { loaded: landed.tables.map((t) => ({ table: t, rows: 0 })) };
+        } else if (e instanceof ApiError && e.status === 503) {
+          const fd = new FormData();               // storage not configured → direct upload
+          for (const f of list) fd.append("files", f);
+          r = await api(p(pid, "/upload"), { method: "POST", body: fd });
+        } else {
+          throw e;
+        }
       }
       await qc.invalidateQueries({ queryKey: ["state", pid] });
       toast.success(t("upload_done", { n: r.loaded.length }));

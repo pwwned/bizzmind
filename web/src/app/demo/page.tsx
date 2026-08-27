@@ -79,7 +79,7 @@ export default function DemoPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-6 py-3">
+        <div className={`mx-auto flex w-full items-center gap-4 px-6 py-3 ${phase === "dashboard" ? "max-w-[1500px]" : "max-w-6xl"}`}>
           <Link href="/"><Logo size={28} /></Link>
           <span className="rounded-full border border-olive/40 bg-olive/10 px-2.5 py-0.5 text-[11px] font-extrabold text-olive">{t("demo_badge")}</span>
           <span className="flex-1" />
@@ -94,7 +94,7 @@ export default function DemoPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+      <main className={`mx-auto w-full flex-1 px-6 py-10 ${phase === "dashboard" ? "max-w-[1500px]" : "max-w-5xl"}`}>
         {phase === "intro" && (
           <div className="page-enter flex flex-col items-center gap-6 text-center">
             <h1 className="max-w-2xl text-3xl font-extrabold leading-tight sm:text-4xl">{t("demo_h1")}</h1>
@@ -175,7 +175,7 @@ export default function DemoPage() {
               <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)}
                 selections={selections} onChange={setSelections} i18n={i18n} />
             )}
-            <div className={`mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
+            <div className={`mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
               {charts.map((c) => <ChartCard key={c.id} chart={c} i18n={i18n} onPick={crossFilter} wide={c.chart_type === "table"} />)}
             </div>
             <div className="mt-10 rounded-3xl border border-olive/40 bg-olive/5 p-8 text-center">

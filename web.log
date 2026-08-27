@@ -727,3 +727,12 @@ Error: connect ECONNREFUSED 127.0.0.1:8000
  GET /demo 200 in 21ms (next.js: 1.0ms, proxy.ts: 1.0ms, application-code: 19ms)
  GET / 200 in 13ms (next.js: 4ms, proxy.ts: 1.2ms, application-code: 8ms)
 ✓ Compiled in 67ms
+ GET / 200 in 96ms (next.js: 8ms, proxy.ts: 8ms, application-code: 79ms)
+ GET /demo 200 in 39ms (next.js: 16ms, proxy.ts: 5ms, application-code: 18ms)
+ GET /demo 200 in 24ms (next.js: 6ms, proxy.ts: 3ms, application-code: 15ms)
+✓ Compiled in 91ms
+ GET /demo 200 in 48ms (next.js: 4ms, proxy.ts: 6ms, application-code: 38ms)
+ GET /demo 200 in 16ms (next.js: 1.0ms, proxy.ts: 1.0ms, application-code: 14ms)
+ GET /demo 200 in 50ms (next.js: 6ms, proxy.ts: 10ms, application-code: 34ms)
+ GET / 200 in 33ms (next.js: 9ms, proxy.ts: 5ms, application-code: 19ms)
+ GET /demo 200 in 38ms (next.js: 7ms, proxy.ts: 7ms, application-code: 24ms)

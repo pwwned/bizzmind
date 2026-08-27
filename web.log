@@ -739,3 +739,13 @@ Error: connect ECONNREFUSED 127.0.0.1:8000
  GET /demo 200 in 55ms (next.js: 6ms, proxy.ts: 8ms, application-code: 41ms)
  GET /demo 200 in 21ms (next.js: 6ms, proxy.ts: 3ms, application-code: 13ms)
 ✓ Compiled in 61ms
+ GET /demo 200 in 69ms (next.js: 13ms, proxy.ts: 13ms, application-code: 43ms)
+ GET /demo 200 in 14ms (next.js: 3ms, proxy.ts: 2ms, application-code: 9ms)
+✓ Compiled in 76ms
+ GET /demo 200 in 43ms (next.js: 5ms, proxy.ts: 5ms, application-code: 33ms)
+ GET /demo 200 in 20ms (next.js: 1.0ms, proxy.ts: 0.9ms, application-code: 19ms)
+ GET /login?force=1 200 in 78ms (next.js: 27ms, proxy.ts: 10ms, application-code: 41ms)
+ GET /app 200 in 44ms (next.js: 21ms, proxy.ts: 4ms, application-code: 19ms)
+ GET /app 200 in 19ms (next.js: 3ms, proxy.ts: 4ms, application-code: 12ms)
+ GET /p/poli-demo 200 in 50ms (next.js: 31ms, proxy.ts: 4ms, application-code: 14ms)
+ GET /demo 200 in 61ms (next.js: 9ms, proxy.ts: 8ms, application-code: 43ms)

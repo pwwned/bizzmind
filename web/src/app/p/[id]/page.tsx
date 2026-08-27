@@ -67,7 +67,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     <>
       <AppHeader crumb={state.data?.name ?? ""} back />
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center gap-4 border-b border-border px-6">
+        <div className="sticky top-[57px] z-30 flex items-center gap-4 border-b border-border bg-background/80 px-6 backdrop-blur-md">
           <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
             <TabsList className="h-11 bg-transparent p-0">
               {(["dash", "app", "files", "data"] as Tab[]).map((k) => (
@@ -107,7 +107,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               />
             ) : (
               <>
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div className="sticky top-[101px] z-20 -mx-6 mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-border/60 bg-background/85 px-6 py-3 backdrop-blur-md">
                   <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)} selections={selections} onChange={setSelections} i18n={i18n} />
                   <PresentationDialog pid={pid} name={state.data.name} charts={state.data.charts} i18n={i18n} brandPrimary={state.data.brand_theme?.primary ?? ""} />
                 </div>

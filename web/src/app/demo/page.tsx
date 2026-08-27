@@ -172,10 +172,12 @@ export default function DemoPage() {
               </Button>
             </div>
             {state.data && (
-              <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)}
-                selections={selections} onChange={setSelections} i18n={i18n} />
+              <div className="sticky top-[57px] z-20 -mx-6 border-b border-border/60 bg-background/85 px-6 py-3 backdrop-blur-md">
+                <FiltersBar filters={(hasSel && refresh.data ? refresh.data.filters : state.data.filters)}
+                  selections={selections} onChange={setSelections} i18n={i18n} />
+              </div>
             )}
-            <div className={`mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
+            <div className={`mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
               {charts.map((c) => <ChartCard key={c.id} chart={c} i18n={i18n} onPick={crossFilter} wide={c.chart_type === "table"} />)}
             </div>
             <div className="mt-10 rounded-3xl border border-olive/40 bg-olive/5 p-8 text-center">

@@ -8,3 +8,4 @@ reportlab
 pypdf
 psycopg[binary,pool]
 PyJWT[crypto]
+xlrd>=2.0.1

@@ -11,6 +11,7 @@ import { DashboardEmpty, DashboardLoading } from "@/components/dashboard-empty";
 import { FilesTab } from "@/components/files-tab";
 import { DataTab } from "@/components/data-tab";
 import { ChatPanel } from "@/components/chat-panel";
+import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PresentationDialog } from "@/components/presentation-dialog";
@@ -80,7 +81,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
         <main key={pid} className={`page-enter flex min-h-0 flex-1 flex-col px-6 py-5 transition-[padding] ${chatOpen ? "lg:pr-[440px]" : ""}`}>
           {!state.data ? (
-            <DashboardLoading />
+            state.isError ? (
+              <div className="flex min-h-[55vh] flex-col items-center justify-center gap-4 text-center">
+                <div className="text-lg font-bold">{t("project_missing")}</div>
+                <Button nativeButton={false} render={<Link href="/app" />} variant="outline">{t("all_projects")}</Button>
+              </div>
+            ) : (
+              <DashboardLoading />
+            )
           ) : tab === "dash" ? (
             charts.length === 0 && !hasSel ? (
               <DashboardEmpty

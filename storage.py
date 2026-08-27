@@ -184,6 +184,11 @@ def sync_up(pid: str, sub: str, local: Path) -> int:
         except StorageError as e:
             log.info(f"[{pid}] storage: put {f.name} failed — {e}")
     stale = [f"{pid}/{sub}/{name}" for name in remote if name not in local_names]
+    if stale and not local_names:
+        # an empty local cache (fresh process) must NEVER wipe the remote copy —
+        # deletions are only mirrored when the local dir has real content
+        log.info(f"[{pid}] storage: local {sub}/ empty, keeping {len(stale)} remote file(s)")
+        stale = []
     if stale:
         try:
             delete(stale)

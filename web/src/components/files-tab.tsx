@@ -70,7 +70,7 @@ export function FilesTab({ pid, state, onUploaded, uploadRef }: {
         console.info("[upload] ingest done:", r.loaded.length, "table(s)");
       } catch (e) {
         // a dropped/timed-out ingest request does not mean a failed ingest:
-        // the server may have finished — check the project state before失 failing
+        // the server may have finished — check the project state before failing
         console.warn("[upload] request failed, verifying server state:", (e as Error).message);
         await new Promise((res) => setTimeout(res, 3000));
         const st = await api<ProjectState>(p(pid, "/state")).catch(() => null);

@@ -257,6 +257,12 @@ def _load_memberships(db, user_id: str, email: str) -> User:
     with db.pool().connection() as con:
         rows = con.execute("SELECT org_id, role FROM public.memberships WHERE user_id = %s", (user_id,)).fetchall()
         if not rows:
+            # First login fires several parallel requests (me / projects / account);
+            # without this lock each of them creates its own organisation.
+            con.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"org-bootstrap:{user_id}",))
+            rows = con.execute("SELECT org_id, role FROM public.memberships WHERE user_id = %s",
+                               (user_id,)).fetchall()
+        if not rows:
             # adopt an organisation that has projects but no members yet (pre-Auth data),
             # otherwise create a personal one
             orphan = con.execute(

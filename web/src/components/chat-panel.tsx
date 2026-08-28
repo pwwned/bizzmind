@@ -10,9 +10,10 @@ import { MessageCircle, Send, X } from "lucide-react";
 
 type Item = ChatMessage & { live?: JobEvent[]; started?: number; procId?: string };
 
-export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
+export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onSeedUsed }: {
   pid: string; initial: ChatMessage[]; open: boolean; onOpenChange: (o: boolean) => void;
   pending?: { tables: string[] } | null;
+  seed?: string | null; onSeedUsed?: () => void;
 }) {
   const t = useT();
   const qc = useQueryClient();
@@ -36,6 +37,9 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
   const [tick, setTick] = useState(0);
 
   useEffect(() => { setItems(initial); }, [initial]);
+  useEffect(() => {                     // "change my app" from the App tab lands in the input
+    if (seed) { setText(seed); onSeedUsed?.(); }
+  }, [seed]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { logRef.current?.scrollTo({ top: 1e9 }); }, [items, tick]);
   useEffect(() => { if (!busy) return; const id = setInterval(() => setTick((x) => x + 1), 1000); return () => clearInterval(id); }, [busy]);
 
@@ -49,6 +53,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending }: {
       });
       setItems((it) => [...it.filter((m) => m.procId !== procId), { role: "ai", text: res.reply || t("done"), questions: res.questions }]);
       qc.invalidateQueries({ queryKey: ["state", pid] });
+      qc.invalidateQueries({ queryKey: ["app", pid] });     // the agent may have edited the app
       // the charge is settled from real usage once the job ends — refresh and report it
       const before = credits.data?.remaining;
       const fresh = await qc.fetchQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid) });

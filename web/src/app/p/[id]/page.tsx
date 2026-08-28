@@ -27,6 +27,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [tab, setTab] = useState<Tab>("dash");
   const [selections, setSelections] = useState<Selections>({});
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatSeed, setChatSeed] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState<{ tables: string[] } | null>(null);
   const uploadRef = useRef<(() => void) | null>(null);
   const qc = useQueryClient();
@@ -146,7 +147,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </>
             )
           ) : tab === "app" ? (
-            <AppTab pid={pid} hasTables={state.data.tables.length > 0} />
+            <AppTab pid={pid} hasTables={state.data.tables.length > 0}
+              onAskChat={(p) => { setChatSeed(p); setChatOpen(true); }} />
           ) : tab === "files" ? (
             <FilesTab pid={pid} state={state.data as ProjectState} uploadRef={uploadRef}
               onUploaded={(tables) => { setPendingReview({ tables }); }} />
@@ -156,7 +158,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         </main>
       </div>
       {state.data && (
-        <ChatPanel pid={pid} initial={state.data.chat} open={chatOpen} onOpenChange={setChatOpen} pending={pendingReview} />
+        <ChatPanel pid={pid} initial={state.data.chat} open={chatOpen} onOpenChange={setChatOpen} pending={pendingReview}
+          seed={chatSeed} onSeedUsed={() => setChatSeed(null)} />
       )}
     </>
   );

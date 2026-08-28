@@ -947,3 +947,29 @@ Error: socket hang up
  GET /app 200 in 31ms (next.js: 12ms, proxy.ts: 5ms, application-code: 15ms)
  GET /app 200 in 13ms (next.js: 1.8ms, proxy.ts: 2ms, application-code: 9ms)
  GET /p/demo 200 in 61ms (next.js: 8ms, proxy.ts: 3ms, application-code: 49ms)
+ GET /p/demo-eb7d7d 200 in 45ms (next.js: 9ms, proxy.ts: 3ms, application-code: 32ms)
+ GET / 200 in 66ms (next.js: 9ms, proxy.ts: 4ms, application-code: 52ms)
+ GET /login?next=%2Fapp 307 in 11ms (proxy.ts: 3ms)
+ GET /login?next=%2Fapp 200 in 23ms (next.js: 5ms, proxy.ts: 3ms, application-code: 15ms)
+ GET /app 307 in 20ms (proxy.ts: 4ms)
+ GET /app 200 in 31ms (next.js: 3ms, proxy.ts: 2ms, application-code: 26ms)
+ GET /p/poli-demo-pm 200 in 47ms (next.js: 17ms, proxy.ts: 7ms, application-code: 23ms)
+Failed to proxy http://127.0.0.1:8000/api/jobs/df0f2ddb-5c81-4519-a37d-aace8f2d6587/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Failed to proxy http://127.0.0.1:8000/api/jobs/370843ad-6ede-4d8b-a9a1-8fdf122c7100/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /p/poli-demo-pm 200 in 67ms (next.js: 22ms, proxy.ts: 17ms, application-code: 28ms)
+✓ Compiled in 83ms
+ GET /p/poli-demo-pm 200 in 37ms (next.js: 14ms, proxy.ts: 3ms, application-code: 20ms)

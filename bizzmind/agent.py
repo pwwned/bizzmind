@@ -179,6 +179,33 @@ TOOLS = [
         },
     },
     {
+        "name": "update_app",
+        "description": (
+            "Change the project's mini-app (the App tab): add, edit, remove or reorder its "
+            "views. Pass the COMPLETE new spec — it replaces the old one, so start from the "
+            "current app given in <current_app> and apply only what the user asked for. "
+            "Views: {\"type\":\"kpi\",\"title\":str,\"items\":[{\"label\":str,\"sql\":str,\"unit\":str}]} | "
+            "{\"type\":\"entry\",\"title\":str,\"hint\":str,\"table\":str or \"tables\":[{\"table\":str,\"label\":str}],"
+            "\"fields\":[{\"column\":str,\"label\":str,\"type\":\"text|number|date|select\",\"required\":bool,\"options_sql\":str}]} | "
+            "{\"type\":\"table\",\"title\":str,\"hint\":str,\"sql\":str}. "
+            "SQL must be read-only SELECT over the real tables; KPI sql returns one row, one column. "
+            "Titles and labels in the user's language. Use this whenever the user asks to change "
+            "how their app looks or works."
+        ),
+        "strict": True,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "spec": {"type": "string",
+                         "description": "The complete new app spec as a JSON string: {title, subtitle, views:[...]}"},
+                "summary": {"type": "string",
+                            "description": "One short sentence in the user's language: what changed."},
+            },
+            "required": ["spec", "summary"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "define_view",
         "description": (
             "Create or replace a semantic VIEW in the project database — the "
@@ -393,6 +420,27 @@ def _execute_tool_inner(proj: Project, name: str, tool_input: dict) -> tuple:
             df = run_readonly_sql(proj, apply_filters_to_sql(proj, tool_input["sql"], {}),
                                   MAX_PREVIEW_ROWS)
             return json.dumps({"row_count": len(df), "rows": frame_to_records(df)}), False
+
+        if name == "update_app":
+            try:
+                spec = json.loads(tool_input["spec"])
+            except json.JSONDecodeError as e:
+                return f"The spec is not valid JSON: {e}", True
+            views = spec.get("views")
+            if not isinstance(views, list) or not views:
+                return "The spec needs a non-empty 'views' list.", True
+            allowed = {"kpi", "entry", "table"}
+            for v in views:
+                if v.get("type") not in allowed:
+                    return f"Unknown view type {v.get('type')!r}; use kpi, entry or table.", True
+                if v.get("type") == "entry" and not (v.get("table") or v.get("tables")):
+                    return "An entry view needs 'table' or 'tables'.", True
+            spec["generated_at"] = time.strftime("%Y-%m-%d %H:%M")
+            proj.app = spec
+            proj.save_app()
+            proj.log_activity("info", T(proj.lang, "act_app_updated",
+                                        what=_short(tool_input.get("summary", ""), 80)))
+            return json.dumps({"ok": True, "views": len(views)}), False
 
         if name == "define_filter":
             f = {k: tool_input[k] for k in ("id", "label", "type", "column", "options_sql", "options")}
@@ -703,6 +751,11 @@ async def sdk_delete_chart(args):
     return _mcp_result(*execute_tool(CURRENT_PROJECT, "delete_chart", args))
 
 
+@tool("update_app", TOOL_DESC["update_app"], {"spec": str, "summary": str})
+async def sdk_update_app(args):
+    return _mcp_result(*execute_tool(CURRENT_PROJECT, "update_app", args))
+
+
 @tool("define_view", TOOL_DESC["define_view"], {"name": str, "sql": str, "description": str})
 async def sdk_define_view(args):
     return _mcp_result(*execute_tool(CURRENT_PROJECT, "define_view", args))
@@ -725,7 +778,7 @@ ANALYTICS_SERVER = create_sdk_mcp_server(
     name="analytics",
     tools=[sdk_run_sql, sdk_record_note, sdk_define_filter, sdk_create_chart,
            sdk_update_chart, sdk_delete_chart, sdk_define_view, sdk_drop_view,
-           sdk_verify_dashboard, sdk_present_questions],
+           sdk_update_app, sdk_verify_dashboard, sdk_present_questions],
 )
 
 
@@ -739,7 +792,12 @@ The current database schema and everything you have learned about the data are
 provided in a <data_context> block at the top of every user message — always
 use the latest one. Use ONLY the analytics tools (run_sql_query,
 record_data_context, define_view, drop_view, define_filter, create_chart,
-update_chart, delete_chart, verify_dashboard, present_questions).
+update_chart, delete_chart, update_app, verify_dashboard, present_questions).
+When the user asks to change their app (the App tab) — add a field, drop a view,
+add a list or a metric — use update_app with the COMPLETE new spec, starting
+from <current_app> in the context. Apply EVERY part of the request in that one
+call: additions AND removals AND reorderings. Never silently skip a part; if
+something cannot be done, say so in your reply.
 chart_type must be one of: bar, line, area, pie, scatter, table; y_fields is
 a list of column names (max 8). define_filter's type is 'multi' or 'single';
 pass unused fields as '' / []. present_questions takes
@@ -755,6 +813,7 @@ pass unused fields as '' / []. present_questions takes
             "mcp__analytics__run_sql_query",
             "mcp__analytics__record_data_context",
             "mcp__analytics__define_filter",
+            "mcp__analytics__update_app",
             "mcp__analytics__create_chart",
             "mcp__analytics__update_chart",
             "mcp__analytics__delete_chart",
@@ -831,6 +890,8 @@ async def run_agent_subscription(proj: Project, user_content: str):
                               + (T(proj.lang, "act_session_recap") if recap else ""))
 
         ctx: dict = {"schema": describe_schema(proj), "known_facts": proj.notes}
+        if proj.app and proj.app.get("views"):
+            ctx["current_app"] = proj.app
         bf = brand_files(proj)
         if bf:
             ctx["brand"] = {"files": bf, "brandbook_excerpt": brand_excerpt(proj, 1500)}

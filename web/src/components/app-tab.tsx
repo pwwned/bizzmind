@@ -9,7 +9,7 @@ import { localeOf, useLang, useT, type Key } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Blocks, Check, Plus, RefreshCcw, Sparkles, Trash2, Wallet } from "lucide-react";
+import { Blocks, Check, MessageCircle, Plus, RefreshCcw, Sparkles, Trash2, Wallet } from "lucide-react";
 import { useBuyCredits } from "@/components/buy-credits";
 import { useConfirm } from "@/components/confirm-dialog";
 
@@ -177,7 +177,9 @@ function TableView({ pid, view }: { pid: string; view: View }) {
   );
 }
 
-export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) {
+export function AppTab({ pid, hasTables, onAskChat }: {
+  pid: string; hasTables: boolean; onAskChat?: (prompt: string) => void;
+}) {
   const t = useT();
   const qc = useQueryClient();
   const buyCredits = useBuyCredits();
@@ -354,7 +356,12 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
           <h2 className="text-xl font-extrabold">{spec?.title}</h2>
           {spec?.subtitle && <div className="text-[13px] text-muted-foreground">{spec.subtitle}</div>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {onAskChat && (
+            <Button variant="outline" size="sm" onClick={() => onAskChat(t("app_edit_prompt"))}>
+              <MessageCircle className="size-4" />{t("app_edit")}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={propose}>
             <RefreshCcw className="size-4" />{t("app_rebuild")}
           </Button>
@@ -375,6 +382,13 @@ export function AppTab({ pid, hasTables }: { pid: string; hasTables: boolean }) 
           : v.type === "entry" ? <EntryView key={i} pid={pid} view={v} />
             : <TableView key={i} pid={pid} view={v} />
       ))}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-olive/25 bg-olive/5 px-4 py-3 text-[12.5px]">
+        <MessageCircle className="size-4 shrink-0 text-olive" />
+        <span className="flex-1">{t("app_edit_hint")}</span>
+        {onAskChat && (
+          <Button size="sm" variant="outline" onClick={() => onAskChat(t("app_edit_prompt"))}>{t("app_edit")}</Button>
+        )}
+      </div>
       {spec?.generated_at && <div className="text-[11px] text-muted-foreground">{t("app_generated", { at: spec.generated_at })}</div>}
     </div>
   );

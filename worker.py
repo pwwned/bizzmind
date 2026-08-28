@@ -35,8 +35,13 @@ def _sig(*_):
     log.info("worker: stopping after current job…")
 
 
+proj_ref: list = [None]
+
+
 async def run_job(job: dict) -> dict:
     proj = core.get_project(job["project_id"])
+    proj.app_touched = False
+    proj_ref[0] = proj
     proj.lang = job.get("lang") or "bg"
     proj.job_id = job["id"]
     kind, p = job["kind"], job["payload"] or {}
@@ -100,7 +105,8 @@ async def main(once: bool = False):
             result = await run_job(job)
             jobs.finish(job["id"], result)
             from bizzmind.routes.projects import _settle_job
-            _settle_job(job["project_id"], job["id"], job["kind"], job["payload"] or {})
+            _settle_job(job["project_id"], job["id"], job["kind"], job["payload"] or {},
+                        getattr(proj_ref[0], "app_touched", False) if proj_ref else False)
             log.info(f"[{job['project_id']}] job {job['id']} done in {time.monotonic() - t0:.1f}s")
         except core.CancelledByUser:
             jobs.cancel(job["id"])

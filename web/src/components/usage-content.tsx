@@ -13,12 +13,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { BarChart3, Check, MessageSquare, Presentation, RefreshCcw } from "lucide-react";
+import { BarChart3, Blocks, Check, MessageSquare, Presentation, RefreshCcw } from "lucide-react";
 
 const KIND_META: Record<string, { icon: React.ReactNode; key: Key }> = {
   analysis: { icon: <BarChart3 className="size-4" />, key: "kind_analysis" },
   chat: { icon: <MessageSquare className="size-4" />, key: "kind_chat" },
   presentation: { icon: <Presentation className="size-4" />, key: "kind_presentation" },
+  app: { icon: <Blocks className="size-4" />, key: "kind_app" },
 };
 
 export function UsageContent() {

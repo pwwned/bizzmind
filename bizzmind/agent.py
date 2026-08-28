@@ -444,6 +444,7 @@ def _execute_tool_inner(proj: Project, name: str, tool_input: dict) -> tuple:
             spec["generated_at"] = time.strftime("%Y-%m-%d %H:%M")
             proj.app = spec
             proj.save_app()
+            proj.app_touched = True
             proj.log_activity("info", T(proj.lang, "act_app_updated",
                                         what=_short(tool_input.get("summary", ""), 80)))
             return json.dumps({"ok": True, "views": len(views)}), False

@@ -45,16 +45,18 @@ def job_status(job_id: str, since: int = 0):
             "events": jobs.events(job_id, since)}
 
 
-def _settle_job(pid: str, job_id: str, kind: str, payload: dict) -> None:
+def _settle_job(pid: str, job_id: str, kind: str, payload: dict, app_touched: bool = False) -> None:
     """Charge the real AI spend of a finished job (nothing was taken up front)."""
     if kind not in ("chat", "review", "app", "deck"):
         return
     with db.pool().connection() as con:
         row = con.execute("SELECT cost_usd FROM public.jobs WHERE id = %s", (job_id,)).fetchone()
     cost = float(row[0]) if row and row[0] else 0.0
-    took = plans.settle(pid, "analysis" if kind in ("review", "app") else kind, cost,
-                        int(payload.get("estimate") or 0), payload.get("model"))
-    log.info(f"[{pid}] settled {kind}: ${cost:.4f} -> {took} credits")
+    billed = ("app" if (kind == "app" or app_touched)
+              else "analysis" if kind == "review" else kind)
+    took = plans.settle(pid, billed, cost, int(payload.get("estimate") or 0), payload.get("model"))
+    log.info(f"[{pid}] settled {billed}: ${cost:.4f} -> {took} credits"
+             + (" (app edited via chat)" if app_touched and kind == "chat" else ""))
 
 
 async def _execute_claimed(job: dict) -> dict:
@@ -67,6 +69,7 @@ async def _execute_claimed(job: dict) -> dict:
     proj.lang = job.get("lang") or "bg"
     proj.job_id = job["id"]
     kind, pl = job["kind"], job["payload"] or {}
+    proj.app_touched = False
     if kind in ("chat", "review"):
         proj.ai_model_id = plans.MODELS[plans.norm_model(pl.get("model"))]["model_id"]
     try:
@@ -88,7 +91,7 @@ async def _execute_claimed(job: dict) -> dict:
         else:
             raise ValueError(f"unknown job kind '{kind}'")
         jobs.finish(job["id"], result)
-        _settle_job(proj.id, job["id"], kind, pl)
+        _settle_job(proj.id, job["id"], kind, pl, getattr(proj, "app_touched", False))
         log.info(f"[{proj.id}] job {job['id']} done inline in {_time.monotonic() - t0:.1f}s")
         return {"status": "done"}
     except CancelledByUser:

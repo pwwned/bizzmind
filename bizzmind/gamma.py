@@ -126,13 +126,14 @@ def _md_table(columns: list, rows: list, limit: int = 12) -> str:
 def pres_credits(pid: str) -> dict:
     """The org's unified credit balance + prices, for in-app predictions."""
     org = plans.org_of_project(pid)
+    charts = len(get_project(pid).dashboard)
     st = plans.org_state(org) if org else {"plan": "free", "quota": 0, "extra": 0, "used": 0, "remaining": 0}
     return {"quota": st["quota"] + st["extra"], "used": st["used"],
             "remaining": st["remaining"], "plan": st["plan"],
             # Quote the whole action: writing the deck + rendering it. Quoting
             # only the render understated the real charge by half.
-            "cost": plans.presentation_total(),
-            "cost_brief": plans.cost_of("deck"),
+            "cost": plans.presentation_total(charts),
+            "cost_brief": plans.deck_cost(charts),
             "cost_render": plans.cost_of("presentation"),
             "costs": plans.COSTS, "models": {k: {"label": v["label"], "min_plan": v["min_plan"]}
                                              for k, v in plans.MODELS.items()}}

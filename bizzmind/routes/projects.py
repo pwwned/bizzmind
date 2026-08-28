@@ -789,8 +789,9 @@ async def make_deck(pid: str, request: Request):
         raise HTTPException(400, T(lang, "err_deck_no_charts"))
     # A presentation bills twice — the AI brief on real spend, the render at a
     # flat price. Check the wallet against the whole thing, not just one half.
-    plans.ensure_can_afford(pid, "deck", lang, need=plans.presentation_total())
-    est = plans.cost_of("deck")
+    charts = len(proj.dashboard)
+    plans.ensure_can_afford(pid, "deck", lang, need=plans.presentation_total(charts))
+    est = plans.deck_cost(charts)
     if INLINE_JOBS:
         proj.lang = lang
         return await run_deck(proj)

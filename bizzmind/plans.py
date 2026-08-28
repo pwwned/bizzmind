@@ -37,16 +37,30 @@ COSTS = {
     "chat":         {"standard": 40,  "max": 100},
     "presentation": {"standard": 200, "max": 200},   # engine cost does not depend on the model
     # The AI that writes the deck content and design brief. Estimate only: the
-    # job settles on real token spend, capped at this x OVERRUN_CAP. Measured
-    # at ~200 credits ($0.39) for a 5-chart dashboard.
-    "deck":         {"standard": 200, "max": 200},   # deck runs on the default model
+    # job settles on real token spend. Every chart's data goes into the prompt,
+    # so the bill grows with the dashboard — measured at 240 credits ($0.475,
+    # 126k input tokens) for 8 charts. The base leaves room above that so the
+    # overrun cap stays a runaway guard and does not shave normal settlements.
+    "deck":         {"standard": 300, "max": 300},   # deck runs on the default model
 }
 
+# (max charts, multiplier) — the deck prompt carries every chart's sample rows
+DECK_TIERS = [(8, 1.0), (16, 1.6), (10**9, 2.4)]
 
-def presentation_total(model: str | None = None) -> int:
+
+def deck_cost(charts: int, model: str | None = None) -> int:
+    """Estimated credits for writing a deck about `charts` charts."""
+    base = COSTS["deck"][norm_model(model)]
+    for limit, mult in DECK_TIERS:
+        if charts <= limit:
+            return int(round(base * mult / 10.0) * 10)
+    return int(round(base * DECK_TIERS[-1][1] / 10.0) * 10)
+
+
+def presentation_total(charts: int = 0, model: str | None = None) -> int:
     """A presentation costs the user two things: the AI brief (metered) and the
     engine render (flat). Quote them as one number — they always happen together."""
-    return cost_of("deck", model) + cost_of("presentation", model)
+    return deck_cost(charts, model) + cost_of("presentation", model)
 
 
 # Credits are settled from what an action ACTUALLY costs us in AI spend.

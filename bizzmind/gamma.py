@@ -129,7 +129,11 @@ def pres_credits(pid: str) -> dict:
     st = plans.org_state(org) if org else {"plan": "free", "quota": 0, "extra": 0, "used": 0, "remaining": 0}
     return {"quota": st["quota"] + st["extra"], "used": st["used"],
             "remaining": st["remaining"], "plan": st["plan"],
-            "cost": plans.cost_of("presentation"),
+            # Quote the whole action: writing the deck + rendering it. Quoting
+            # only the render understated the real charge by half.
+            "cost": plans.presentation_total(),
+            "cost_brief": plans.cost_of("deck"),
+            "cost_render": plans.cost_of("presentation"),
             "costs": plans.COSTS, "models": {k: {"label": v["label"], "min_plan": v["min_plan"]}
                                              for k, v in plans.MODELS.items()}}
 
@@ -279,13 +283,22 @@ def gamma_status(gid: str):
         deducted = (d.get("credits") or {}).get("deducted")
         with pool().connection() as con:
             row = con.execute(
-                "SELECT org_id FROM public.pres_generations WHERE gid = %s", (gid,)).fetchone()
+                "SELECT org_id, project_id, created_at FROM public.pres_generations "
+                "WHERE gid = %s", (gid,)).fetchone()
             if row:
                 if deducted is not None:
                     con.execute("UPDATE public.pres_generations SET credits = %s, status = 'completed' "
                                 "WHERE gid = %s AND credits IS NULL", (deducted, gid))
+                # What the user really paid: the metered brief plus the flat
+                # render. Reporting only the render halved the visible number.
+                took = con.execute(
+                    "SELECT COALESCE(sum(credits), 0) FROM public.credit_events "
+                    "WHERE project_id = %s AND kind IN ('deck', 'presentation') "
+                    "AND created_at >= %s - interval '15 minutes'",
+                    (row[1], row[2])).fetchone()[0]
                 st = plans.org_state(row[0])
-                credits = {"deducted": plans.cost_of("presentation"), "remaining": st["remaining"]}
+                credits = {"deducted": int(took) or plans.presentation_total(),
+                           "remaining": st["remaining"]}
     return {"status": d.get("status"), "gamma_url": d.get("gammaUrl"),
             "export_url": d.get("exportUrl"), "credits": credits,
             "error": d.get("error")}

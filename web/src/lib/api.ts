@@ -128,6 +128,7 @@ export interface PlanDef {
 }
 export interface OrgCredits {
   quota: number; used: number; remaining: number; plan: string; cost: number;
+  cost_brief?: number; cost_render?: number;
   costs: Record<string, Record<string, number>>;
   models: Record<string, { label: string; min_plan: string }>;
 }

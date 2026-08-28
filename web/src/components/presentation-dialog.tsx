@@ -374,8 +374,15 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
 
         <DialogFooter className="border-t border-border px-6 py-4 sm:items-center">
           {remaining != null && (
-            <span className={`mr-auto text-[12px] ${remaining <= 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
-              {remaining <= 0 ? t("pres_no_credits") : t("credits_left", { n: remaining.toLocaleString(localeOf(lang)) })}
+            <span className="mr-auto flex flex-col gap-0.5">
+              <span className={`text-[12px] ${remaining <= 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
+                {remaining <= 0 ? t("pres_no_credits") : t("credits_left", { n: remaining.toLocaleString(localeOf(lang)) })}
+              </span>
+              {credits.data?.cost_brief != null && credits.data?.cost_render != null && (
+                <span className="text-[11px] text-muted-foreground/80">
+                  {t("pres_cost_split", { brief: credits.data.cost_brief, render: credits.data.cost_render })}
+                </span>
+              )}
             </span>
           )}
           <Button variant="ghost" disabled={generating} onClick={() => setOpen(false)}>{t("cancel")}</Button>

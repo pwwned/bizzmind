@@ -36,7 +36,17 @@ COSTS = {
     "analysis":     {"standard": 500, "max": 1200},
     "chat":         {"standard": 40,  "max": 100},
     "presentation": {"standard": 200, "max": 200},   # engine cost does not depend on the model
+    # The AI that writes the deck content and design brief. Estimate only: the
+    # job settles on real token spend, capped at this x OVERRUN_CAP. Measured
+    # at ~200 credits ($0.39) for a 5-chart dashboard.
+    "deck":         {"standard": 200, "max": 200},   # deck runs on the default model
 }
+
+
+def presentation_total(model: str | None = None) -> int:
+    """A presentation costs the user two things: the AI brief (metered) and the
+    engine render (flat). Quote them as one number — they always happen together."""
+    return cost_of("deck", model) + cost_of("presentation", model)
 
 
 # Credits are settled from what an action ACTUALLY costs us in AI spend.
@@ -160,15 +170,18 @@ def project_count(org_id) -> int:
                            (org_id,)).fetchone()[0]
 
 
-def ensure_can_afford(pid: str, kind: str, lang: str, model: str | None = None, tables: int = 0) -> None:
-    """Pre-flight check (no deduction) — used before spending on the engine."""
+def ensure_can_afford(pid: str, kind: str, lang: str, model: str | None = None, tables: int = 0,
+                      need: int | None = None) -> None:
+    """Pre-flight check (no deduction) — used before spending on the engine.
+    `need` overrides the price when one action bills in several parts."""
     org = org_of_project(pid)
     if org is None:
         return
     st = org_state(org)
     if not model_allowed(st["plan"], model):
         raise HTTPException(403, T(lang, "model_not_in_plan"))
-    need = cost_of(kind, model, tables)
+    if need is None:
+        need = cost_of(kind, model, tables)
     if st["remaining"] < need:
         raise HTTPException(402, T(lang, "no_credits_need", need=need, have=st["remaining"]))
 

@@ -48,6 +48,10 @@ async def run_job(job: dict) -> dict:
     if kind in ("chat", "review"):
         from bizzmind import plans
         proj.ai_model_id = plans.MODELS[plans.norm_model(p.get("model"))]["model_id"]
+    else:
+        # Project objects are cached between jobs — a model picked for an
+        # earlier chat must not silently carry into a flat-priced job.
+        proj.ai_model_id = None
     try:
         if kind == "chat":
             proj.add_chat("user", p["message"])

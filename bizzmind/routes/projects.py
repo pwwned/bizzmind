@@ -72,6 +72,10 @@ async def _execute_claimed(job: dict) -> dict:
     proj.app_touched = False
     if kind in ("chat", "review"):
         proj.ai_model_id = plans.MODELS[plans.norm_model(pl.get("model"))]["model_id"]
+    else:
+        # Project objects are cached between jobs — a model picked for an
+        # earlier chat must not silently carry into a flat-priced job.
+        proj.ai_model_id = None
     try:
         if kind == "chat":
             proj.add_chat("user", pl["message"])
@@ -783,8 +787,12 @@ async def make_deck(pid: str, request: Request):
     lang = req_lang(request)
     if not proj.dashboard:
         raise HTTPException(400, T(lang, "err_deck_no_charts"))
+    # A presentation bills twice — the AI brief on real spend, the render at a
+    # flat price. Check the wallet against the whole thing, not just one half.
+    plans.ensure_can_afford(pid, "deck", lang, need=plans.presentation_total())
+    est = plans.cost_of("deck")
     if INLINE_JOBS:
         proj.lang = lang
         return await run_deck(proj)
     u = sb_auth.current_user()
-    return {"job_id": jobs.enqueue(pid, "deck", {}, lang, u.id if u else None)}
+    return {"job_id": jobs.enqueue(pid, "deck", {"estimate": est}, lang, u.id if u else None)}

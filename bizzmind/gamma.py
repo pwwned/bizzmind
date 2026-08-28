@@ -269,7 +269,8 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
                 "INSERT INTO public.pres_generations (gid, org_id, project_id) "
                 "SELECT %s, org_id, id FROM public.projects WHERE id = %s "
                 "ON CONFLICT (gid) DO NOTHING", (gid, pid))
-        plans.charge(pid, "presentation", lang)
+        # Nothing is charged here: what the engine actually consumes is only
+        # known once it finishes, and a render that never completes is free.
     return {"generation_id": gid, "warnings": warnings}
 
 
@@ -277,8 +278,8 @@ def gamma_status(gid: str):
     d = _gamma_call("GET", f"/generations/{gid}")
     if d.get("status") in ("completed", "failed"):
         log.info(f"gamma: {gid} -> {d.get('status')} {d.get('gammaUrl', '')}")
-    # the engine's own cost is recorded for margin auditing only; users are
-    # billed our fixed price (charged at generation start) from the unified pool
+    # The render is billed here, from what the engine says it consumed — not
+    # up front from a list price. A generation that never completes is free.
     credits = None
     if d.get("status") == "completed":
         deducted = (d.get("credits") or {}).get("deducted")
@@ -286,20 +287,35 @@ def gamma_status(gid: str):
             row = con.execute(
                 "SELECT org_id, project_id, created_at FROM public.pres_generations "
                 "WHERE gid = %s", (gid,)).fetchone()
-            if row:
-                if deducted is not None:
-                    con.execute("UPDATE public.pres_generations SET credits = %s, status = 'completed' "
-                                "WHERE gid = %s AND credits IS NULL", (deducted, gid))
-                # What the user really paid: the metered brief plus the flat
-                # render. Reporting only the render halved the visible number.
-                took = con.execute(
+            # Status is polled repeatedly, so claiming a generation for billing
+            # has to be a one-time transition. Recording 0 rather than NULL when
+            # the engine stays silent keeps the row un-claimable a second time.
+            claimed = con.execute(
+                "UPDATE public.pres_generations SET credits = %s, status = 'completed' "
+                "WHERE gid = %s AND credits IS NULL",
+                (int(deducted or 0), gid)).rowcount if row else 0
+        if claimed:
+            if deducted is None:
+                # Completed but silent about its usage: bill the quote rather
+                # than hand the render out for free.
+                log.info(f"gamma: {gid} reported no credit usage — billing the estimate")
+                plans.charge(row[1], "presentation", "bg")
+            else:
+                usd = plans.engine_cost_usd(deducted)
+                took = plans.settle(row[1], "presentation", usd, plans.cost_of("presentation"))
+                log.info(f"gamma: {gid} used {deducted} engine credits (${usd:.4f}) "
+                         f"-> {took} credits charged")
+        if row:
+            with pool().connection() as con:
+                # What the user really paid: writing the deck plus rendering it.
+                # Reporting only the render halved the visible number.
+                paid = con.execute(
                     "SELECT COALESCE(sum(credits), 0) FROM public.credit_events "
                     "WHERE project_id = %s AND kind IN ('deck', 'presentation') "
                     "AND created_at >= %s - interval '15 minutes'",
                     (row[1], row[2])).fetchone()[0]
-                st = plans.org_state(row[0])
-                credits = {"deducted": int(took) or plans.presentation_total(),
-                           "remaining": st["remaining"]}
+            st = plans.org_state(row[0])
+            credits = {"deducted": int(paid), "remaining": st["remaining"]}
     return {"status": d.get("status"), "gamma_url": d.get("gammaUrl"),
             "export_url": d.get("exportUrl"), "credits": credits,
             "error": d.get("error")}

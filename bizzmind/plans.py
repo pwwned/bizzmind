@@ -8,6 +8,8 @@ draw visibly large amounts. Anchor: EUR 20 -> 4000 credits (~EUR 0.005/cr).
 """
 from __future__ import annotations
 
+import os
+
 from fastapi import HTTPException
 
 from bizzmind.i18n import T
@@ -35,7 +37,11 @@ TRIAL_CREDITS = 2000
 COSTS = {
     "analysis":     {"standard": 500, "max": 1200},
     "chat":         {"standard": 40,  "max": 100},
-    "presentation": {"standard": 200, "max": 200},   # engine cost does not depend on the model
+    # Rendering the deck. Estimate only — the real charge comes from the number
+    # of credits the engine reports it consumed (27 and 39 on the two decks
+    # measured, ~30-50 of ours). We resell this at cost: nothing is added to
+    # the engine's own output, so the margin lives in the price of a credit.
+    "presentation": {"standard": 80, "max": 80},     # engine cost does not depend on the model
     # The AI that writes the deck content and design brief. Estimate only: the
     # job settles on real token spend. Every chart's data goes into the prompt,
     # so the bill grows with the dashboard — measured at 240 credits ($0.475,
@@ -58,8 +64,8 @@ def deck_cost(charts: int, model: str | None = None) -> int:
 
 
 def presentation_total(charts: int = 0, model: str | None = None) -> int:
-    """A presentation costs the user two things: the AI brief (metered) and the
-    engine render (flat). Quote them as one number — they always happen together."""
+    """A presentation costs the user two things: writing the deck and rendering
+    it. Both settle on real spend; quote them as one — they always happen together."""
     return deck_cost(charts, model) + cost_of("presentation", model)
 
 
@@ -67,6 +73,17 @@ def presentation_total(charts: int = 0, model: str | None = None) -> int:
 # 1 credit sells for ~EUR 0.005; CREDITS_PER_USD keeps a healthy margin over
 # the API price while staying a round, explainable number.
 CREDITS_PER_USD = 500
+
+# What one presentation-engine credit costs us, in USD: their 3000-credit pack
+# is EUR 6, i.e. EUR 0.002 each. Update when the pack price changes — every
+# presentation is billed from this number, so a stale rate quietly moves the
+# margin. Overridable without a deploy.
+ENGINE_CREDIT_USD = float(os.environ.get("ENGINE_CREDIT_USD") or 0.00216)
+
+
+def engine_cost_usd(engine_credits: int) -> float:
+    """What the engine's own consumption cost us, in dollars."""
+    return max(0, int(engine_credits or 0)) * ENGINE_CREDIT_USD
 
 # The estimate shown BEFORE the run (and the ceiling for the final charge):
 # analysis price scales with how much data the AI has to read: a 45-sheet

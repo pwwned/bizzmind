@@ -72,6 +72,9 @@ MSG: dict = {
         "err_deck_no_charts": "Няма графики, от които да направя презентация.",
         "err_deck_invalid": "AI не върна валидна презентация — опитай пак.",
         "err_deck_json": "AI върна невалиден JSON за презентацията — опитай пак.",
+        "err_ai_offline": "В момента не мога да стигна до AI помощника. Задачата е "
+                          "спряна и нищо не ти е таксувано — опитай пак след малко. "
+                          "Ако продължава, пиши ни.",
         "err_ai_timeout": "AI отговаря прекалено дълго и заявката беше прекъсната. "
                           "Опитай пак — при много файлове първият преглед може да е бавен.",
         "err_ai_failed": "AI заявката се провали: {detail}",
@@ -153,6 +156,9 @@ MSG: dict = {
         "err_deck_no_charts": "There are no charts to build a presentation from.",
         "err_deck_invalid": "The AI did not return a valid presentation — please try again.",
         "err_deck_json": "The AI returned invalid JSON for the presentation — please try again.",
+        "err_ai_offline": "I can't reach the AI assistant right now. The task was "
+                          "stopped and you were not charged — please try again in a "
+                          "moment. If it keeps happening, get in touch.",
         "err_ai_timeout": "The AI took too long and the request was cancelled. "
                           "Try again — with many files the first review can be slow.",
         "err_ai_failed": "AI request failed: {detail}",

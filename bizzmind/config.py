@@ -24,7 +24,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 _load_dotenv(ROOT / ".env")
 
-AI_BACKEND = os.environ.get("AI_BACKEND", "subscription")
+# An env var that exists but is empty (easy to do in a hosting dashboard) must
+# read as "not set" — otherwise it silently selects the other backend.
+AI_BACKEND = os.environ.get("AI_BACKEND", "").strip() or "subscription"
 GAMMA_API_KEY = os.environ.get("GAMMA_API_KEY", "")
 # Public https origin of this server — Gamma's servers fetch chart images and
 # the logo from here. Without it the deck is generated text-only.

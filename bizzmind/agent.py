@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import time
 
@@ -871,7 +872,9 @@ def _record_usage(proj: Project, message) -> None:
 
 async def run_agent_subscription(proj: Project, user_content: str, images: list | None = None):
     if not SDK_AVAILABLE:
-        raise RuntimeError("Claude Agent SDK is not installed — set AI_BACKEND=api with ANTHROPIC_API_KEY")
+        log.error("agent: subscription mode selected but the Claude Agent SDK is "
+                  "not installed here — set AI_BACKEND=api with ANTHROPIC_API_KEY")
+        raise RuntimeError(T(proj.lang, "err_ai_offline"))
     global CURRENT_PROJECT, AGENT_LOCK
     if AGENT_LOCK is None:
         AGENT_LOCK = asyncio.Lock()
@@ -948,6 +951,12 @@ async def run_agent_subscription(proj: Project, user_content: str, images: list 
 def run_agent_api(proj: Project, user_content: str, images: list | None = None):
     import anthropic  # lazy: heavy import, only needed in API mode
     """Production path: Anthropic API with a manual tool loop."""
+    if not os.environ.get("ANTHROPIC_API_KEY", "").strip():
+        # Deployment is misconfigured; the SDK's own error is unreadable and
+        # would be shown verbatim to the user by jobs.fail().
+        log.error("agent: AI_BACKEND=api but ANTHROPIC_API_KEY is not set — "
+                  "no AI work can run on this deployment")
+        raise RuntimeError(T(proj.lang, "err_ai_offline"))
     if not proj.messages:  # fresh process: continue from the stored transcript
         user_content = conversation_recap(proj) + user_content
     if images:

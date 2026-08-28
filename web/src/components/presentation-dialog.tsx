@@ -46,18 +46,56 @@ function scaleFonts(node: unknown, k: number) {
   }
 }
 
+/* A brand book's palette is not a series palette: it carries pale neutrals meant
+   for backgrounds and near-identical tints that become the same colour once they
+   sit next to each other in a legend. Keep only what reads apart — from the white
+   slide and from each other — then darken each survivor so a chart with more
+   series than brand colours still never repeats one. */
+function seriesPalette(brand: string[] | undefined, fallback: string[]): string[] {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const gap = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  const kept: string[] = [];
+  for (const c of brand ?? []) {
+    if (!/^#[0-9a-f]{6}$/i.test(c)) continue;
+    const v = rgb(c);
+    if (gap(v, [255, 255, 255]) < 90) continue;              // washes out on a white slide
+    if (kept.some((k) => gap(rgb(k), v) < 60)) continue;      // twin of one already kept
+    kept.push(c);
+  }
+  if (kept.length < 3) return fallback;
+  const darker = kept.map((c) => "#" + rgb(c).map((n) =>
+    Math.round(n * 0.55).toString(16).padStart(2, "0")).join(""));
+  return [...kept, ...darker];
+}
+
+/* Which colour words describe this brand's own family. */
+function hueWords(hex: string): RegExp {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return /$^/;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const max = Math.max(r, g, b);
+  if (max - Math.min(r, g, b) < 30) return /gray|grey|black|white|mono|b&w/;
+  if (b === max) return max < 110 ? /navy|deep blue|dark blue/ : /blue|azure|sky|teal/;
+  if (g === max) return /green|olive|emerald|forest|sage/;
+  return g > b ? /orange|amber|gold|earth/ : /red|crimson|burgundy|maroon/;
+}
+
 function themeScore(th: GammaTheme, brandPrimary: string) {
   const kw = [...(th.colorKeywords ?? []), ...(th.toneKeywords ?? [])].map((k) => k.toLowerCase());
-  let score = th.type === "custom" ? 3 : 0;
-  for (const w of ["corporate", "professional", "clean", "serious", "formal", "light", "white"])
-    if (kw.some((k) => k.includes(w))) score += 1;
-  const primary = brandPrimary.toLowerCase();
-  if (/^#0[0-3]/.test(primary) && kw.some((k) => /navy|dark blue|deep blue/.test(k))) score += 2;
+  const has = (re: RegExp) => kw.some((k) => re.test(k));
+  // Deliberately no bonus for `type === "custom"`: the custom themes live in OUR
+  // Gamma workspace, so preferring one would stamp our identity on the client's
+  // deck — the opposite of what a white-label deliverable should do.
+  let score = 0;
+  if (has(hueWords(brandPrimary.toLowerCase()))) score += 5;   // the brand's own colour family
+  if (has(/corporate|professional|business|formal|editorial/)) score += 3;
+  if (has(/clean|minimal|refined|serious/)) score += 2;
+  if (has(/light|white/)) score += 1;                          // business decks get printed
+  if (has(/playful|fun|retro|neon|grunge|hand|comic|whimsical|bold/)) score -= 4;
   return score;
 }
 
-export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
-  pid: string; name: string; charts: Chart[]; i18n?: I18nInfo; brandPrimary?: string;
+export function PresentationDialog({ pid, name, charts, i18n, brandPrimary, brandColors }: {
+  pid: string; name: string; charts: Chart[]; i18n?: I18nInfo; brandPrimary?: string; brandColors?: string[];
 }) {
   const t = useT();
   const { lang } = useLang();
@@ -139,6 +177,18 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Gamma's default theme is the generic one; the theme decides almost the whole
+  // look of a deck. Start on the best brand match instead, and never override a
+  // choice the user has made — including deliberately clearing it.
+  const themePicked = useRef(false);
+  useEffect(() => {
+    const list = o?.themes;
+    if (themePicked.current || !list?.length) return;
+    const best = list.slice().sort((a, b) =>
+      themeScore(b, brandPrimary ?? "") - themeScore(a, brandPrimary ?? "") || a.name.localeCompare(b.name))[0];
+    if (best) setThemeId(best.id);
+  }, [o?.themes, brandPrimary]);
+
   async function chartPng(ch: Chart): Promise<string | undefined> {
     const echarts = await import("echarts");
     const cats = ch.rows.map((r) => String(r[ch.x_field] ?? ""));
@@ -149,7 +199,10 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
     document.body.appendChild(div);
     try {
       const inst = echarts.init(div);
-      const opt = buildOption(ch, L, LV, PALETTES.light) as Record<string, unknown>;
+      // The deck belongs to the client, so its charts carry the client's brand,
+      // not the product's own olive. Falls back when there is no brand book.
+      const pal = { ...PALETTES.light, SERIES: seriesPalette(brandColors, PALETTES.light.SERIES) };
+      const opt = buildOption(ch, L, LV, pal) as Record<string, unknown>;
       opt.backgroundColor = "#ffffff"; opt.animation = false;
       scaleFonts(opt, 1.8);
       inst.setOption(opt);
@@ -289,7 +342,7 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary }: {
                 <div className="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
                   {themes.map((th) => (
                     <button key={th.id} type="button"
-                      onClick={() => setThemeId(themeId === th.id ? null : th.id)}
+                      onClick={() => { themePicked.current = true; setThemeId(themeId === th.id ? null : th.id); }}
                       className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${themeId === th.id ? "border-olive bg-olive/10" : "border-border bg-secondary/40 hover:border-olive/50"}`}>
                       <span className="flex items-center gap-1.5">
                         {th.type === "custom" && <span className="rounded bg-olive/20 px-1 text-[9px] font-extrabold text-olive">{t("theme_custom_tag")}</span>}

@@ -123,7 +123,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <span className="flex-1" />
           {tab === "dash" && state.data && charts.length > 0 && (
             <div className="hidden py-2 lg:block">
-              <PresentationDialog pid={pid} name={state.data.name} charts={state.data.charts} i18n={i18n} brandPrimary={state.data.brand_theme?.primary ?? ""} />
+              <PresentationDialog pid={pid} name={state.data.name} charts={state.data.charts} i18n={i18n} brandPrimary={state.data.brand_theme?.primary ?? ""} brandColors={state.data.brand_colors} />
             </div>
           )}
         </div>

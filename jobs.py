@@ -116,6 +116,33 @@ def finish(job_id: str, result: dict | None) -> None:
         con.commit()
 
 
+_cancel_cache: dict = {}          # job_id -> (checked_at, cancelled?)
+
+
+def cancel(job_id: str) -> bool:
+    """Ask a queued/running job to stop. Returns False if it already finished."""
+    with db.pool().connection() as con:
+        row = con.execute(
+            "UPDATE public.jobs SET status = 'cancelled', finished_at = now(), "
+            "error = 'cancelled by user' WHERE id = %s AND status IN ('queued','running') "
+            "RETURNING 1", (job_id,)).fetchone()
+        con.commit()
+    _cancel_cache[job_id] = (time.time(), bool(row))
+    return bool(row)
+
+
+def is_cancelled(job_id: str) -> bool:
+    """Checked between agent steps — cached briefly so it costs nothing."""
+    hit = _cancel_cache.get(job_id)
+    if hit and time.time() - hit[0] < 1.5:
+        return hit[1]
+    with db.pool().connection() as con:
+        row = con.execute("SELECT status FROM public.jobs WHERE id = %s", (job_id,)).fetchone()
+    out = bool(row and row[0] == "cancelled")
+    _cancel_cache[job_id] = (time.time(), out)
+    return out
+
+
 def fail(job_id: str, error: str) -> None:
     with db.pool().connection() as con:
         con.execute("UPDATE public.jobs SET status = 'failed', error = %s, finished_at = now() WHERE id = %s",

@@ -114,7 +114,7 @@ export interface TableRows {
 
 export interface JobEvent { seq: number; kind: string; text: string; ts: string }
 export interface JobStatus<T = unknown> {
-  id: string; kind: string; status: "queued" | "running" | "done" | "failed";
+  id: string; kind: string; status: "queued" | "running" | "done" | "failed" | "cancelled";
   error: string | null; result: T | null; events: JobEvent[];
 }
 
@@ -185,6 +185,7 @@ export const endpoints = {
   deleteApp: (pid: string) => del<{ ok: boolean }>(p(pid, "/app")),
   deck: (pid: string) => post<{ job_id: string } | { spec: unknown }>(p(pid, "/deck")),
   account: () => api<Account>("/api/account"),
+  cancelJob: (id: string) => post<{ ok: boolean; stopped: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`),
   credits: (pid: string) => api<OrgCredits>(p(pid, "/pres/credits")),
   quote: (pid: string, kind = "analysis", model = "standard") =>
     api<{ kind: string; model: string; tables: number; credits: number; remaining: number; affordable: boolean }>(
@@ -201,26 +202,37 @@ export const endpoints = {
   removePaymentMethod: (id: string) => post<{ ok: boolean }>("/api/account/payment-method/remove", { id }),
 };
 
+export const cancelJob = (id: string) =>
+  post<{ ok: boolean; stopped: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`).catch(() => undefined);
+
 /* Run a background job: POST → {job_id} → poll until done. Inline results
    (INLINE_JOBS) come back directly. */
+export class JobCancelled extends Error {}
+
 export async function runJob<T>(
   start: Promise<{ job_id: string } | T>,
   onEvent?: (ev: JobEvent) => void,
   signal?: AbortSignal,
+  onJobId?: (id: string) => void,
 ): Promise<T> {
   const first = await start;
   if (!first || typeof first !== "object" || !("job_id" in first)) return first as T;
   const id = (first as { job_id: string }).job_id;
+  onJobId?.(id);
   // serverless worker: this request runs the job and stays open until it ends;
   // a dedicated worker (local dev) may claim it first — then it's a no-op
   fetch(`/api/jobs/${id}/run`, { method: "POST", credentials: "same-origin", keepalive: true }).catch(() => {});
   let since = 0;
   for (;;) {
     await new Promise((r) => setTimeout(r, 1200));
-    if (signal?.aborted) throw new Error("cancelled");
+    if (signal?.aborted) {
+      await cancelJob(id);
+      throw new JobCancelled("cancelled");
+    }
     const j = await endpoints.job<T>(id, since);
     for (const ev of j.events) { since = ev.seq; onEvent?.(ev); }
     if (j.status === "done") return (j.result ?? {}) as T;
+    if (j.status === "cancelled") throw new JobCancelled("cancelled");
     if (j.status === "failed") throw new Error(j.error ?? "job failed");
   }
 }

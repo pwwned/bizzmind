@@ -9,6 +9,12 @@ import re
 import time
 
 import db
+import jobs
+
+
+class CancelledByUser(Exception):
+    """The user pressed stop while the agent was working."""
+
 from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
 
@@ -903,6 +909,9 @@ async def run_agent_subscription(proj: Project, user_content: str):
                 )
                 reply = ""
                 async for message in proj.sub_client.receive_response():
+                    if proj.job_id and jobs.is_cancelled(proj.job_id):
+                        log.info(f"[{proj.id}] agent: cancelled by user — stopping")
+                        raise CancelledByUser()
                     if isinstance(message, AssistantMessage):
                         text = "".join(b.text for b in message.content if isinstance(b, TextBlock))
                         if text.strip():
@@ -936,6 +945,9 @@ def run_agent_api(proj: Project, user_content: str):
     proj.new_questions = []
 
     while True:
+        if proj.job_id and jobs.is_cancelled(proj.job_id):
+            log.info(f"[{proj.id}] agent: cancelled by user — stopping")
+            raise CancelledByUser()
         try:
             response = client.beta.messages.create(
                 model=getattr(proj, "ai_model_id", None) or MODEL,

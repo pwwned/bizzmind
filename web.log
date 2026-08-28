@@ -973,3 +973,22 @@ Error: socket hang up
  GET /p/poli-demo-pm 200 in 67ms (next.js: 22ms, proxy.ts: 17ms, application-code: 28ms)
 ✓ Compiled in 83ms
  GET /p/poli-demo-pm 200 in 37ms (next.js: 14ms, proxy.ts: 3ms, application-code: 20ms)
+ GET /p/poli-demo-pm 200 in 98ms (next.js: 26ms, proxy.ts: 11ms, application-code: 61ms)
+Failed to proxy http://127.0.0.1:8000/api/jobs/4316c3de-d389-4f61-9c3b-2ba488ba17fb/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Failed to proxy http://127.0.0.1:8000/api/jobs/dfdf662b-7e96-494c-acd4-30f628e62a06/run Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+✓ Compiled in 126ms
+ GET /p/poli-demo-pm 200 in 42ms (next.js: 13ms, proxy.ts: 5ms, application-code: 23ms)

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { endpoints, getModelPref, runJob, setModelPref, type AgentResult, type ChatMessage, type JobEvent, type Question } from "@/lib/api";
+import { cancelJob, endpoints, getModelPref, JobCancelled, runJob, setModelPref, type AgentResult, type ChatMessage, type JobEvent, type Question } from "@/lib/api";
 import { useT, type Key } from "@/lib/i18n";
 import { useBuyCredits } from "@/components/buy-credits";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
   const [items, setItems] = useState<Item[]>(initial);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const runningJob = useRef<string | null>(null);
   const buyCredits = useBuyCredits();
   const [model, setModel] = useState(() => getModelPref(pid));
   const credits = useQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid), staleTime: 60_000 });
@@ -50,7 +51,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
     try {
       const res = await runJob<AgentResult>(start, (ev) => {
         setItems((it) => it.map((m) => (m.procId === procId ? { ...m, live: [...(m.live ?? []), ev].slice(-8) } : m)));
-      });
+      }, undefined, (id) => { runningJob.current = id; });
       setItems((it) => [...it.filter((m) => m.procId !== procId), { role: "ai", text: res.reply || t("done"), questions: res.questions }]);
       qc.invalidateQueries({ queryKey: ["state", pid] });
       qc.invalidateQueries({ queryKey: ["app", pid] });     // the agent may have edited the app
@@ -63,8 +64,11 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
         setItems((it) => [...it, { role: "event", text: t("charged_line", { n: before - fresh.remaining }) }]);
       }
     } catch (e) {
-      setItems((it) => [...it.filter((m) => m.procId !== procId), { role: "ai", text: t("problem", { msg: (e as Error).message }) }]);
-    } finally { setBusy(false); }
+      const stopped = e instanceof JobCancelled;
+      setItems((it) => [...it.filter((m) => m.procId !== procId),
+        { role: "event", text: stopped ? t("job_stopped") : t("problem", { msg: (e as Error).message }) }]);
+      if (stopped) { qc.invalidateQueries({ queryKey: ["state", pid] }); qc.invalidateQueries({ queryKey: ["app", pid] }); }
+    } finally { setBusy(false); runningJob.current = null; }
   }
 
   // a fresh upload opens the brief form (the user frames the analysis first)
@@ -146,6 +150,11 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
                   <div className="mb-1 flex items-center gap-2 font-bold text-olive">
                     <span className="size-3 animate-spin rounded-full border-2 border-border border-t-olive" />
                     {m.text} · {Math.round((Date.now() - (m.started ?? Date.now())) / 1000)}s
+                    <button type="button" title={t("stop")}
+                      className="ml-auto rounded-md border border-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:border-destructive hover:text-destructive"
+                      onClick={async () => { if (runningJob.current) await cancelJob(runningJob.current); }}>
+                      {t("stop")}
+                    </button>
                   </div>
                   <ul className="space-y-0.5 text-muted-foreground">
                     {m.live?.map((ev, li) => (

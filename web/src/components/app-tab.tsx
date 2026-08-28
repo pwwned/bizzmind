@@ -1,10 +1,10 @@
 "use client";
 /* The project's mini-app: an AI-designed working surface over the same data —
    entry forms, live KPIs and lists that replace the spreadsheet routine. */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api, endpoints, p as apiPath, runJob } from "@/lib/api";
+import { api, cancelJob, endpoints, JobCancelled, p as apiPath, runJob } from "@/lib/api";
 import { localeOf, useLang, useT, type Key } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -187,6 +187,7 @@ export function AppTab({ pid, hasTables, onAskChat }: {
   const [building, setBuilding] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [step, setStep] = useState("");
+  const runningJob = useRef<string | null>(null);
   const [plan, setPlan] = useState<AppPlan | null>(null);
   const [picked, setPicked] = useState<string>("");
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -210,13 +211,13 @@ export function AppTab({ pid, hasTables, onAskChat }: {
     setThinking(true);
     setStep("");
     try {
-      const r = await runJob<{ plan: AppPlan }>(api(apiPath(pid, "/app/propose"), { method: "POST" }), (ev) => setStep(ev.text));
+      const r = await runJob<{ plan: AppPlan }>(api(apiPath(pid, "/app/propose"), { method: "POST" }), (ev) => setStep(ev.text), undefined, (id) => { runningJob.current = id; });
       setPlan(r.plan);
       setPicked(r.plan?.proposals?.[0]?.id ?? "");
       qc.invalidateQueries({ queryKey: ["account"] });
       qc.invalidateQueries({ queryKey: ["pres-credits", pid] });
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setThinking(false); setStep(""); }
+    } catch (e) { if (!(e instanceof JobCancelled)) toast.error((e as Error).message); }
+    finally { setThinking(false); setStep(""); runningJob.current = null; }
   }
 
   function composeBrief(): string {
@@ -232,13 +233,13 @@ export function AppTab({ pid, hasTables, onAskChat }: {
     setBuilding(true);
     setStep("");
     try {
-      await runJob(api(apiPath(pid, "/app/build"), { method: "POST", body: JSON.stringify({ brief: composeBrief() }) }), (ev) => setStep(ev.text));
+      await runJob(api(apiPath(pid, "/app/build"), { method: "POST", body: JSON.stringify({ brief: composeBrief() }) }), (ev) => setStep(ev.text), undefined, (id) => { runningJob.current = id; });
       await qc.invalidateQueries({ queryKey: ["app", pid] });
       qc.invalidateQueries({ queryKey: ["account"] });
       setPlan(null);
       toast.success(t("app_ready"));
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setBuilding(false); setStep(""); }
+    } catch (e) { if (!(e instanceof JobCancelled)) toast.error((e as Error).message); }
+    finally { setBuilding(false); setStep(""); runningJob.current = null; }
   }
 
   const spec = app.data?.app;
@@ -250,6 +251,10 @@ export function AppTab({ pid, hasTables, onAskChat }: {
         <span className="size-9 animate-spin rounded-full border-[3px] border-border border-t-olive" />
         <div className="text-sm font-semibold">{thinking ? t("app_thinking") : t("app_building")}</div>
         {step && <div className="max-w-md text-[12px] text-muted-foreground">{step}</div>}
+        <Button variant="outline" size="sm"
+          onClick={async () => { if (runningJob.current) await cancelJob(runningJob.current); }}>
+          {t("stop")}
+        </Button>
       </div>
     );
   }

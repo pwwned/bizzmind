@@ -167,6 +167,7 @@ export const dict = {
     app_edit: "Промени с чат",
     app_edit_hint: "Приложението се променя с думи: „добави поле за брак“, „махни таблицата с проблемните дни“, „сложи показател среден бон“.",
     app_edit_prompt: "Промени приложението: ",
+    stop: "Спри", job_stopped: "Спряно от теб — нищо не е таксувано.",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -330,6 +331,7 @@ export const dict = {
     app_edit: "Change by chatting",
     app_edit_hint: "Change the app with words: \"add a waste field\", \"drop the problem-days table\", \"add an average receipt metric\".",
     app_edit_prompt: "Change the app: ",
+    stop: "Stop", job_stopped: "Stopped by you — nothing was charged.",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

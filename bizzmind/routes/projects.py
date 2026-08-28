@@ -28,7 +28,8 @@ from bizzmind.data import (invalidate, apply_filters_to_sql, describe_schema, fi
 from bizzmind.brand import brand_colors, brand_dir, brand_files, brand_logo_path, brand_theme
 from bizzmind.localization import (_h, _has_letters, _load_i18n, content_lang, localize_charts,
                                    localized_content, translatable_items)
-from bizzmind.agent import dispatch_agent, run_app, run_app_proposal, run_deck, run_review, run_translate
+from bizzmind.agent import (CancelledByUser, dispatch_agent, run_app, run_app_proposal,
+                            run_deck, run_review, run_translate)
 
 router = APIRouter()
 
@@ -90,6 +91,10 @@ async def _execute_claimed(job: dict) -> dict:
         _settle_job(proj.id, job["id"], kind, pl)
         log.info(f"[{proj.id}] job {job['id']} done inline in {_time.monotonic() - t0:.1f}s")
         return {"status": "done"}
+    except CancelledByUser:
+        jobs.cancel(job["id"])
+        log.info(f"[{proj.id}] job {job['id']} cancelled by user — nothing charged")
+        return {"status": "cancelled"}
     except Exception as e:
         log.info(f"[{proj.id}] job {job['id']} failed — nothing charged")
         jobs.fail(job["id"], str(e))
@@ -98,6 +103,14 @@ async def _execute_claimed(job: dict) -> dict:
     finally:
         proj.job_id = None
         PROJECTS.pop(proj.id, None)
+
+
+@router.post("/api/jobs/{job_id}/cancel")
+def cancel_job(job_id: str):
+    """Stop a queued or running job — nothing is charged for it."""
+    stopped = jobs.cancel(job_id)
+    log.info(f"job {job_id}: cancel requested -> {'stopped' if stopped else 'already finished'}")
+    return {"ok": True, "stopped": stopped}
 
 
 @router.post("/api/jobs/{job_id}/run")

@@ -102,6 +102,10 @@ async def main(once: bool = False):
             from bizzmind.routes.projects import _settle_job
             _settle_job(job["project_id"], job["id"], job["kind"], job["payload"] or {})
             log.info(f"[{job['project_id']}] job {job['id']} done in {time.monotonic() - t0:.1f}s")
+        except core.CancelledByUser:
+            jobs.cancel(job["id"])
+            log.info(f"[{job['project_id']}] job {job['id']} cancelled by user — nothing charged")
+            continue
         except Exception as e:
             log.info(f"[{job['project_id']}] job {job['id']} FAILED — {core._short(e, 200)}\n{traceback.format_exc()[-800:]}")
             jobs.fail(job["id"], str(e))

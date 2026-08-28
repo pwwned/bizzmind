@@ -173,15 +173,21 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
     cover = f"# {req.title}"
     if req.subtitle:
         cover += f"\n\n{req.subtitle}"
-    cover += f"\n\n{proj.meta['name']} · {datetime.now().strftime('%d.%m.%Y')}"
+    # The internal project name does not belong on a client-facing cover; the
+    # brand logo in the header already says whose deck this is.
+    cover += f"\n\n{datetime.now().strftime('%d.%m.%Y')}"
     cards.append(cover)   # logo comes via headerFooter (small, every card incl. cover)
     last_heading = None
     dropped_images = 0
     for i, sl in enumerate(req.slides):
+        body = ""
         if sl.heading and sl.heading != last_heading:
-            cards.append(f"# {sl.heading}")
+            # A card whose entire content is one heading gets typeset to fill
+            # the slide — a single enormous word on an otherwise empty page.
+            # Carry the section name onto the next real slide as an eyebrow.
+            body += f"**{sl.heading}**\n\n"
             last_heading = sl.heading
-        body = f"## {sl.title}"
+        body += f"## {sl.title}"
         if sl.narrative:
             body += f"\n\n{sl.narrative}"
         embedded = False
@@ -223,6 +229,10 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
     instr.append("This is a data-driven business report: keep each chart image large and "
                  "unmodified, one chart per card, headline left / chart right. "
                  "Do not invent numbers — use only the figures given.")
+    instr.append("Typography: hold one restrained, consistent type scale across every card. "
+                 "Never enlarge a short line to fill empty space — a sparse card stays "
+                 "sparse with normal-sized type. Keep headings to two lines at most, and "
+                 "keep body text at reading size, not display size.")
     if req.tone:
         instr.append(f"Tone: {req.tone}.")
     if req.extra_instructions:

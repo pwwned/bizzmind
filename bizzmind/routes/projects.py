@@ -72,7 +72,7 @@ async def _execute_claimed(job: dict) -> dict:
     try:
         if kind == "chat":
             proj.add_chat("user", pl["message"])
-            result = await dispatch_agent(proj, pl["message"])
+            result = await dispatch_agent(proj, pl["message"], pl.get("images") or [])
         elif kind == "review":
             result = await run_review(proj, pl.get("tables") or [], pl.get("context", ""), pl.get("goal", ""))
         elif kind == "app":
@@ -245,6 +245,7 @@ async def delete_project(pid: str):
 class ChatRequest(BaseModel):
     message: str
     model: str = "standard"
+    images: list[str] = []          # data URLs of screenshots the user pasted
 
 
 class ReviewRequest(BaseModel):
@@ -611,10 +612,11 @@ async def chat(pid: str, req: ChatRequest, request: Request):
     if INLINE_JOBS:
         proj.lang = lang
         proj.add_chat("user", req.message)
-        return await dispatch_agent(proj, req.message)
+        return await dispatch_agent(proj, req.message, req.images[:3])
     u = sb_auth.current_user()
     return {"job_id": jobs.enqueue(pid, "chat", {"message": req.message, "model": req.model,
-                                                "estimate": est}, lang, u.id if u else None)}
+                                                "estimate": est, "images": req.images[:3]},
+                                   lang, u.id if u else None)}
 
 
 @router.post("/api/p/{pid}/review")

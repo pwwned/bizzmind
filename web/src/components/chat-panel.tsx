@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { cancelJob, endpoints, getModelPref, JobCancelled, runJob, setModelPref, type AgentResult, type ChatMessage, type JobEvent, type Question } from "@/lib/api";
 import { useT, type Key } from "@/lib/i18n";
 import { useBuyCredits } from "@/components/buy-credits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, Send, X } from "lucide-react";
+import { ImagePlus, MessageCircle, Send, X } from "lucide-react";
 
-type Item = ChatMessage & { live?: JobEvent[]; started?: number; procId?: string };
+type Item = ChatMessage & { live?: JobEvent[]; started?: number; procId?: string; shots?: string[] };
 
 export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onSeedUsed }: {
   pid: string; initial: ChatMessage[]; open: boolean; onOpenChange: (o: boolean) => void;
@@ -21,6 +22,8 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const runningJob = useRef<string | null>(null);
+  const [shots, setShots] = useState<string[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
   const buyCredits = useBuyCredits();
   const [model, setModel] = useState(() => getModelPref(pid));
   const credits = useQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid), staleTime: 60_000 });
@@ -86,12 +89,27 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
     setBrief({ tables: pending.tables });
   }, [pending]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function addShots(files: FileList | File[] | null) {
+    const list = Array.from(files ?? []).filter((f) => f.type.startsWith("image/")).slice(0, 3);
+    if (!list.length) return;
+    const urls = await Promise.all(list.map((f) => new Promise<string>((res, rej) => {
+      if (f.size > 4 * 1024 * 1024) { toast.error(t("shot_too_big")); return rej(new Error("too big")); }
+      const r = new FileReader();
+      r.onload = () => res(String(r.result));
+      r.onerror = rej;
+      r.readAsDataURL(f);
+    })).map((p) => p.catch(() => "")));
+    setShots((prev) => [...prev, ...urls.filter(Boolean)].slice(0, 3));
+  }
+
   function send(msg: string) {
     const text = msg.trim();
-    if (!text || busy) return;
-    setItems((it) => [...it, { role: "user", text }]);
+    if ((!text && !shots.length) || busy) return;
+    setItems((it) => [...it, { role: "user", text: text || t("shot_only"), shots }]);
     setText("");
-    run(t("thinking"), endpoints.chat(pid, text, model));
+    const attached = shots;
+    setShots([]);
+    run(t("thinking"), endpoints.chat(pid, text || t("shot_only"), model, attached));
   }
 
   function startReview(tables: string[], context: string, aim: string) {
@@ -170,6 +188,12 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
                 <div className="text-center text-[11px] text-muted-foreground">{m.text}</div>
               ) : (
                 <div className={`max-w-[92%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${m.role === "user" ? "ml-auto grad-olive text-primary-foreground" : "bg-secondary"}`}>
+                  {!!m.shots?.length && (
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {m.shots.map((src, si) => <img key={si} src={src} alt="" className="max-h-28 rounded-lg border border-white/20" />)}
+                    </div>
+                  )}
                   {m.text}
                   {m.questions && m.questions.length > 0 && i === items.length - 1 && (
                     <QuestionForm questions={m.questions} onSubmit={(answer) => send(answer)} />
@@ -207,11 +231,33 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
           </div>
           )}
         </div>
-        <form className="flex items-end gap-2 border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); send(text); }}>
+        {!!shots.length && (
+          <div className="flex flex-wrap gap-2 border-t border-border px-3 pt-3">
+            {shots.map((src, i) => (
+              <span key={i} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="h-14 rounded-lg border border-border" />
+                <button type="button" onClick={() => setShots(shots.filter((_, j) => j !== i))}
+                  className="absolute -right-1.5 -top-1.5 rounded-full bg-background p-0.5 text-muted-foreground shadow hover:text-destructive">
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <form className={`flex items-end gap-2 border-t border-border p-3 ${shots.length ? "border-t-0" : ""}`}
+          onSubmit={(e) => { e.preventDefault(); send(text); }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); addShots(e.dataTransfer.files); }}>
+          <input ref={fileRef} type="file" accept="image/*" multiple hidden
+            onChange={(e) => { addShots(e.target.files); if (fileRef.current) fileRef.current.value = ""; }} />
+          <Button type="button" variant="ghost" size="icon" title={t("attach_shot")} disabled={busy}
+            onClick={() => fileRef.current?.click()}><ImagePlus className="size-4" /></Button>
           <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={t("chat_ph")} rows={2}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(text); } }}
+            onPaste={(e) => { const f = Array.from(e.clipboardData.files); if (f.length) { e.preventDefault(); addShots(f); } }}
             className="min-h-0 resize-none" disabled={busy} />
-          <Button type="submit" disabled={busy || !text.trim()} title={costChat != null ? t("approx_cr", { n: costChat }) : ""}
+          <Button type="submit" disabled={busy || (!text.trim() && !shots.length)} title={costChat != null ? t("approx_cr", { n: costChat }) : ""}
             className="grad-olive text-primary-foreground"><Send className="size-4" /></Button>
         </form>
       </aside>

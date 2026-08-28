@@ -168,6 +168,8 @@ export const dict = {
     app_edit_hint: "Приложението се променя с думи: „добави поле за брак“, „махни таблицата с проблемните дни“, „сложи показател среден бон“.",
     app_edit_prompt: "Промени приложението: ",
     stop: "Спри", job_stopped: "Спряно от теб — нищо не е таксувано.",
+    attach_shot: "Прикачи снимка", shot_too_big: "Снимката е над 4 MB — направи я по-малка.",
+    shot_only: "Виж снимката.",
     lang_bg: "BG", lang_en: "EN",
   },
   en: {
@@ -332,6 +334,8 @@ export const dict = {
     app_edit_hint: "Change the app with words: \"add a waste field\", \"drop the problem-days table\", \"add an average receipt metric\".",
     app_edit_prompt: "Change the app: ",
     stop: "Stop", job_stopped: "Stopped by you — nothing was charged.",
+    attach_shot: "Attach a screenshot", shot_too_big: "The image is over 4 MB — please shrink it.",
+    shot_only: "Look at the screenshot.",
     lang_bg: "BG", lang_en: "EN",
   },
 } as const;

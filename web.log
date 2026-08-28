@@ -992,3 +992,9 @@ Error: socket hang up
 }
 ✓ Compiled in 126ms
  GET /p/poli-demo-pm 200 in 42ms (next.js: 13ms, proxy.ts: 5ms, application-code: 23ms)
+✓ Compiled in 321ms
+ GET /p/poli-demo-pm 200 in 45ms (next.js: 13ms, proxy.ts: 3ms, application-code: 29ms)
+ GET /login?force=1 200 in 57ms (next.js: 10ms, proxy.ts: 5ms, application-code: 42ms)
+ GET /app 200 in 30ms (next.js: 10ms, proxy.ts: 6ms, application-code: 14ms)
+ GET /app 200 in 15ms (next.js: 2.0ms, proxy.ts: 2ms, application-code: 11ms)
+ GET /p/demo-public 200 in 38ms (next.js: 4ms, proxy.ts: 3ms, application-code: 30ms)

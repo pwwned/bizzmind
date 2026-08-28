@@ -46,7 +46,7 @@ async def run_job(job: dict) -> dict:
     try:
         if kind == "chat":
             proj.add_chat("user", p["message"])
-            return await core.dispatch_agent(proj, p["message"])
+            return await core.dispatch_agent(proj, p["message"], p.get("images") or [])
         if kind == "review":
             return await core.run_review(proj, p.get("tables") or [], p.get("context", ""), p.get("goal", ""))
         if kind == "app":

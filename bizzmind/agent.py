@@ -827,9 +827,10 @@ pass unused fields as '' / []. present_questions takes
             "mcp__analytics__drop_view",
             "mcp__analytics__verify_dashboard",
             "mcp__analytics__present_questions",
+            "Read",
         ],
         disallowed_tools=[
-            "Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebSearch",
+            "Bash", "Write", "Edit", "Glob", "Grep", "WebSearch",
             "WebFetch", "NotebookEdit", "Task", "TodoWrite",
         ],
         permission_mode="bypassPermissions",
@@ -864,7 +865,7 @@ def _record_usage(proj: Project, message) -> None:
         log.info(f"[{proj.id}] usage record failed — {e}")
 
 
-async def run_agent_subscription(proj: Project, user_content: str):
+async def run_agent_subscription(proj: Project, user_content: str, images: list | None = None):
     if not SDK_AVAILABLE:
         raise RuntimeError("Claude Agent SDK is not installed — set AI_BACKEND=api with ANTHROPIC_API_KEY")
     global CURRENT_PROJECT, AGENT_LOCK
@@ -902,6 +903,11 @@ async def run_agent_subscription(proj: Project, user_content: str):
         if bf:
             ctx["brand"] = {"files": bf, "brandbook_excerpt": brand_excerpt(proj, 1500)}
         context = json.dumps(ctx, default=str, ensure_ascii=False)
+        shots = _save_shots(proj, images)
+        if shots:
+            user_content += ("\n\n<screenshots>\nThe user attached screenshots of what they mean. "
+                             "Read them with the Read tool before answering:\n"
+                             + "\n".join(str(p) for p in shots) + "\n</screenshots>")
         try:
             async with asyncio.timeout(SUB_TIMEOUT_S):
                 await proj.sub_client.query(
@@ -935,12 +941,23 @@ async def run_agent_subscription(proj: Project, user_content: str):
                 "tables": describe_schema(proj), "notes": proj.notes}
 
 
-def run_agent_api(proj: Project, user_content: str):
+def run_agent_api(proj: Project, user_content: str, images: list | None = None):
     import anthropic  # lazy: heavy import, only needed in API mode
     """Production path: Anthropic API with a manual tool loop."""
     if not proj.messages:  # fresh process: continue from the stored transcript
         user_content = conversation_recap(proj) + user_content
-    proj.messages.append({"role": "user", "content": user_content})
+    if images:
+        blocks: list = []
+        for src in images[:3]:
+            head, _, b64 = str(src).partition(",")
+            media = head.split(";")[0].replace("data:", "") or "image/png"
+            if b64:
+                blocks.append({"type": "image",
+                               "source": {"type": "base64", "media_type": media, "data": b64}})
+        blocks.append({"type": "text", "text": user_content})
+        proj.messages.append({"role": "user", "content": blocks})
+    else:
+        proj.messages.append({"role": "user", "content": user_content})
     proj.new_charts.clear()
     proj.new_questions = []
 
@@ -998,14 +1015,40 @@ def run_agent_api(proj: Project, user_content: str):
                 "tables": describe_schema(proj), "notes": proj.notes}
 
 
-async def dispatch_agent(proj: Project, user_content: str):
+def _save_shots(proj: Project, images: list | None) -> list:
+    """Screenshots the user pasted, written next to the project so the SDK
+    session can open them with its Read tool."""
+    import base64
+
+    if not images:
+        return []
+    out = []
+    shots_dir = proj.dir / "shots"
+    shots_dir.mkdir(parents=True, exist_ok=True)
+    for i, src in enumerate(list(images)[:3]):
+        head, _, b64 = str(src).partition(",")
+        if not b64:
+            continue
+        ext = "png" if "png" in head else ("jpg" if "jpeg" in head or "jpg" in head else "webp")
+        p = shots_dir / f"shot-{int(time.time())}-{i}.{ext}"
+        try:
+            p.write_bytes(base64.b64decode(b64))
+            out.append(p)
+        except Exception as e:
+            log.info(f"[{proj.id}] screenshot {i} skipped — {e}")
+    if out:
+        log.info(f"[{proj.id}] chat: {len(out)} screenshot(s) attached")
+    return out
+
+
+async def dispatch_agent(proj: Project, user_content: str, images: list | None = None):
     t0 = time.monotonic()
     log.info(f"[{proj.id}] agent[{AI_BACKEND}]: turn start — {_short(user_content, 120)}")
     proj.log_activity("info", T(proj.lang, "act_thinking"))
     try:
-        result = (await run_agent_subscription(proj, user_content)
+        result = (await run_agent_subscription(proj, user_content, images)
                   if AI_BACKEND == "subscription"
-                  else await run_in_threadpool(run_agent_api, proj, user_content))
+                  else await run_in_threadpool(run_agent_api, proj, user_content, images))
     except Exception as e:
         log.info(f"[{proj.id}] agent[{AI_BACKEND}]: turn FAILED after "
                  f"{time.monotonic() - t0:.1f}s — {_short(e, 160)}")

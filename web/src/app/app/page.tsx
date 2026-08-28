@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Mark } from "@/components/logo";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { toast } from "sonner";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -29,6 +29,7 @@ export default function ProjectsPage() {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [opening, setOpening] = useState<string | null>(null);   // pid being opened, or "new"
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const { lang } = useLang();
 
   const create = useMutation({
@@ -47,6 +48,11 @@ export default function ProjectsPage() {
       setOpening("new");
       router.push(`/p/${proj.id}`);
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const rename = useMutation({
+    mutationFn: (v: { id: string; name: string }) => endpoints.renameProject(v.id, v.name),
+    onSuccess: () => { setRenaming(null); qc.invalidateQueries({ queryKey: ["projects"] }); toast.success(t("project_renamed")); },
     onError: (e: Error) => toast.error(e.message),
   });
   const remove = useMutation({
@@ -102,13 +108,41 @@ export default function ProjectsPage() {
                   <span className="size-6 animate-spin rounded-full border-2 border-border border-t-olive" />
                 </span>
               )}
-              <h3 className="truncate text-base font-bold">{p.name}</h3>
+              {renaming?.id === p.id ? (
+                <div className="flex items-center gap-1.5"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                  <Input autoFocus value={renaming.name}
+                    onChange={(e) => setRenaming({ id: p.id, name: e.target.value })}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") { e.preventDefault(); if (renaming.name.trim()) rename.mutate({ id: p.id, name: renaming.name.trim() }); }
+                      if (e.key === "Escape") { e.preventDefault(); setRenaming(null); }
+                    }}
+                    className="h-8 text-[15px] font-bold" />
+                  <button type="button" title={t("save")} className="rounded p-1 text-olive hover:bg-olive/10"
+                    onClick={() => { if (renaming.name.trim()) rename.mutate({ id: p.id, name: renaming.name.trim() }); }}>
+                    <Check className="size-4" />
+                  </button>
+                  <button type="button" title={t("cancel")} className="rounded p-1 text-muted-foreground hover:bg-secondary"
+                    onClick={() => setRenaming(null)}><X className="size-4" /></button>
+                </div>
+              ) : (
+                <h3 className="truncate text-base font-bold">{p.name}</h3>
+              )}
               <div className="text-xs text-muted-foreground">{t("created")} {p.created || "—"}</div>
               <div className="mt-auto flex gap-4 text-xs text-muted-foreground">
                 <span><b className="text-olive">{p.tables}</b> {t("tables")}</span>
                 <span><b className="text-olive">{p.charts}</b> {t("charts")}</span>
                 <span><b className="text-olive">{p.notes}</b> {t("knowledge")}</span>
               </div>
+              <button
+                type="button"
+                title={t("rename_project")}
+                className="absolute right-11 top-3 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-olive/15 hover:text-olive group-hover:opacity-100"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRenaming({ id: p.id, name: p.name }); }}
+              >
+                <Pencil className="size-4" />
+              </button>
               <button
                 type="button"
                 title={t("delete_project")}

@@ -1,7 +1,8 @@
 "use client";
 import { use, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cacheGet, cacheSet, endpoints, useCachedPlaceholder, type Chart, type ProjectState } from "@/lib/api";
+import { toast } from "sonner";
 import { useLang } from "@/lib/i18n";
 import { useT } from "@/lib/i18n";
 import { AppHeader } from "@/components/app-header";
@@ -28,7 +29,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [chatOpen, setChatOpen] = useState(false);
   const [pendingReview, setPendingReview] = useState<{ tables: string[] } | null>(null);
   const uploadRef = useRef<(() => void) | null>(null);
+  const qc = useQueryClient();
   const chromeHidden = useChromeHidden();
+  const rename = useMutation({
+    mutationFn: (name: string) => endpoints.renameProject(pid, name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["state", pid] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast.success(t("project_renamed"));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const quote = useQuery({
     queryKey: ["quote", pid, "standard"],
     queryFn: () => endpoints.quote(pid, "analysis", "standard"),
@@ -74,7 +85,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   return (
     <>
       <div className={`sticky top-0 z-40 transition-transform duration-300 ${chromeHidden ? "-translate-y-full" : "translate-y-0"}`}>
-        <AppHeader crumb={state.data?.name ?? ""} back plain />
+        <AppHeader crumb={state.data?.name ?? ""} back plain onRename={(n) => rename.mutate(n)} />
         <div className="flex items-center gap-4 border-b border-border bg-background px-6">
           <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
             <TabsList className="h-11 bg-transparent p-0">

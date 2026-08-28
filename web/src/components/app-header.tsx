@@ -9,12 +9,17 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, CircleUserRound, CreditCard, LogOut, Wallet } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, CircleUserRound, CreditCard, LogOut, Pencil, Wallet } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/lib/theme";
 import { CreditsChip } from "@/components/credits-chip";
 
-export function AppHeader({ crumb, back, plain = false }: { crumb?: string; back?: boolean; plain?: boolean }) {
+export function AppHeader({ crumb, back, plain = false, onRename }: {
+  crumb?: string; back?: boolean; plain?: boolean; onRename?: (name: string) => void;
+}) {
   const t = useT();
+  const [editing, setEditing] = useState<string | null>(null);
   const { lang, setLang } = useLang();
   const me = useQuery({ queryKey: ["me"], queryFn: endpoints.me, staleTime: 5 * 60_000 });
   const initial = (me.data?.email?.[0] ?? "•").toUpperCase();
@@ -22,11 +27,28 @@ export function AppHeader({ crumb, back, plain = false }: { crumb?: string; back
   return (
     <header className={`flex items-center gap-4 border-b border-border bg-background px-6 py-3 ${plain ? "" : "sticky top-0 z-40"}`}>
       <Link href="/app" className="shrink-0"><Logo size={28} /></Link>
-      {crumb && (
+      {crumb && (editing !== null ? (
+        <form className="flex items-center gap-1.5" onSubmit={(e) => {
+          e.preventDefault();
+          if (editing.trim() && editing.trim() !== crumb) onRename?.(editing.trim());
+          setEditing(null);
+        }}>
+          <Input autoFocus value={editing} onChange={(e) => setEditing(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
+            onBlur={() => setEditing(null)} className="h-8 w-56 text-sm font-semibold" />
+        </form>
+      ) : (
         <span className="truncate text-sm text-muted-foreground">
-          / <b className="font-semibold text-foreground">{crumb}</b>
+          /{" "}
+          {onRename ? (
+            <button type="button" onClick={() => setEditing(crumb)} title={t("rename_project")}
+              className="group/name inline-flex items-center gap-1.5 font-semibold text-foreground hover:text-olive">
+              {crumb}
+              <Pencil className="size-3 opacity-0 transition-opacity group-hover/name:opacity-60" />
+            </button>
+          ) : <b className="font-semibold text-foreground">{crumb}</b>}
         </span>
-      )}
+      ))}
       <span className="flex-1" />
       {back && (
         <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/app" />}>

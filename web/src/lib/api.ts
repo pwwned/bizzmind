@@ -39,6 +39,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const post = <T,>(path: string, body?: unknown) =>
   api<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
+export const put = <T,>(path: string, body?: unknown) =>
+  api<T>(path, { method: "PUT", body: body === undefined ? undefined : JSON.stringify(body) });
 export const del = <T,>(path: string) => api<T>(path, { method: "DELETE" });
 
 /* ---------------------------------------------------------------- types */
@@ -165,6 +167,7 @@ export const endpoints = {
   logout: () => post<{ ok: boolean }>("/api/auth/logout"),
   projects: () => api<{ projects: ProjectCard[] }>("/api/projects"),
   createProject: (name: string) => post<{ id: string; name: string }>("/api/projects", { name }),
+  renameProject: (pid: string, name: string) => put<{ id: string; name: string }>(`/api/projects/${encodeURIComponent(pid)}`, { name }),
   deleteProject: (pid: string) => del<{ ok: boolean }>(`/api/projects/${encodeURIComponent(pid)}`),
   state: (pid: string) => api<ProjectState>(p(pid, "/state")),
   refresh: (pid: string, selections: Record<string, string[] | string>) =>

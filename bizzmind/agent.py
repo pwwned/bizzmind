@@ -190,6 +190,9 @@ TOOLS = [
             "Change the project's mini-app (the App tab): add, edit, remove or reorder its "
             "views. Pass the COMPLETE new spec — it replaces the old one, so start from the "
             "current app given in <current_app> and apply only what the user asked for. "
+            "Every view also accepts optional layout: \"collapsible\":true makes it a fold-out "
+            "panel, \"collapsed\":true starts it folded, \"width\":\"half\"|\"full\" sets how much "
+            "of the row it takes. Use them when the user asks for a tidier screen. "
             "Views: {\"type\":\"kpi\",\"title\":str,\"items\":[{\"label\":str,\"sql\":str,\"unit\":str}]} | "
             "{\"type\":\"entry\",\"title\":str,\"hint\":str,\"table\":str or \"tables\":[{\"table\":str,\"label\":str}],"
             "\"fields\":[{\"column\":str,\"label\":str,\"type\":\"text|number|date|select\",\"required\":bool,\"options_sql\":str}]} | "
@@ -1271,6 +1274,10 @@ Return ONE json object, no prose, no markdown fences:
     }
   ]
 }
+
+Any view may also carry layout hints: "collapsible": true (fold-out panel),
+"collapsed": true (starts folded — good for entry forms that are not needed
+every minute) and "width": "half" | "full".
 
 Rules:
 - 3 to 6 views. Always include at least one "entry" view (the app must be

@@ -9,7 +9,7 @@ import { localeOf, useLang, useT, type Key } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Blocks, Check, MessageCircle, Plus, RefreshCcw, Sparkles, Trash2, Wallet } from "lucide-react";
+import { Blocks, Check, ChevronDown, MessageCircle, Plus, RefreshCcw, Sparkles, Trash2, Wallet } from "lucide-react";
 import { useBuyCredits } from "@/components/buy-credits";
 import { useConfirm } from "@/components/confirm-dialog";
 
@@ -17,6 +17,7 @@ interface Field { column: string; label: string; type?: string; required?: boole
 interface View {
   type: "kpi" | "entry" | "table";
   title: string; hint?: string; table?: string; editable_table?: string; sql?: string;
+  collapsible?: boolean; collapsed?: boolean; width?: "half" | "full";
   tables?: { table: string; label: string }[];
   items?: { label: string; sql: string; unit?: string }[];
   fields?: Field[];
@@ -39,11 +40,11 @@ function useSql(pid: string, sql?: string, key?: string) {
   });
 }
 
-function KpiView({ pid, view }: { pid: string; view: View }) {
+function KpiView({ pid, view, inFold }: { pid: string; view: View; inFold?: boolean }) {
   const { lang } = useLang();
   return (
-    <Card className="p-5">
-      <h3 className="mb-3 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{view.title}</h3>
+    <Card className={inFold ? "border-0 bg-transparent p-4 shadow-none" : "p-5"}>
+      {!inFold && <h3 className="mb-3 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">{view.title}</h3>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {(view.items ?? []).map((it) => <KpiItem key={it.label} pid={pid} item={it} loc={localeOf(lang)} />)}
       </div>
@@ -67,7 +68,7 @@ function KpiItem({ pid, item, loc }: { pid: string; item: { label: string; sql: 
   );
 }
 
-function EntryView({ pid, view }: { pid: string; view: View }) {
+function EntryView({ pid, view, inFold }: { pid: string; view: View; inFold?: boolean }) {
   const t = useT();
   const qc = useQueryClient();
   const options = view.tables ?? (view.table ? [{ table: view.table, label: view.title }] : []);
@@ -86,8 +87,8 @@ function EntryView({ pid, view }: { pid: string; view: View }) {
   });
   const missing = (view.fields ?? []).some((f) => f.required && !values[f.column]?.trim());
   return (
-    <Card className="p-5">
-      <h3 className="text-[14px] font-bold">{view.title}</h3>
+    <Card className={inFold ? "border-0 bg-transparent p-4 shadow-none" : "p-5"}>
+      {!inFold && <h3 className="text-[14px] font-bold">{view.title}</h3>}
       {view.hint && <div className="mb-3 mt-0.5 text-[12px] text-muted-foreground">{view.hint}</div>}
       {options.length > 1 && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -138,14 +139,14 @@ function FieldInput({ pid, field, value, onChange }: { pid: string; field: Field
   );
 }
 
-function TableView({ pid, view }: { pid: string; view: View }) {
+function TableView({ pid, view, inFold }: { pid: string; view: View; inFold?: boolean }) {
   const { lang } = useLang();
   const loc = localeOf(lang);
   const q = useSql(pid, view.sql);
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="border-b border-border px-5 py-3">
-        <h3 className="text-[14px] font-bold">{view.title}</h3>
+    <Card className={inFold ? "overflow-hidden border-0 bg-transparent p-0 shadow-none" : "overflow-hidden p-0"}>
+      <div className={inFold ? "px-5 py-2" : "border-b border-border px-5 py-3"}>
+        {!inFold && <h3 className="text-[14px] font-bold">{view.title}</h3>}
         {view.hint && <div className="mt-0.5 text-[12px] text-muted-foreground">{view.hint}</div>}
       </div>
       <div className="max-h-96 overflow-auto">
@@ -173,6 +174,21 @@ function TableView({ pid, view }: { pid: string; view: View }) {
         {q.isLoading && <div className="p-5 text-sm text-muted-foreground">…</div>}
         {q.isError && <div className="p-5 text-sm text-destructive">{(q.error as Error).message}</div>}
       </div>
+    </Card>
+  );
+}
+
+function Foldable({ view, children }: { view: View; children: React.ReactNode }) {
+  const [open, setOpen] = useState(!view.collapsed);
+  if (!view.collapsible) return <>{children}</>;
+  return (
+    <Card className="overflow-hidden p-0">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-secondary/40">
+        <span className="flex-1 text-[14.5px] font-bold">{view.title}</span>
+        <ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} />
+      </button>
+      {open && <div className="border-t border-border p-1">{children}</div>}
     </Card>
   );
 }
@@ -382,11 +398,17 @@ export function AppTab({ pid, hasTables, onAskChat }: {
           </Button>
         </div>
       </div>
-      {views.map((v, i) => (
-        v.type === "kpi" ? <KpiView key={i} pid={pid} view={v} />
-          : v.type === "entry" ? <EntryView key={i} pid={pid} view={v} />
-            : <TableView key={i} pid={pid} view={v} />
-      ))}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {views.map((v, i) => (
+          <div key={i} className={v.width === "half" ? "lg:col-span-1" : "lg:col-span-2"}>
+            <Foldable view={v}>
+              {v.type === "kpi" ? <KpiView pid={pid} view={v} inFold={!!v.collapsible} />
+                : v.type === "entry" ? <EntryView pid={pid} view={v} inFold={!!v.collapsible} />
+                  : <TableView pid={pid} view={v} inFold={!!v.collapsible} />}
+            </Foldable>
+          </div>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-olive/25 bg-olive/5 px-4 py-3 text-[12.5px]">
         <MessageCircle className="size-4 shrink-0 text-olive" />
         <span className="flex-1">{t("app_edit_hint")}</span>

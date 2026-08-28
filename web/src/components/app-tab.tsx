@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Blocks, Check, ChevronDown, MessageCircle, Plus, RefreshCcw, Sparkles, Trash2, Wallet } from "lucide-react";
 import { useBuyCredits } from "@/components/buy-credits";
 import { useConfirm } from "@/components/confirm-dialog";
+import { TabLoading } from "@/components/dashboard-empty";
 
 interface Field { column: string; label: string; type?: string; required?: boolean; options_sql?: string }
 interface View {
@@ -260,6 +261,10 @@ export function AppTab({ pid, hasTables, onAskChat }: {
 
   const spec = app.data?.app;
   const views = spec?.views ?? [];
+
+  // Until /app answers we do not know whether there is an app. Falling through
+  // showed the "create your first app" screen to people who already had one.
+  if (app.isLoading) return <TabLoading label={t("loading_app")} />;
 
   if (building || thinking) {
     return (

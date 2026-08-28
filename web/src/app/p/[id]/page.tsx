@@ -1,5 +1,5 @@
 "use client";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cacheGet, cacheSet, endpoints, useCachedPlaceholder, type Chart, type ProjectState } from "@/lib/api";
 import { toast } from "sonner";
@@ -20,6 +20,11 @@ import { Button } from "@/components/ui/button";
 import { PresentationDialog } from "@/components/presentation-dialog";
 
 type Tab = "dash" | "app" | "files" | "data";
+const TABS: Tab[] = ["dash", "app", "files", "data"];
+const isTab = (v: string): v is Tab => (TABS as string[]).includes(v);
+// Restoring the tab in a passive effect paints the dashboard first and swaps it
+// a frame later; a layout effect swaps it before the browser paints at all.
+const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: pid } = use(params);
@@ -63,7 +68,23 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     placeholderData: (prev) => prev,
   });
 
-  useEffect(() => { setSelections({}); setTab("dash"); }, [pid]);
+  // The tab lives in the URL, so a refresh comes back where the user was.
+  function goTab(v: Tab) {
+    setTab(v);
+    window.history.replaceState(null, "", v === "dash" ? window.location.pathname : `#${v}`);
+  }
+  useBeforePaint(() => {
+    const h = window.location.hash.slice(1);
+    if (isTab(h)) setTab(h);
+  }, []);
+
+  const knownPid = useRef(pid);
+  useEffect(() => {
+    if (knownPid.current === pid) return;   // mount: keep the tab from the URL
+    knownPid.current = pid;
+    setSelections({});
+    goTab("dash");
+  }, [pid]);
 
   const charts: Chart[] = hasSel && refresh.data ? refresh.data.charts : state.data?.charts ?? [];
   const i18n = useMemo(() => {
@@ -88,7 +109,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       <div className={`sticky top-0 z-40 transition-transform duration-300 ${chromeHidden ? "-translate-y-full" : "translate-y-0"}`}>
         <AppHeader crumb={state.data?.name ?? ""} back plain onRename={(n) => rename.mutate(n)} />
         <div className="flex items-center gap-4 border-b border-border bg-background px-6">
-          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+          <Tabs value={tab} onValueChange={(v) => goTab(v as Tab)}>
             <TabsList className="h-11 bg-transparent p-0">
               {(["dash", "app", "files", "data"] as Tab[]).map((k) => (
                 <TabsTrigger key={k} value={k}
@@ -134,7 +155,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     setPendingReview({ tables: state.data.tables.map((x) => x.table) });
                     setChatOpen(true);
                   } else {
-                    setTab("files");
+                    goTab("files");
                     setTimeout(() => uploadRef.current?.(), 250);
                   }
                 }}

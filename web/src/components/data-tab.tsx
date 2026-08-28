@@ -85,7 +85,13 @@ export function DataTab({ pid, state }: { pid: string; state: ProjectState }) {
               </div>
             </div>
             <div className="border-b border-border px-4 py-1.5 text-[11px] text-muted-foreground">{t("edit_hint")}</div>
-            <div className={`flex-1 overflow-auto ${rows.isFetching ? "opacity-60" : ""}`}>
+            {rows.isLoading && (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+                <span className="size-8 animate-spin rounded-full border-[3px] border-border border-t-olive" />
+                {t("loading_rows")}
+              </div>
+            )}
+            <div className={`flex-1 overflow-auto ${rows.isLoading ? "hidden" : ""} ${rows.isFetching ? "opacity-60" : ""}`}>
               <table className="w-max min-w-full border-collapse text-[12.5px]">
                 <thead className="sticky top-0 z-10 bg-card">
                   <tr>

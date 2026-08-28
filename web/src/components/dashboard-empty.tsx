@@ -47,12 +47,18 @@ export function DashboardEmpty({ onStart, hasTables = false, quote }: {
   );
 }
 
-export function DashboardLoading() {
+/** Every tab owns fetches of its own — none of them may paint an empty or,
+ *  worse, a wrong screen ("no app yet") while its first request is in flight. */
+export function TabLoading({ label }: { label?: string }) {
   const t = useT();
   return (
     <div className="flex min-h-[55vh] flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
       <span className="size-9 animate-spin rounded-full border-[3px] border-border border-t-olive" />
-      {t("loading_project")}
+      {label ?? t("loading_project")}
     </div>
   );
+}
+
+export function DashboardLoading() {
+  return <TabLoading />;
 }

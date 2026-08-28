@@ -241,6 +241,10 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
                  "order, never type size — do not set any figure, heading or line larger "
                  "than the deck's normal scale, and never enlarge text to fill empty space. "
                  "A sparse card stays sparse at reading size.")
+    instr.append("The first card is the title card: it carries the title, the one-line "
+                 "subtitle and the date, and nothing else. Do not add figures, metrics, "
+                 "KPI blocks or a summary to it, whatever any instruction above asks to "
+                 "emphasise — those belong on the cards that follow.")
 
     body = {
         "inputText": input_text,

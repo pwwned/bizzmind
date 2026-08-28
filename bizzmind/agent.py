@@ -1197,6 +1197,10 @@ of the brand) and from the charts we have:
   language), 3-6 sentences, for Gamma: audience, tone, what to emphasise, how
   to order (e.g. summary first, next steps last), never change the numbers and
   keep the charts large and unmodified.
+  Say WHAT matters and in WHAT ORDER — never how it should be typeset. Never ask
+  for big, large, huge, bold, oversized or "visual" numbers or text: the renderer
+  sizes type to fill the card, so asking for large figures produces slides with
+  three enormous words on them. Emphasis is placement and order, not type size.
 - "text_mode": "preserve" if your narratives are complete enough, "generate" if
   you want Gamma to expand them, "condense" if they are long.
 - "image_source": "noImages" for a strict report (only our charts),

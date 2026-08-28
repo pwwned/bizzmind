@@ -229,14 +229,18 @@ def gamma_generate(pid: str, req: GammaRequest, request: Request):
     instr.append("This is a data-driven business report: keep each chart image large and "
                  "unmodified, one chart per card, headline left / chart right. "
                  "Do not invent numbers — use only the figures given.")
-    instr.append("Typography: hold one restrained, consistent type scale across every card. "
-                 "Never enlarge a short line to fill empty space — a sparse card stays "
-                 "sparse with normal-sized type. Keep headings to two lines at most, and "
-                 "keep body text at reading size, not display size.")
     if req.tone:
         instr.append(f"Tone: {req.tone}.")
     if req.extra_instructions:
         instr.append(req.extra_instructions)
+    # Last, so it overrides anything the AI brief asked for. The brief is free
+    # text and drifts towards "set these as large visual numbers", which the
+    # renderer obeys literally and turns into three enormous words on a card.
+    instr.append("Typography rules, overriding any request above: hold one restrained, "
+                 "consistent type scale across every card. Emphasis means placement and "
+                 "order, never type size — do not set any figure, heading or line larger "
+                 "than the deck's normal scale, and never enlarge text to fill empty space. "
+                 "A sparse card stays sparse at reading size.")
 
     body = {
         "inputText": input_text,

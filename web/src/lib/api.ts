@@ -186,6 +186,8 @@ export const endpoints = {
   reset: (pid: string) => post<{ ok: boolean }>(p(pid, "/reset")),
   deleteApp: (pid: string) => del<{ ok: boolean }>(p(pid, "/app")),
   deck: (pid: string) => post<{ job_id: string } | { spec: unknown }>(p(pid, "/deck")),
+  reorderDashboard: (pid: string, order: number[]) =>
+    post<{ ok: boolean }>(p(pid, "/dashboard/reorder"), { order }),
   account: () => api<Account>("/api/account"),
   cancelJob: (id: string) => post<{ ok: boolean; stopped: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`),
   credits: (pid: string) => api<OrgCredits>(p(pid, "/pres/credits")),

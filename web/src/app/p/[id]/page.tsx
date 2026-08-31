@@ -94,6 +94,32 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   }, [state.data, refresh.data]);
   const { orig } = useLabelMaps(i18n);
 
+  // Drag to reorder, as the old dashboard had. The order is applied to the
+  // cached charts at once so the grid moves under the cursor, then persisted.
+  const [dragId, setDragId] = useState<number | null>(null);
+  const [overId, setOverId] = useState<number | null>(null);
+  const reorder = useMutation({
+    mutationFn: (order: number[]) => endpoints.reorderDashboard(pid, order),
+    onError: (e: Error) => { toast.error(e.message); qc.invalidateQueries({ queryKey: ["state", pid] }); },
+  });
+
+  function dropOn(targetId: number, sourceId: number) {
+    const from = Number.isFinite(sourceId) && sourceId ? sourceId : dragId;
+    setDragId(null); setOverId(null);
+    if (from == null || from === targetId || !state.data) return;
+    const ids = state.data.charts.map((c) => c.id);
+    const next = ids.filter((id) => id !== from);
+    next.splice(next.indexOf(targetId), 0, from);
+    const rank = new Map(next.map((id, i) => [id, i]));
+    const sortByRank = <T extends { id: number }>(list: T[]) =>
+      [...list].sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+    qc.setQueryData<ProjectState>(["state", pid], (d) =>
+      d ? { ...d, charts: sortByRank(d.charts) } : d);
+    qc.setQueriesData<{ charts: Chart[] }>({ queryKey: ["refresh", pid] }, (d) =>
+      d ? { ...d, charts: sortByRank(d.charts) } : d);
+    reorder.mutate(next);
+  }
+
   function crossFilter(chart: Chart, label: string) {
     if (!state.data) return;
     const value = orig(label);
@@ -163,7 +189,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             ) : (
               <>
                 <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${refresh.isFetching ? "opacity-70 transition-opacity" : ""}`}>
-                  {charts.map((c) => <ChartCard key={c.id} chart={c} i18n={i18n} onPick={crossFilter} wide={c.chart_type === "table"} />)}
+                  {charts.map((c) => (
+                    <ChartCard key={c.id} chart={c} i18n={i18n} onPick={crossFilter}
+                      wide={c.chart_type === "table"}
+                      drag={{
+                        dragging: dragId === c.id, over: overId === c.id && dragId !== c.id,
+                        onStart: setDragId, onEnd: () => { setDragId(null); setOverId(null); },
+                        onOver: setOverId, onDrop: dropOn,
+                      }} />
+                  ))}
                 </div>
               </>
             )

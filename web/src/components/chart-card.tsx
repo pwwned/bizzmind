@@ -97,8 +97,13 @@ export function buildOption(chart: Chart, L: (s: string) => string, LV: (v: unkn
   };
 }
 
-export function ChartCard({ chart, i18n, onPick, wide }: {
+export function ChartCard({ chart, i18n, onPick, wide, drag }: {
   chart: Chart; i18n?: I18nInfo; onPick?: (chart: Chart, label: string) => void; wide?: boolean;
+  drag?: {
+    dragging: boolean; over: boolean;
+    onStart: (id: number) => void; onEnd: () => void;
+    onOver: (id: number) => void; onDrop: (target: number, source: number) => void;
+  };
 }) {
   const t = useT();
   const { theme } = useTheme();
@@ -107,7 +112,39 @@ export function ChartCard({ chart, i18n, onPick, wide }: {
   const tall = isHorizontal(chart) ? Math.min(560, Math.max(280, chart.rows.length * 30 + 80)) : 300;
 
   return (
-    <Card className={`flex flex-col gap-2 p-5 ${wide ? "col-span-full" : ""}`}>
+    <Card
+      className={`group relative flex flex-col gap-2 p-5 transition-[opacity,box-shadow] ${wide ? "col-span-full" : ""}
+        ${drag?.dragging ? "opacity-40" : ""} ${drag?.over ? "ring-2 ring-olive" : ""}`}
+      onDragOver={drag ? (e) => {
+        if (!drag.dragging) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; drag.onOver(chart.id); }
+      } : undefined}
+      onDragLeave={drag ? () => drag.onOver(-1) : undefined}
+      onDrop={drag ? (e) => {
+        e.preventDefault();
+        // The dragged id travels in the payload rather than in React state:
+        // the drop handler must not depend on a setState having flushed.
+        drag.onDrop(chart.id, Number(e.dataTransfer.getData("text/plain")));
+      } : undefined}
+    >
+      {drag && (
+        <div
+          draggable
+          title={t("drag_reorder")}
+          onDragStart={(e) => {
+            // Chrome abandons a drag that carries no payload, so the drop never
+            // fires — the handle looked draggable but nothing ever moved.
+            e.dataTransfer.setData("text/plain", String(chart.id));
+            e.dataTransfer.effectAllowed = "move";
+            drag.onStart(chart.id);
+          }}
+          onDragEnd={drag.onEnd}
+          className="absolute right-2 top-2 cursor-grab select-none rounded-md px-1.5 py-0.5 text-[15px]
+                     leading-none text-muted-foreground opacity-0 transition-opacity hover:bg-secondary
+                     hover:text-olive group-hover:opacity-100 active:cursor-grabbing"
+        >
+          ⠿
+        </div>
+      )}
       <h3 className="text-[15px] font-bold leading-snug">{chart.title}</h3>
       {chart.insight && <p className="text-[13px] leading-relaxed text-muted-foreground">{chart.insight}</p>}
       {chart.error ? (

@@ -592,6 +592,9 @@ async def refresh_dashboard(pid: str, req: RefreshRequest, request: Request):
             df = run_readonly_sql(proj, apply_filters_to_sql(proj, c["sql"], req.selections), MAX_CHART_ROWS)
             chart["rows"] = frame_to_records(df)
         except Exception as e:
+            # dict(c) carried the last good rows along; shipping them next to an
+            # error invites showing pre-filter data as if it were the answer.
+            chart["rows"] = []
             chart["error"] = str(e)
             log.info(f"[{pid}] refresh: chart #{c['id']} '{_short(c['title'], 40)}' ERROR — {_short(e, 120)}")
         return chart

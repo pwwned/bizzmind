@@ -53,6 +53,14 @@ except ImportError:  # pragma: no cover
         return None
 
 
+# One ceiling for both backends. A fix-check-fix loop is the expensive failure
+# mode: one message reached 41 turns and $2.71 before the subscription cap
+# stopped it, while the API path had no cap at all.
+MAX_TURNS = 40
+# Consecutive failed dashboard checks before the agent must stop repairing and
+# tell the user what is still broken.
+MAX_VERIFY_RETRIES = 3
+
 _client = None
 
 
@@ -418,7 +426,23 @@ def _execute_tool_inner(proj: Project, name: str, tool_input: dict) -> tuple:
 
         if name == "verify_dashboard":
             report = verify_dashboard(proj)
-            return json.dumps(report, ensure_ascii=False), not report["ok"]
+            if report["ok"]:
+                proj.verify_fails = 0
+                return json.dumps(report, ensure_ascii=False), False
+            # Repairing one chart often breaks the check on another; left alone
+            # the agent plays whack-a-mole until the turn ceiling stops it.
+            proj.verify_fails = getattr(proj, "verify_fails", 0) + 1
+            if proj.verify_fails >= MAX_VERIFY_RETRIES:
+                report["stop"] = (
+                    f"You have now failed this check {proj.verify_fails} times in a row. "
+                    "STOP editing charts and do NOT call verify_dashboard again. "
+                    "Either delete the one chart that still fails, or finish your reply "
+                    "by telling the user in plain language which chart could not be made "
+                    "to work and what you would need to fix it.")
+                log.error(f"[{proj.id}] verify: {proj.verify_fails} consecutive failures — "
+                          f"telling the agent to stop; {report.get('errors')}")
+                proj.log_activity("error", T(proj.lang, "act_verify_giveup"))
+            return json.dumps(report, ensure_ascii=False), True
 
         if name == "present_questions":
             proj.new_questions = tool_input["questions"]
@@ -840,7 +864,7 @@ pass unused fields as '' / []. present_questions takes
         ],
         permission_mode="bypassPermissions",
         setting_sources=[],
-        max_turns=40,
+        max_turns=MAX_TURNS,
         cwd=str(proj.dir),
     )
 
@@ -974,10 +998,18 @@ def run_agent_api(proj: Project, user_content: str, images: list | None = None):
     proj.new_charts.clear()
     proj.new_questions = []
 
+    turns = 0
     while True:
         if proj.job_id and jobs.is_cancelled(proj.job_id):
             log.info(f"[{proj.id}] agent: cancelled by user — stopping")
             raise CancelledByUser()
+        turns += 1
+        if turns > MAX_TURNS:
+            # The subscription path has always had this ceiling; without it here
+            # a fix-check-fix loop runs until the money runs out.
+            log.error(f"[{proj.id}] agent: hit the {MAX_TURNS}-turn ceiling — stopping")
+            proj.log_activity("error", T(proj.lang, "act_turn_limit"))
+            break
         try:
             response = client.beta.messages.create(
                 model=getattr(proj, "ai_model_id", None) or MODEL,

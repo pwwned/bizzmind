@@ -118,7 +118,10 @@ export function ChartCard({ chart, i18n, onPick, wide }: {
         <ReactECharts
           option={option!}
           notMerge
-          lazyUpdate
+          // No lazyUpdate: it defers setOption to a later frame, and when a
+          // chart flips to its error state under a filter the component is
+          // unmounted inside that window — echarts then finishes the update
+          // against a disposed instance and throws on getRawIndex.
           style={{ height: tall, width: "100%" }}
           opts={{ renderer: "canvas" }}
           onEvents={{ click: (e: { name?: string }) => e?.name && onPick?.(chart, e.name) }}

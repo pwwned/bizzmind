@@ -133,6 +133,8 @@ def pres_credits(pid: str) -> dict:
             # Quote the whole action: writing the deck + rendering it. Quoting
             # only the render understated the real charge by half.
             "cost": plans.presentation_total(charts),
+            # a prediction for the warning, not a price the user is billed
+            "expensive": plans.expensive(plans.presentation_total(charts), st["remaining"]),
             "cost_brief": plans.deck_cost(charts),
             "cost_render": plans.cost_of("presentation"),
             "costs": plans.COSTS, "models": {k: {"label": v["label"], "min_plan": v["min_plan"]}

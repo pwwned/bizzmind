@@ -128,7 +128,7 @@ export interface PlanDef {
 }
 export interface OrgCredits {
   quota: number; used: number; remaining: number; plan: string; cost: number;
-  cost_brief?: number; cost_render?: number;
+  cost_brief?: number; cost_render?: number; expensive?: boolean;
   costs: Record<string, Record<string, number>>;
   models: Record<string, { label: string; min_plan: string }>;
 }
@@ -192,7 +192,7 @@ export const endpoints = {
   cancelJob: (id: string) => post<{ ok: boolean; stopped: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`),
   credits: (pid: string) => api<OrgCredits>(p(pid, "/pres/credits")),
   quote: (pid: string, kind = "analysis", model = "standard") =>
-    api<{ kind: string; model: string; tables: number; credits: number; remaining: number; affordable: boolean }>(
+    api<{ kind: string; model: string; tables: number; credits: number; remaining: number; affordable: boolean; expensive: boolean }>(
       p(pid, `/quote?kind=${kind}&model=${encodeURIComponent(model)}`)),
   changePassword: (password: string) => post<{ ok: boolean }>("/api/account/password", { password }),
   accountPrefs: (auto_recharge: boolean) => post<{ ok: boolean }>("/api/account/prefs", { auto_recharge }),

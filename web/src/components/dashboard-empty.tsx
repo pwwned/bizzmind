@@ -7,7 +7,7 @@ import { useBuyCredits } from "@/components/buy-credits";
 
 export function DashboardEmpty({ onStart, hasTables = false, quote }: {
   onStart: () => void; hasTables?: boolean;
-  quote?: { credits: number; remaining: number; affordable: boolean };
+  quote?: { credits: number; remaining: number; affordable: boolean; expensive?: boolean };
 }) {
   const t = useT();
   const buyCredits = useBuyCredits();
@@ -28,8 +28,12 @@ export function DashboardEmpty({ onStart, hasTables = false, quote }: {
       <Button onClick={onStart} disabled={hasTables && quote?.affordable === false}
         className="grad-olive font-bold text-primary-foreground hover:opacity-90">
         <Upload className="size-4" />{hasTables ? t("start_analysis") : t("start_upload")}
-        {hasTables && quote && <span className="ml-1 text-[11px] opacity-80">{t("approx_cr", { n: quote.credits })}</span>}
       </Button>
+      {hasTables && quote?.affordable !== false && quote?.expensive && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-700 dark:text-amber-300">
+          {t("cost_warn")}
+        </div>
+      )}
       {hasTables && quote?.affordable === false ? (
         <div className="flex flex-col items-center gap-3">
           <div className="text-[12.5px] font-semibold text-destructive">

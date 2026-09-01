@@ -2,3 +2,4 @@
 claude-agent-sdk      # local subscription mode (bundles the Claude Code CLI)
 duckdb                # legacy: tools/migrate_duckdb.py reads old project files
 sqlalchemy
+pytest                # tests/ — run: .venv/bin/pytest

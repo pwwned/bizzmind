@@ -335,7 +335,6 @@ export function AppTab({ pid, hasTables, onAskChat }: {
           <Button disabled={!chosen || quote.data?.affordable === false} onClick={build}
             className="grad-olive font-bold text-primary-foreground hover:opacity-90">
             <Sparkles className="size-4" />{t("app_build")}
-            {quote.data && <span className="ml-1 text-[11px] opacity-80">{t("approx_cr", { n: quote.data.credits })}</span>}
           </Button>
           <Button variant="ghost" onClick={() => setPlan(null)}>{t("cancel")}</Button>
           {quote.data?.affordable === false && (
@@ -344,6 +343,11 @@ export function AppTab({ pid, hasTables, onAskChat }: {
             </Button>
           )}
         </div>
+        {quote.data?.affordable !== false && quote.data?.expensive && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-700 dark:text-amber-300 max-w-3xl">
+              {t("cost_warn")}
+            </div>
+          )}
       </div>
     );
   }
@@ -357,7 +361,6 @@ export function AppTab({ pid, hasTables, onAskChat }: {
         <Button disabled={!hasTables} onClick={propose}
           className="grad-olive font-bold text-primary-foreground hover:opacity-90">
           <Sparkles className="size-4" />{t("app_propose")}
-          <span className="ml-1 text-[11px] opacity-80">{t("approx_cr", { n: 40 })}</span>
         </Button>
         {quote.data?.affordable === false && (
           <div className="flex flex-col items-center gap-3">

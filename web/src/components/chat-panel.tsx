@@ -28,14 +28,13 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
   const [model, setModel] = useState(() => getModelPref(pid));
   const credits = useQuery({ queryKey: ["pres-credits", pid], queryFn: () => endpoints.credits(pid), staleTime: 60_000 });
   const maxLocked = credits.data ? !["pro", "ultra"].includes(credits.data.plan) : false;
-  const costChat = credits.data?.costs?.chat?.[model];
   const quote = useQuery({
     queryKey: ["quote", pid, model],
     queryFn: () => endpoints.quote(pid, "analysis", model),
     staleTime: 30_000,
   });
-  const costAnalysis = quote.data?.credits ?? credits.data?.costs?.analysis?.[model];
   const canAfford = quote.data?.affordable !== false;
+  const costly = canAfford && quote.data?.expensive === true;
   function pickModel(m: string) { setModel(m); setModelPref(pid, m); }
   const logRef = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(0);
@@ -150,11 +149,6 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
                 </button>
               ))}
             </div>
-            {costAnalysis != null && (
-              <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">
-                {t("cost_hint", { q: costChat ?? 0, a: costAnalysis ?? 0 })}
-              </span>
-            )}
           </div>
           <div className="mt-1 text-[11px] leading-snug text-muted-foreground">
             {t((model === "max" ? "model_max_desc" : "model_standard_desc") as Key)}
@@ -213,11 +207,9 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
               <Textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3} placeholder={t("brief_goal_ph")} className="mt-1 max-h-40 overflow-auto text-[13px]" />
             </label>
             <div className="sticky bottom-0 -mx-3 -mb-3 flex flex-wrap items-center justify-end gap-2 rounded-b-xl border-t border-olive/20 bg-popover/95 px-3 py-2 backdrop-blur">
-              {quote.data && (
-                <span className={`mr-auto text-[11.5px] ${canAfford ? "text-muted-foreground" : "font-semibold text-destructive"}`}>
-                  {canAfford
-                    ? t("quote_line", { n: quote.data.credits, tables: quote.data.tables, left: quote.data.remaining })
-                    : t("quote_short", { n: quote.data.credits, left: quote.data.remaining })}
+              {quote.data && (!canAfford || costly) && (
+                <span className={`mr-auto text-[11.5px] font-semibold ${canAfford ? "text-amber-700 dark:text-amber-300" : "text-destructive"}`}>
+                  {canAfford ? t("cost_warn") : t("quote_short", { n: quote.data.credits, left: quote.data.remaining })}
                 </span>
               )}
               <Button size="sm" variant="ghost" onClick={() => startReview(brief.tables, "", "")} disabled={!canAfford}>{t("brief_skip")}</Button>
@@ -257,7 +249,7 @@ export function ChatPanel({ pid, initial, open, onOpenChange, pending, seed, onS
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(text); } }}
             onPaste={(e) => { const f = Array.from(e.clipboardData.files); if (f.length) { e.preventDefault(); addShots(f); } }}
             className="min-h-0 resize-none" disabled={busy} />
-          <Button type="submit" disabled={busy || (!text.trim() && !shots.length)} title={costChat != null ? t("approx_cr", { n: costChat }) : ""}
+          <Button type="submit" disabled={busy || (!text.trim() && !shots.length)}
             className="grad-olive text-primary-foreground"><Send className="size-4" /></Button>
         </form>
       </aside>

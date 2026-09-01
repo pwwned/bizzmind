@@ -44,9 +44,8 @@ COSTS = {
     "presentation": {"standard": 80, "max": 80},     # engine cost does not depend on the model
     # The AI that writes the deck content and design brief. Estimate only: the
     # job settles on real token spend. Every chart's data goes into the prompt,
-    # so the bill grows with the dashboard — measured at 240 credits ($0.475,
-    # 126k input tokens) for 8 charts. The base leaves room above that so the
-    # overrun cap stays a runaway guard and does not shave normal settlements.
+    # so the prediction grows with the dashboard — measured at $0.475 (126k input
+    # tokens) for 8 charts. Predictions only warn or block; they never bill.
     "deck":         {"standard": 300, "max": 300},   # deck runs on the default model
 }
 
@@ -85,7 +84,7 @@ def engine_cost_usd(engine_credits: int) -> float:
     """What the engine's own consumption cost us, in dollars."""
     return max(0, int(engine_credits or 0)) * ENGINE_CREDIT_USD
 
-# The estimate shown BEFORE the run (and the ceiling for the final charge):
+# The prediction shown BEFORE the run (a warning or a block, never the bill):
 # analysis price scales with how much data the AI has to read: a 45-sheet
 # workbook costs us ~3x a 3-sheet one, so it costs the user more too.
 ANALYSIS_TIERS = [(10, 1.0), (30, 1.6), (10**9, 2.4)]   # (max tables, multiplier)
@@ -108,14 +107,29 @@ def norm_model(model: str | None) -> str:
     return model if model in MODELS else "standard"
 
 
+# What the user pays on top of our raw spend. The plan price already carries a
+# margin per credit; this is the second lever, applied to every settled action.
+# George's number to set — overridable without a deploy.
+SPEND_MARKUP = float(os.environ.get("SPEND_MARKUP") or 1.5)
+
+# A predicted spend at or above this share of the remaining balance gets a
+# warning before the user commits (the balance not covering it blocks outright).
+EXPENSIVE_SHARE = 0.25
+
+
 def credits_from_usd(cost_usd: float) -> int:
-    """Actual spend -> credits, rounded up to a friendly 10."""
+    """Actual spend -> credits, marked up, rounded up to a friendly 10.
+    Nothing spent, nothing charged."""
     import math
-    return max(10, int(math.ceil(cost_usd * CREDITS_PER_USD / 10.0) * 10))
+    if not cost_usd or cost_usd <= 0:
+        return 0
+    return max(10, int(math.ceil(cost_usd * CREDITS_PER_USD * SPEND_MARKUP / 10.0) * 10))
 
 
-# how much over the estimate a settlement may go (protects the user from surprises)
-OVERRUN_CAP = 1.25
+def expensive(estimate: int, remaining: int) -> bool:
+    """Worth warning about before the run: the prediction eats a big bite of
+    what is left. (Not affordable at all is a separate, blocking answer.)"""
+    return remaining > 0 and estimate >= remaining * EXPENSIVE_SHARE
 
 
 def cost_of(kind: str, model: str | None = None, tables: int = 0) -> int:
@@ -225,20 +239,22 @@ def reserve(pid: str, kind: str, lang: str, model: str | None = None, tables: in
     return est
 
 
-def settle(pid: str, kind: str, cost_usd: float, estimate: int, model: str | None = None) -> int:
-    """Charge what the action really cost, never more than the quoted estimate
-    plus a small buffer. Returns the credits actually taken."""
-    credits = credits_from_usd(cost_usd or 0)
-    capped = min(credits, int(estimate * OVERRUN_CAP)) if estimate else credits
+def settle(pid: str, kind: str, cost_usd: float, estimate: int = 0, model: str | None = None) -> int:
+    """Charge exactly what the action cost us, marked up. Returns the credits
+    taken. The estimate is accepted so callers stay unchanged, but it no longer
+    caps the charge: a cap made us absorb every overrun (one looping message
+    cost $2.71 and billed 50 credits). Runaways are stopped by the turn ceiling
+    and flagged before the run — not paid for by us afterwards."""
+    credits = credits_from_usd(cost_usd)
     org = org_of_project(pid)
-    if org is None or capped <= 0:
+    if org is None or credits <= 0:
         return 0
     with pool().connection() as con:
         con.execute("UPDATE public.organizations SET credits_used = credits_used + %s WHERE id = %s",
-                    (capped, org))
+                    (credits, org))
         con.execute("INSERT INTO public.credit_events (org_id, project_id, kind, credits) "
-                    "VALUES (%s, %s, %s, %s)", (org, pid, kind, capped))
-    return capped
+                    "VALUES (%s, %s, %s, %s)", (org, pid, kind, credits))
+    return credits
 
 
 def charge(pid: str, kind: str, lang: str, model: str | None = None, tables: int = 0) -> None:

@@ -681,8 +681,11 @@ def quote(pid: str, kind: str = "analysis", model: str = "standard", request: Re
     org = plans.org_of_project(pid)
     st = plans.org_state(org) if org else {"remaining": 0}
     need = plans.cost_of(kind, model, tables if kind == "analysis" else 0)
+    # `credits` is a prediction for the two flags below, not a price: the bill
+    # is settled from real spend afterwards.
     return {"kind": kind, "model": model, "tables": tables, "credits": need,
-            "remaining": st["remaining"], "affordable": st["remaining"] >= need}
+            "remaining": st["remaining"], "affordable": st["remaining"] >= need,
+            "expensive": plans.expensive(need, st["remaining"])}
 
 
 @router.delete("/api/p/{pid}/app")

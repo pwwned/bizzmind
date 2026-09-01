@@ -9,13 +9,13 @@ import { api, endpoints, p as apiPath, runJob, type Chart, type I18nInfo } from 
 
 import { localeOf, useLang, useT } from "@/lib/i18n";
 import { buildOption, PALETTES, useLabelMaps } from "@/components/chart-card";
+import { seriesPalette, themeScore, type GammaTheme } from "@/lib/deck-theme";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Presentation, ExternalLink, Download, Sparkles } from "lucide-react";
 
-interface GammaTheme { id: string; name: string; type?: string; colorKeywords?: string[]; toneKeywords?: string[] }
 interface GammaOptions {
   enabled: boolean; public_images?: boolean; themes?: GammaTheme[];
   text_modes?: { id: string; label: string; hint: string }[];
@@ -44,54 +44,6 @@ function scaleFonts(node: unknown, k: number) {
     if (key === "fontSize" && typeof o[key] === "number") o[key] = Math.round((o[key] as number) * k);
     else scaleFonts(o[key], k);
   }
-}
-
-/* A brand book's palette is not a series palette: it carries pale neutrals meant
-   for backgrounds and near-identical tints that become the same colour once they
-   sit next to each other in a legend. Keep only what reads apart — from the white
-   slide and from each other — then darken each survivor so a chart with more
-   series than brand colours still never repeats one. */
-function seriesPalette(brand: string[] | undefined, fallback: string[]): string[] {
-  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  const gap = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-  const kept: string[] = [];
-  for (const c of brand ?? []) {
-    if (!/^#[0-9a-f]{6}$/i.test(c)) continue;
-    const v = rgb(c);
-    if (gap(v, [255, 255, 255]) < 90) continue;              // washes out on a white slide
-    if (kept.some((k) => gap(rgb(k), v) < 60)) continue;      // twin of one already kept
-    kept.push(c);
-  }
-  if (kept.length < 3) return fallback;
-  const darker = kept.map((c) => "#" + rgb(c).map((n) =>
-    Math.round(n * 0.55).toString(16).padStart(2, "0")).join(""));
-  return [...kept, ...darker];
-}
-
-/* Which colour words describe this brand's own family. */
-function hueWords(hex: string): RegExp {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) return /$^/;
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  const max = Math.max(r, g, b);
-  if (max - Math.min(r, g, b) < 30) return /gray|grey|black|white|mono|b&w/;
-  if (b === max) return max < 110 ? /navy|deep blue|dark blue/ : /blue|azure|sky|teal/;
-  if (g === max) return /green|olive|emerald|forest|sage/;
-  return g > b ? /orange|amber|gold|earth/ : /red|crimson|burgundy|maroon/;
-}
-
-function themeScore(th: GammaTheme, brandPrimary: string) {
-  const kw = [...(th.colorKeywords ?? []), ...(th.toneKeywords ?? [])].map((k) => k.toLowerCase());
-  const has = (re: RegExp) => kw.some((k) => re.test(k));
-  // Deliberately no bonus for `type === "custom"`: the custom themes live in OUR
-  // Gamma workspace, so preferring one would stamp our identity on the client's
-  // deck — the opposite of what a white-label deliverable should do.
-  let score = 0;
-  if (has(hueWords(brandPrimary.toLowerCase()))) score += 5;   // the brand's own colour family
-  if (has(/corporate|professional|business|formal|editorial/)) score += 3;
-  if (has(/clean|minimal|refined|serious/)) score += 2;
-  if (has(/light|white/)) score += 1;                          // business decks get printed
-  if (has(/playful|fun|retro|neon|grunge|hand|comic|whimsical|bold/)) score -= 4;
-  return score;
 }
 
 export function PresentationDialog({ pid, name, charts, i18n, brandPrimary, brandColors }: {
@@ -431,10 +383,8 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary, bran
               <span className={`text-[12px] ${remaining <= 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
                 {remaining <= 0 ? t("pres_no_credits") : t("credits_left", { n: remaining.toLocaleString(localeOf(lang)) })}
               </span>
-              {credits.data?.cost_brief != null && credits.data?.cost_render != null && (
-                <span className="text-[11px] text-muted-foreground/80">
-                  {t("pres_cost_split", { brief: credits.data.cost_brief, render: credits.data.cost_render })}
-                </span>
+              {remaining > 0 && credits.data?.expensive && (
+                <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">{t("cost_warn")}</span>
               )}
             </span>
           )}
@@ -443,7 +393,6 @@ export function PresentationDialog({ pid, name, charts, i18n, brandPrimary, bran
             disabled={busy || !o?.enabled || (remaining != null && remaining <= 0)}
             onClick={() => void generate()}>
             {generating ? t("generating") : result ? t("generate_again") : t("generate")}
-            {!generating && credits.data && <span className="ml-1.5 text-[11px] font-semibold opacity-80">{t("approx_cr", { n: credits.data.cost })}</span>}
           </Button>
         </DialogFooter>
       </DialogContent>
